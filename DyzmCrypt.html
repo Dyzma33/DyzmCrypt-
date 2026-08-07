@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v201 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v202 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7114,7 +7114,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v201 · EXECUTION OS</div>
+    <div class="splash-ver">v202 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7374,7 +7374,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v201</div>
+      <div class="sb-logo-sub">EXECUTION OS · v202</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7977,7 +7977,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v201';
+window.DC_VERSION = 'v202';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -16680,17 +16680,65 @@ function opzRenderPositions() {
   if (desk) {
     if (opzPositions.length === 0) { desk.style.display = 'none'; desk.innerHTML = ''; }
     else {
-      const totRisk = opzPositions.reduce(function(a,p){ return a + (parseFloat(p.risk)||0); }, 0);
-      const totGain = opzPositions.reduce(function(a,p){ return a + (parseFloat(p.risk)||0) * (parseFloat(p.rr)||0); }, 0);
-      const avgRR = totRisk > 0 ? (totGain / totRisk) : 0;
+      // ══ V202: RISK DESK LICZONY WG NOWYCH ZASAD ══
+      // Dotąd: ryzyko = suma pełnych ryzyk (ignorowało SL→BE i częściowe TP),
+      // potencjał i średni RR = z ZASIĘGU setupu (zawyżone względem planu).
+      // Teraz każda liczba opisuje rzeczywistość: realną ekspozycję, potencjał
+      // z planu wyjścia oraz to, co już zaklepane częściowymi TP.
+      const _has = typeof tpRiskOnTable === 'function';
+      const totRisk = opzPositions.reduce(function(a,p){
+        return a + (_has ? tpRiskOnTable(p) : (parseFloat(p.risk)||0)); }, 0);
+      const fullRisk = opzPositions.reduce(function(a,p){ return a + (parseFloat(p.risk)||0); }, 0);
+      // potencjał: to, co jeszcze przed Tobą wg planu (bez już zamkniętych nóg)
+      const planLeft = opzPositions.reduce(function(a,p){
+        return a + (typeof tpPotentialUsd === 'function' ? tpPotentialUsd(p)
+                 : (parseFloat(p.risk)||0) * (parseFloat(p.rr)||0)); }, 0);
+      const fullGain = opzPositions.reduce(function(a,p){
+        return a + (parseFloat(p.risk)||0) * (parseFloat(p.rr)||0); }, 0);
+      const locked = opzPositions.reduce(function(a,p){
+        return a + (typeof tpLockedUsd === 'function' ? tpLockedUsd(p) : 0); }, 0);
+      // średni plan RRR — ważony ryzykiem pozycji
+      const planR = opzPositions.reduce(function(a,p){
+        return a + (parseFloat(p.risk)||0) * (typeof tpExpR === 'function' ? tpExpR(p) : (parseFloat(p.rr)||0)); }, 0);
+      const avgPlanR = fullRisk > 0 ? (planR / fullRisk) : 0;
+      const avgFullR = fullRisk > 0 ? (fullGain / fullRisk) : 0;
+      const beN = opzPositions.filter(function(p){ return p.beMoved; }).length;
+      const tpN = opzPositions.reduce(function(a,p){
+        return a + ((typeof tpFills === 'function') ? tpFills(p).length : 0); }, 0);
       const longs = opzPositions.filter(function(p){ return p.dir !== 'SHORT'; }).length;
       const shorts = opzPositions.length - longs;
+      const freeN = opzPositions.filter(function(p){
+        return _has && tpRiskOnTable(p) <= 0.001; }).length;
+
       desk.style.display = '';
       desk.innerHTML =
-        '<div class="opz-desk-cell dk-red"><div class="opz-desk-l">Ryzyko na stole</div><div class="opz-desk-v red">−' + totRisk.toFixed(2) + '$</div><div class="opz-desk-s">' + opzPositions.length + ' otwarte</div></div>'
-        + '<div class="opz-desk-cell dk-green"><div class="opz-desk-l">Łączny potencjał</div><div class="opz-desk-v green">+' + totGain.toFixed(2) + '$</div><div class="opz-desk-s">przy pełnych celach</div></div>'
-        + '<div class="opz-desk-cell dk-cyan"><div class="opz-desk-l">Średni RR</div><div class="opz-desk-v cyan">' + avgRR.toFixed(1) + 'R</div><div class="opz-desk-s">ważony ryzykiem</div></div>'
-        + '<div class="opz-desk-cell dk-gold"><div class="opz-desk-l">Ekspozycja</div><div class="opz-desk-v gold">' + longs + 'L · ' + shorts + 'S</div><div class="opz-desk-s">long / short</div></div>';
+        '<div class="opz-desk-cell dk-red"><div class="opz-desk-l">Ryzyko na stole</div>'
+        + '<div class="opz-desk-v ' + (totRisk > 0 ? 'red' : 'green') + '">'
+        + (totRisk > 0 ? '−' + totRisk.toFixed(2) : '0.00') + '$</div>'
+        + '<div class="opz-desk-s">' + (totRisk < fullRisk - 0.01
+            ? 'z ' + fullRisk.toFixed(2) + '$ startowych'
+            : opzPositions.length + ' otwarte') + '</div></div>'
+
+        + '<div class="opz-desk-cell dk-green"><div class="opz-desk-l">Potencjał z planu</div>'
+        + '<div class="opz-desk-v green">+' + planLeft.toFixed(2) + '$</div>'
+        + '<div class="opz-desk-s">bez TP: ' + fullGain.toFixed(2) + '$</div></div>'
+
+        + '<div class="opz-desk-cell dk-cyan"><div class="opz-desk-l">Zaklepane</div>'
+        + '<div class="opz-desk-v ' + (locked > 0 ? 'green' : 'cyan') + '">'
+        + (locked >= 0 ? '+' : '') + locked.toFixed(2) + '$</div>'
+        + '<div class="opz-desk-s">' + (tpN ? tpN + ' TP zrealizowanych' : 'brak częściowych TP') + '</div></div>'
+
+        + '<div class="opz-desk-cell dk-cyan"><div class="opz-desk-l">Średni plan RRR</div>'
+        + '<div class="opz-desk-v cyan">' + avgPlanR.toFixed(2) + 'R</div>'
+        + '<div class="opz-desk-s">zasięg ' + avgFullR.toFixed(1) + 'R · ważone ryzykiem</div></div>'
+
+        + '<div class="opz-desk-cell dk-blue"><div class="opz-desk-l">Zabezpieczone</div>'
+        + '<div class="opz-desk-v ' + (beN ? 'blue' : 'dim') + '">' + beN + ' / ' + opzPositions.length + '</div>'
+        + '<div class="opz-desk-s">' + (freeN ? freeN + ' darmowych pozycji' : 'SL na wejściu') + '</div></div>'
+
+        + '<div class="opz-desk-cell dk-gold"><div class="opz-desk-l">Ekspozycja</div>'
+        + '<div class="opz-desk-v gold">' + longs + 'L · ' + shorts + 'S</div>'
+        + '<div class="opz-desk-s">long / short</div></div>';
     }
   }
 
@@ -32991,5 +33039,14 @@ body.dc-phone #panel-pozycje .opz-cell-sub{font-size:9px;}
   border:1px solid rgba(122,162,255,.4);border-radius:10px;padding:5px 10px;}
 body.dc-phone #panel-journal .tl-leg{font-size:10px;padding:7px 12px;}
 body.dc-phone #panel-journal .tl-be{font-size:9.5px;padding:7px 12px;}
+
+
+/* ══ V202 · RISK DESK — sześć kafli, nowe kolory ══ */
+#panel-pozycje .opz-desk-cell.dk-blue{--dkc:#7aa2ff;}
+#panel-pozycje .opz-desk-v.blue{color:#9dc0ff !important;}
+#panel-pozycje .opz-desk-v.dim{color:rgba(200,220,240,.45) !important;}
+#panel-pozycje #opzDesk{grid-template-columns:repeat(auto-fit,minmax(155px,1fr)) !important;}
+body.dc-phone #panel-pozycje #opzDesk{grid-template-columns:1fr 1fr !important;}
+body.dc-phone #panel-pozycje .opz-desk-s{font-size:8.5px !important;line-height:1.4 !important;}
 </style>
 <!-- ════════ END V80 DASHBOARD CSS ════════ -->
