@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v202 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v203 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7114,7 +7114,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v202 · EXECUTION OS</div>
+    <div class="splash-ver">v203 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7374,7 +7374,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v202</div>
+      <div class="sb-logo-sub">EXECUTION OS · v203</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7560,6 +7560,13 @@ body.os-lockdown #workspace::before {
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M8 1.5V3.5M8 12.5V14.5M1.5 8H3.5M12.5 8H14.5M3.4 3.4L4.8 4.8M11.2 11.2L12.6 12.6M3.4 12.6L4.8 11.2M11.2 4.8L12.6 3.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
         </span>
         <span class="sb-label">Ustawienia</span>
+      </div>
+
+      <div class="sb-item" onclick="navTo('bieganie',this)" data-tooltip="Bieganie" data-tier="secondary">
+        <span class="sb-icon">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="9.6" cy="2.9" r="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M8.7 5.4L6.2 6.9L5.1 9.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.7 5.4L11.2 6.6L12.4 9.1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.2 7.6L9.1 10.4L11.4 13.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.1 10.4L6.1 11.6L4.2 14.1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="sb-label">Bieganie</span>
       </div>
     </div>
 
@@ -7953,7 +7960,7 @@ body.os-lockdown #workspace::before {
 const _SB_URL = 'https://kawkfhvijblbdnlwsese.supabase.co';
 const _SB_KEY = 'sb_publishable_0G0d3H6TuYNyEBdDcCo_QA_w2Mma09p';
 const _SB_SESS = 'dc_sb_session_v2';
-const _DC_KEYS = ['day','trades','sessions','krdCounters','krdLastTrigger','riskState','archive','activeState','levelState','positions','lastAutoArchive','pdbHistory','settings','medState','todayExec','todaySupp','dayReview','tradeShots','sessionlog','sessionShots'];
+const _DC_KEYS = ['day','trades','sessions','krdCounters','krdLastTrigger','riskState','archive','activeState','levelState','positions','lastAutoArchive','pdbHistory','settings','medState','todayExec','todaySupp','dayReview','tradeShots','sessionlog','sessionShots','runState'];
 
 // ══ V128: KANONICZNA GRANICA DNIA ══
 // toISOString() zwraca datę UTC — Polska to UTC+1/UTC+2, więc między północą
@@ -7977,7 +7984,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v202';
+window.DC_VERSION = 'v203';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -16009,6 +16016,340 @@ updateExposureBar();
   </div>
 </div>
 
+<div class="panel tier-secondary" id="panel-bieganie">
+
+<style>
+/* ══════════════════════════════════════════════════════════════
+   MODUŁ BIEGANIE — v203
+   Port z próbki v08. Namespace rn- wszędzie (patrz PRZEKAZANIE ·
+   sekcja IV). Paleta: żadnych nowych zmiennych — używa istniejących
+   --gold/--gold2/--cyan/--green/--red/--purple/--orange/--text/--dim.
+══════════════════════════════════════════════════════════════ */
+#panel-bieganie .rn-wrap{max-width:1000px;margin:0 auto;}
+#panel-bieganie .rn-hdr{border:1px solid var(--border);border-radius:15px;padding:17px 19px;margin-bottom:12px;
+  background:linear-gradient(155deg,rgba(240,180,41,.08),transparent 62%),var(--bg2);position:relative;overflow:hidden;}
+#panel-bieganie .rn-hdr::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+#panel-bieganie .rn-htop{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;}
+#panel-bieganie .rn-mname{font-family:'Orbitron',monospace;font-weight:900;font-size:21px;letter-spacing:3.5px;color:var(--gold2);}
+#panel-bieganie .rn-msub{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:2px;margin-top:3px;}
+#panel-bieganie .rn-gv{text-align:right;}
+#panel-bieganie .rn-goal{display:flex;gap:18px;flex-wrap:wrap;}
+#panel-bieganie .rn-gn{font-family:'Share Tech Mono',monospace;font-size:27px;font-weight:700;line-height:1;color:var(--cyan);font-variant-numeric:tabular-nums;}
+#panel-bieganie .rn-gl{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1.7px;margin-top:3px;text-transform:uppercase;}
+#panel-bieganie .rn-grid{display:grid;gap:11px;margin-bottom:12px;}
+#panel-bieganie .rn-g4{grid-template-columns:repeat(4,1fr);}
+@media(max-width:720px){#panel-bieganie .rn-g4{grid-template-columns:repeat(2,1fr);}}
+#panel-bieganie .rn-card{border:1px solid var(--border2);border-radius:12px;background:var(--bg2);padding:13px 14px;position:relative;overflow:hidden;}
+#panel-bieganie .rn-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--rn-acc,var(--gold));opacity:.7;}
+#panel-bieganie .rn-card.rn-acc{border-color:rgba(240,180,41,.3);}
+#panel-bieganie .rn-kl{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px;}
+#panel-bieganie .rn-kv{font-family:'Orbitron',monospace;font-size:21px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;}
+#panel-bieganie .rn-ks{font-family:'Share Tech Mono',monospace;font-size:9.5px;color:var(--dim2);margin-top:4px;}
+#panel-bieganie .rn-gold{color:var(--gold2);}
+#panel-bieganie .rn-cy{color:var(--cyan);}
+#panel-bieganie .rn-gr{color:var(--green);}
+#panel-bieganie .rn-pu{color:var(--purple);}
+#panel-bieganie .rn-rd{color:var(--red);}
+#panel-bieganie .rn-dm{color:var(--dim);}
+#panel-bieganie .rn-sec{border:1px solid var(--border2);border-radius:13px;background:var(--bg2);margin-bottom:12px;overflow:hidden;position:relative;}
+#panel-bieganie .rn-sec::before{content:'';position:absolute;top:0;left:16px;right:52%;height:1.5px;background:linear-gradient(90deg,var(--rn-acc,var(--gold)),transparent);opacity:.6;}
+#panel-bieganie .rn-sh{padding:12px 15px;border-bottom:1px solid var(--border2);display:flex;justify-content:space-between;
+  align-items:center;gap:10px;background:linear-gradient(90deg,rgba(240,180,41,.045),transparent);}
+#panel-bieganie .rn-st{font-family:'Orbitron',monospace;font-weight:800;font-size:10.5px;letter-spacing:2.4px;color:var(--gold2);}
+#panel-bieganie .rn-sn{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);text-align:right;letter-spacing:.5px;}
+#panel-bieganie .rn-sb{padding:14px 15px;}
+
+/* checklista */
+#panel-bieganie .rn-chk{display:flex;flex-direction:column;gap:8px;}
+#panel-bieganie .rn-ci{display:grid;grid-template-columns:26px 1fr auto;gap:11px;align-items:center;
+  padding:11px 13px;border-radius:10px;border:1px solid var(--border2);background:rgba(0,0,0,.28);}
+#panel-bieganie .rn-ci.rn-ok{border-color:rgba(0,232,122,.4);background:rgba(0,232,122,.05);}
+#panel-bieganie .rn-cbox{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;font-size:12px;color:transparent;flex-shrink:0;}
+#panel-bieganie .rn-ci.rn-ok .rn-cbox{border-color:var(--green);background:rgba(0,232,122,.16);color:var(--green);}
+#panel-bieganie .rn-cn{font-weight:700;font-size:13.5px;}
+#panel-bieganie .rn-cd{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);margin-top:2px;}
+#panel-bieganie .rn-cc{font-family:'Orbitron',monospace;font-size:15px;font-weight:800;color:var(--gold2);white-space:nowrap;font-variant-numeric:tabular-nums;}
+#panel-bieganie .rn-ci.rn-ok .rn-cc{color:var(--green);}
+#panel-bieganie .rn-dots{display:flex;gap:4px;margin-top:6px;}
+#panel-bieganie .rn-dots i{width:16px;height:5px;border-radius:2px;background:rgba(255,255,255,.07);display:block;}
+#panel-bieganie .rn-dots i.rn-f{background:var(--gold2);}
+#panel-bieganie .rn-ci.rn-ok .rn-dots i.rn-f{background:var(--green);}
+#panel-bieganie .rn-totbar{height:7px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;margin-top:14px;}
+#panel-bieganie .rn-totbar i{display:block;height:100%;border-radius:4px;
+  background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .45s;}
+#panel-bieganie .rn-totbar.rn-done i{background:linear-gradient(90deg,#00b35f,var(--green));}
+
+/* drabina */
+#panel-bieganie .rn-lad{display:flex;flex-direction:column;gap:4px;}
+#panel-bieganie .rn-lv{display:grid;grid-template-columns:38px 1fr auto;gap:10px;align-items:center;
+  padding:9px 11px;border-radius:8px;border:1px solid transparent;background:rgba(255,255,255,.016);}
+#panel-bieganie .rn-lv.rn-done{border-color:rgba(0,232,122,.22);background:rgba(0,232,122,.045);}
+#panel-bieganie .rn-lv.rn-act{border-color:var(--gold);background:rgba(240,180,41,.09);}
+#panel-bieganie .rn-lv.rn-lock{opacity:.4;}
+#panel-bieganie .rn-lvn{font-family:'Orbitron',monospace;font-weight:800;font-size:11px;color:var(--dim);text-align:center;}
+#panel-bieganie .rn-lv.rn-done .rn-lvn{color:var(--green);}
+#panel-bieganie .rn-lv.rn-act .rn-lvn{color:var(--gold2);}
+#panel-bieganie .rn-lvt{font-weight:700;font-size:13px;}
+#panel-bieganie .rn-lvd{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim);margin-top:2px;line-height:1.5;}
+#panel-bieganie .rn-lvb{font-family:'Orbitron',monospace;font-size:10px;color:var(--dim2);text-align:right;white-space:nowrap;}
+#panel-bieganie .rn-vtag{font-family:'Share Tech Mono',monospace;font-size:8px;padding:2px 7px;border-radius:7px;
+  background:rgba(155,109,255,.18);color:var(--purple);margin-left:5px;}
+
+/* formularze */
+#panel-bieganie .rn-frm{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+@media(max-width:780px){#panel-bieganie .rn-frm{grid-template-columns:repeat(2,1fr);}}
+#panel-bieganie .rn-fi{display:flex;flex-direction:column;gap:4px;}
+#panel-bieganie .rn-fi label{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim);letter-spacing:1.1px;text-transform:uppercase;}
+#panel-bieganie .rn-fi input{background:rgba(0,0,0,.4);border:1px solid var(--border2);border-radius:8px;padding:10px 11px;
+  color:var(--text2);font-family:'Share Tech Mono',monospace;font-size:13px;outline:none;width:100%;transition:border-color .2s;}
+#panel-bieganie .rn-fi input:focus{border-color:rgba(240,180,41,.5);}
+#panel-bieganie .rn-btn{background:linear-gradient(180deg,#f6c94e,#e8a91f);border:none;
+  border-radius:10px;padding:13px 17px;color:#0a0c06;font-family:'Orbitron',monospace;font-weight:800;
+  font-size:11px;letter-spacing:1.8px;cursor:pointer;width:100%;box-shadow:0 4px 16px rgba(240,180,41,.2);transition:all .2s;}
+#panel-bieganie .rn-btn:hover{filter:brightness(1.08);transform:translateY(-1px);}
+#panel-bieganie .rn-btn.rn-gh{background:transparent;border:1px solid var(--border2);color:var(--dim);box-shadow:none;}
+#panel-bieganie .rn-btn.rn-sm{padding:9px 15px;font-size:9.5px;width:auto;}
+#panel-bieganie .rn-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;}
+#panel-bieganie .rn-chip{padding:8px 13px;border-radius:14px;border:1px solid var(--border2);background:rgba(0,0,0,.3);
+  font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);cursor:pointer;transition:all .15s;}
+#panel-bieganie .rn-chip:hover{color:var(--text2);border-color:var(--border);}
+#panel-bieganie .rn-chip.rn-on{background:rgba(240,180,41,.14);border-color:var(--gold);color:var(--gold2);}
+#panel-bieganie .rn-chip.rn-on.rn-c-long{background:rgba(155,109,255,.14);border-color:var(--purple);color:var(--purple);}
+#panel-bieganie .rn-chip.rn-on.rn-c-int{background:rgba(255,58,92,.14);border-color:var(--red);color:var(--red);}
+#panel-bieganie .rn-chip.rn-on.rn-c-mw{background:rgba(0,200,240,.14);border-color:var(--cyan);color:var(--cyan);}
+#panel-bieganie .rn-chip.rn-on.rn-c-czas{background:rgba(0,232,122,.14);border-color:var(--green);color:var(--green);}
+
+/* historia — karty sesji */
+#panel-bieganie .rn-scard{border:1px solid var(--border2);border-radius:10px;padding:10px 12px;margin-bottom:6px;
+  background:rgba(255,255,255,.016);display:grid;grid-template-columns:auto 1fr auto;gap:11px;align-items:center;}
+#panel-bieganie .rn-scard.rn-out{opacity:.4;}
+#panel-bieganie .rn-sdate{font-family:'Orbitron',monospace;font-size:11px;color:var(--dim);text-align:center;min-width:40px;}
+#panel-bieganie .rn-sdate b{display:block;font-size:15px;color:var(--text);}
+#panel-bieganie .rn-smain{min-width:0;}
+#panel-bieganie .rn-stop{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+#panel-bieganie .rn-sdist{font-family:'Orbitron',monospace;font-size:14px;font-weight:800;}
+#panel-bieganie .rn-sbot{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);margin-top:3px;}
+#panel-bieganie .rn-sright{text-align:right;font-family:'Orbitron',monospace;font-size:12px;}
+#panel-bieganie .rn-tp{font-family:'Share Tech Mono',monospace;font-size:8.5px;padding:2px 7px;border-radius:8px;letter-spacing:.5px;}
+#panel-bieganie .rn-tp.rn-tp-easy{background:rgba(240,180,41,.12);color:var(--gold2);}
+#panel-bieganie .rn-tp.rn-tp-long{background:rgba(155,109,255,.12);color:var(--purple);}
+#panel-bieganie .rn-tp.rn-tp-int{background:rgba(255,58,92,.12);color:var(--red);}
+#panel-bieganie .rn-tp.rn-tp-mw{background:rgba(0,200,240,.12);color:var(--cyan);}
+#panel-bieganie .rn-tp.rn-tp-czas{background:rgba(0,232,122,.12);color:var(--green);}
+#panel-bieganie .rn-tp.rn-tp-rec{background:rgba(255,255,255,.06);color:var(--dim);}
+#panel-bieganie .rn-tp.rn-tp-tempo{background:rgba(255,150,0,.12);color:var(--orange);}
+#panel-bieganie .rn-kro{font-family:'Share Tech Mono',monospace;font-size:8.5px;padding:2px 7px;border-radius:7px;}
+#panel-bieganie .rn-kro.rn-t-n{background:rgba(0,232,122,.12);color:var(--green);}
+#panel-bieganie .rn-kro.rn-t-l{background:rgba(240,180,41,.14);color:var(--gold2);}
+#panel-bieganie .rn-kro.rn-t-m{background:rgba(255,150,0,.14);color:var(--orange);}
+#panel-bieganie .rn-kro.rn-t-h{background:rgba(255,58,92,.16);color:var(--red);}
+
+/* strefy tabela */
+#panel-bieganie .rn-zt{width:100%;border-collapse:collapse;font-family:'Orbitron',monospace;font-size:12px;}
+#panel-bieganie .rn-zt th{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim);letter-spacing:1.1px;
+  padding:6px;border-bottom:1px solid var(--border2);text-align:right;text-transform:uppercase;}
+#panel-bieganie .rn-zt th:first-child{text-align:left;}
+#panel-bieganie .rn-zt td{padding:8px 6px;border-bottom:1px solid rgba(255,255,255,.04);text-align:right;font-variant-numeric:tabular-nums;}
+#panel-bieganie .rn-zt td:first-child{text-align:left;font-family:'Share Tech Mono',monospace;font-weight:600;font-size:12px;}
+#panel-bieganie .rn-zdot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;}
+#panel-bieganie .rn-empty{font-family:'Share Tech Mono',monospace;font-size:10.5px;color:var(--dim2);text-align:center;padding:30px 12px;line-height:1.8;}
+#panel-bieganie .rn-note{font-family:'Share Tech Mono',monospace;font-size:9.5px;color:var(--dim2);line-height:1.7;margin-top:10px;}
+#panel-bieganie .rn-tag{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:8.5px;padding:3px 9px;border-radius:8px;
+  background:rgba(240,180,41,.12);color:var(--gold2);}
+#panel-bieganie .rn-warn{border:1px solid rgba(255,150,0,.35);background:rgba(255,150,0,.06);border-radius:10px;
+  padding:11px 13px;margin-top:11px;font-family:'Share Tech Mono',monospace;font-size:9.5px;color:var(--orange);line-height:1.7;}
+
+/* log dwuetapowy */
+#panel-bieganie .rn-lgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:820px){#panel-bieganie .rn-lgrid{grid-template-columns:1fr;}}
+#panel-bieganie .rn-lbox{border:1px solid var(--border2);border-radius:12px;padding:13px 14px;background:rgba(0,0,0,.24);}
+#panel-bieganie .rn-lbox.rn-plan{border-color:rgba(0,200,240,.3);}
+#panel-bieganie .rn-lbox.rn-res{border-color:rgba(240,180,41,.3);}
+#panel-bieganie .rn-lbh{font-family:'Orbitron',monospace;font-weight:800;font-size:10px;letter-spacing:2px;margin-bottom:11px;
+  display:flex;justify-content:space-between;align-items:center;}
+#panel-bieganie .rn-lbox.rn-plan .rn-lbh{color:var(--cyan);}
+#panel-bieganie .rn-lbox.rn-res .rn-lbh{color:var(--gold2);}
+#panel-bieganie .rn-lbh span{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim);letter-spacing:1px;}
+#panel-bieganie .rn-f2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:9px;}
+#panel-bieganie .rn-f3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:9px;}
+#panel-bieganie .rn-pend{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 12px;
+  border-radius:10px;border:1px dashed rgba(0,200,240,.35);background:rgba(0,200,240,.05);margin-bottom:6px;}
+#panel-bieganie .rn-pendT{font-weight:700;font-size:13px;}
+#panel-bieganie .rn-pendD{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim);margin-top:2px;}
+#panel-bieganie .rn-live{border-radius:10px;padding:11px 13px;margin-top:10px;background:rgba(255,255,255,.024);
+  border:1px solid var(--border2);}
+#panel-bieganie .rn-lvR{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
+@media(max-width:640px){#panel-bieganie .rn-lvR{grid-template-columns:repeat(2,1fr);}}
+#panel-bieganie .rn-lvC{text-align:center;}
+#panel-bieganie .rn-lvL{font-family:'Share Tech Mono',monospace;font-size:7.5px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;}
+#panel-bieganie .rn-lvV{font-family:'Orbitron',monospace;font-size:14px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums;}
+#panel-bieganie .rn-verd{margin-top:10px;padding:9px 12px;border-radius:9px;font-family:'Share Tech Mono',monospace;
+  font-size:9.5px;letter-spacing:.6px;text-align:center;}
+#panel-bieganie .rn-verd.rn-v-ok{background:rgba(0,200,240,.1);color:var(--cyan);border:1px solid rgba(0,200,240,.3);}
+#panel-bieganie .rn-verd.rn-v-good{background:rgba(0,232,122,.1);color:var(--green);border:1px solid rgba(0,232,122,.3);}
+#panel-bieganie .rn-verd.rn-v-w1{background:rgba(240,180,41,.1);color:var(--gold2);border:1px solid rgba(240,180,41,.3);}
+#panel-bieganie .rn-verd.rn-v-w2{background:rgba(255,150,0,.1);color:var(--orange);border:1px solid rgba(255,150,0,.3);}
+#panel-bieganie .rn-verd.rn-v-bad{background:rgba(255,58,92,.1);color:var(--red);border:1px solid rgba(255,58,92,.35);}
+#panel-bieganie .rn-fills{margin-top:9px;font-family:'Share Tech Mono',monospace;font-size:9.5px;color:var(--green);line-height:1.6;}
+#panel-bieganie .rn-tg{padding:4px 10px;border-radius:11px;border:1px solid var(--border2);background:rgba(0,0,0,.3);
+  font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim);cursor:pointer;transition:.15s;}
+#panel-bieganie .rn-tg.rn-on{background:rgba(255,150,0,.16);border-color:var(--orange);color:var(--orange);}
+#panel-bieganie .rn-tg.rn-on.rn-t-bol{background:rgba(255,58,92,.2);border-color:var(--red);color:#fff;font-weight:700;
+  animation:rnTgPulse 1.2s infinite;}
+@keyframes rnTgPulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+
+/* wykres */
+#panel-bieganie .rn-chart{width:100%;height:150px;}
+#panel-bieganie .rn-gt{font-family:'Share Tech Mono',monospace;font-size:8.5px;fill:var(--dim2);}
+
+/* detektory */
+#panel-bieganie .rn-dt{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;padding:9px 12px;
+  border-radius:9px;margin-bottom:5px;background:rgba(255,255,255,.014);}
+#panel-bieganie .rn-dt.rn-on{background:rgba(0,200,240,.05);border-left:2px solid var(--cyan);}
+#panel-bieganie .rn-dt.rn-sil{opacity:.42;}
+#panel-bieganie .rn-dti{font-family:'Orbitron',monospace;font-weight:800;font-size:9.5px;color:var(--dim2);text-align:center;}
+#panel-bieganie .rn-dt.rn-on .rn-dti{color:var(--cyan);}
+#panel-bieganie .rn-dtn{font-weight:700;font-size:12.5px;}
+#panel-bieganie .rn-dtd{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim);margin-top:1px;}
+#panel-bieganie .rn-dts{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim2);white-space:nowrap;}
+#panel-bieganie .rn-dt.rn-on .rn-dts{color:var(--cyan);}
+
+body.dc-phone #panel-bieganie .rn-frm{grid-template-columns:repeat(2,1fr) !important;}
+body.dc-phone #panel-bieganie .rn-f3{grid-template-columns:1fr 1fr !important;}
+body.dc-phone #panel-bieganie .rn-lgrid{grid-template-columns:1fr !important;}
+body.dc-phone #panel-bieganie .rn-row{grid-template-columns:1fr !important;}
+</style>
+
+<div class="ph">
+    <div class="ph-icon">🏃</div>
+    <div><div class="ph-title">Bieganie</div><div class="ph-sub">DRABINA PROGRESJI · 13 POZIOMÓW · CIĄGŁOŚĆ ZAMIAST TERMINU</div></div>
+  </div>
+
+<div class="rn-wrap">
+
+<div class="rn-hdr">
+ <div class="rn-htop">
+  <div><div class="rn-mname">BIEGANIE</div><div class="rn-msub" id="rnGoalLine">—</div></div>
+  <div class="rn-goal">
+   <div class="rn-gv"><div class="rn-gn" id="rnCdD">—</div><div class="rn-gl">Dni do celu</div></div>
+   <div class="rn-gv"><div class="rn-gn rn-gold" id="rnCdW">—</div><div class="rn-gl">Tydzień</div></div>
+  </div>
+ </div>
+ <div class="rn-note" style="margin-top:11px" id="rnGoalNote"></div>
+</div>
+
+<div class="rn-grid rn-g4">
+ <div class="rn-card rn-acc" style="--rn-acc:var(--gold)"><div class="rn-kl">Poziom</div><div class="rn-kv rn-gold" id="rnKLv">L01</div><div class="rn-ks" id="rnKLvS">—</div></div>
+ <div class="rn-card" style="--rn-acc:var(--cyan)"><div class="rn-kl">Postęp poziomu</div><div class="rn-kv rn-cy" id="rnKPro">0%</div><div class="rn-ks" id="rnKProS">—</div></div>
+ <div class="rn-card" style="--rn-acc:var(--purple)"><div class="rn-kl">Okno · km ekw.</div><div class="rn-kv rn-pu" id="rnKEkw">0,0</div><div class="rn-ks" id="rnKEkwS">surowe 0,0</div></div>
+ <div class="rn-card" style="--rn-acc:var(--green)"><div class="rn-kl">Prognoza</div><div class="rn-kv rn-gr" id="rnKPred">—</div><div class="rn-ks" id="rnKPredS">brak danych</div></div>
+</div>
+
+<!-- AKTYWNY POZIOM -->
+<div class="rn-sec" style="--rn-acc:var(--gold)">
+ <div class="rn-sh"><div class="rn-st">AKTYWNY POZIOM · CHECKLISTA</div><div class="rn-sn" id="rnActN">—</div></div>
+ <div class="rn-sb">
+  <div class="rn-chk" id="rnChk"></div>
+  <div class="rn-totbar" id="rnTbar"><i style="width:0%"></i></div>
+  <div class="rn-note" id="rnExpNote"></div>
+ </div>
+</div>
+
+<!-- CIĄGŁOŚĆ -->
+<div class="rn-sec" style="--rn-acc:var(--gold)">
+ <div class="rn-sh"><div class="rn-st">CIĄGŁOŚĆ SERII</div><div class="rn-sn" id="rnWinN">—</div></div>
+ <div class="rn-sb">
+  <div id="rnWin"></div>
+  <div class="rn-note">
+   <b>Poziom nie ma terminu.</b> Możesz go domykać tygodniami albo miesiącami.<br>
+   Ale <b>13 dni bez żadnego biegu zeruje licznik</b> — nie kara za wolność, tylko fakt: forma spada, więc postęp też.
+  </div>
+ </div>
+</div>
+
+<!-- DRABINA -->
+<div class="rn-sec" style="--rn-acc:var(--purple)">
+ <div class="rn-sh"><div class="rn-st">PROGRESJA</div><div class="rn-sn" id="rnLadN">13 / 13 USTALONE</div></div>
+ <div class="rn-sb"><div class="rn-lad" id="rnLad"></div></div>
+</div>
+
+<!-- LOG -->
+<div class="rn-sec" style="--rn-acc:var(--cyan)">
+ <div class="rn-sh"><div class="rn-st">LOG TRENINGU</div><div class="rn-sn">PLAN → WYNIK</div></div>
+ <div class="rn-sb">
+
+  <div class="rn-lgrid">
+   <!-- PLAN -->
+   <div class="rn-lbox rn-plan">
+    <div class="rn-lbh">1 · PLAN<span>PRZED WYJŚCIEM</span></div>
+    <div style="margin-bottom:9px">
+     <label style="font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim);letter-spacing:1.1px;text-transform:uppercase;">Typ</label>
+     <div class="rn-chips" id="rnTChips"></div>
+    </div>
+    <div class="rn-f3">
+     <div class="rn-fi"><label>Dystans km</label><input type="number" step="0.01" id="rnPKm" placeholder="3.30"></div>
+     <div class="rn-fi"><label>Lub czas min</label><input type="number" id="rnPMin" placeholder="—"></div>
+     <div class="rn-fi"><label>Kamizelka kg</label><input type="number" step="1" id="rnPW" placeholder="0"></div>
+    </div>
+    <div id="rnPZone"></div>
+    <button class="rn-btn" style="margin-top:9px" onclick="rnPlan()">ZAPLANUJ SESJĘ</button>
+   </div>
+
+   <!-- WYNIK -->
+   <div class="rn-lbox rn-res">
+    <div class="rn-lbh">2 · WYNIK<span id="rnResFor">WYBIERZ Z LISTY</span></div>
+    <div class="rn-f3">
+     <div class="rn-fi"><label>Data</label><input type="date" id="rnFD"></div>
+     <div class="rn-fi"><label>Dystans km</label><input type="number" step="0.01" id="rnFKm" placeholder="—"></div>
+     <div class="rn-fi"><label>Czas mm:ss</label><input type="text" id="rnFT" placeholder="24:00"></div>
+    </div>
+    <div class="rn-f2">
+     <div class="rn-fi"><label>Tętno średnie</label><input type="number" id="rnFH" placeholder="—"></div>
+     <div class="rn-fi"><label>Kamizelka kg</label><input type="number" step="1" id="rnFW" placeholder="0"></div>
+    </div>
+    <div>
+     <label style="font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim);letter-spacing:1.1px;text-transform:uppercase;">Tagi</label>
+     <div class="rn-chips" id="rnTagChips"></div>
+    </div>
+    <div class="rn-live" id="rnLiveBox"></div>
+    <button class="rn-btn" style="margin-top:9px" onclick="rnSave()">ZAPISZ WYNIK</button>
+   </div>
+  </div>
+
+  <div id="rnPendList" style="margin-top:12px"></div>
+  <div id="rnVWarn"></div>
+
+  <div style="margin-top:16px">
+   <div class="rn-kl" style="margin-bottom:8px">HISTORIA</div>
+   <div id="rnList"></div>
+  </div>
+ </div>
+</div>
+
+<!-- STREFY -->
+<div class="rn-sec" style="--rn-acc:var(--cyan)">
+ <div class="rn-sh"><div class="rn-st">STREFY TEMPA</div><div class="rn-sn" id="rnZN">BRAK ODNIESIENIA</div></div>
+ <div class="rn-sb" id="rnZBox"></div>
+</div>
+
+<!-- WYKRES -->
+<div class="rn-sec" style="--rn-acc:var(--purple)">
+ <div class="rn-sh"><div class="rn-st">WOLUMEN</div><div class="rn-sn">KM EKW. / TYDZIEŃ</div></div>
+ <div class="rn-sb"><svg class="rn-chart" id="rnChartSvg"></svg></div>
+</div>
+
+<!-- DETEKTORY -->
+<div class="rn-sec" style="--rn-acc:var(--cyan)">
+ <div class="rn-sh"><div class="rn-st">DETEKTORY</div><div class="rn-sn" id="rnDN">0 / 10</div></div>
+ <div class="rn-sb" id="rnDetsList"></div>
+</div>
+
+</div>
+
+</div>
+
 <div class="panel tier-secondary" id="panel-insights">
 
 <style>
@@ -20464,6 +20805,11 @@ function navTo(panelId, btn) {
   if (panelId === 'sessionlog' && typeof slRender === 'function') {
     setTimeout(slRender, 50);
   }
+  // V203: moduł BIEGANIE — chipy budowane raz, potem sam render
+  if (panelId === 'bieganie') {
+    if (typeof rnBoot === 'function') setTimeout(rnBoot, 30);
+    if (typeof rnRender === 'function') setTimeout(rnRender, 60);
+  }
   if (panelId === 'ryzyko') {
     if (typeof klmTick === 'function') setTimeout(klmTick, 50);
     if (typeof klmRenderHist === 'function') setTimeout(klmRenderHist, 60);
@@ -20518,7 +20864,7 @@ function navTo(panelId, btn) {
   // ── 3. TOPBAR TITLE ──
   const titles = {
     start:'DASHBOARD', plan:'EXECUTION', journal:'DZIENNIK',
-    sesje:'SESSIONS', ryzyko:'RISK ENGINE', nadwyzka:'CALCULATOR', sessionlog:'SESSION LOG',
+    sesje:'SESSIONS', ryzyko:'RISK ENGINE', nadwyzka:'CALCULATOR', sessionlog:'SESSION LOG', bieganie:'BIEGANIE',
     progresja:'PROGRESSION', analiza:'AT TOOLS', ai:'PROTOCOL',
     insights:'PATTERN MEMORY', medytacja:'MEDITATION', pozycje:'OPEN POSITIONS'
   };
@@ -23175,6 +23521,7 @@ body.state-calm::before {
     'panel-analiza':   'background',
     'panel-analityka': 'secondary',
     'panel-sessionlog':'secondary',
+    'panel-bieganie':  'secondary',
     'panel-ai':        'background',
     'panel-medytacja': 'secondary',
   };
@@ -29335,6 +29682,599 @@ function tpDraftPreview() {
   }
 }
 window.tpDraftRender = tpDraftRender;
+</script>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// DYZMCRYPT v203 — MODUŁ BIEGANIE
+// Port z próbki DYZMCRYPT_BIEGANIE_v08.html wg PRZEKAZANIE_modul_bieganie.
+// Namespace rn- wszędzie (sekcja IV przekazania). Trzy algorytmy przeniesione
+// verbatim (tylko rename): alokacja od najostrzejszego wymogu (rnProgress),
+// ciągłość zamiast okna (rnStreak), KRO liczy tylko przekroczenie w dół (rnKRO).
+//
+// Dwie korekty względem próbki v08, udokumentowane w miejscu:
+//  1) BUG: zmienna `OKNO` używana w checklist() nigdzie nie była zdefiniowana
+//     (ReferenceError przy niedomkniętym poziomie). Naprawione na RN_GAP.
+//  2) L12 w tabeli PRZEKAZANIA to 6× rekreacyjny 6,6 km (nie ile:9/dyst:null
+//     jak w kodzie próbki) — zweryfikowane matematycznie: suma sesji L01–L13
+//     z L12=6 daje dokładnie 138 (zgodnie z "Razem: 138 sesji" w przekazaniu);
+//     z L12=9 wyszłoby 141. Przyjęto wersję z przekazania jako rozstrzygającą.
+// ════════════════════════════════════════════════════════════════
+
+const RN_MC = 94.5;                 // domyślna masa ciała (fallback, realna w rnS.mc)
+const RN_HM_DEFAULT = 21.0975;      // domyślny dystans celu (fallback, realny w rnS.goal.dystans)
+const RN_W1 = new Date('2026-08-17T00:00:00');  // start programu — licznik tygodni
+const RN_GAP = 13;                  // dni bez biegu, ktore zeruja licznik poziomu
+
+const RN_TYPES = [
+  { k:'easy', n:'Swobodny',   c:'' },
+  { k:'long', n:'Długi',      c:'c-long' },
+  { k:'int',  n:'Interwały',  c:'c-int' },
+  { k:'czas', n:'Czasowy',    c:'c-czas' },
+  { k:'mw',   n:'Marszobieg', c:'c-mw' },
+  { k:'tempo',n:'Tempo',      c:'' },
+  { k:'rec',  n:'Regeneracja',c:'' }
+];
+function rnTN(k) { const t = RN_TYPES.find(t => t.k === k); return t ? t.n : k; }
+const RN_TAGS = [
+  { k:'bol',        n:'Ból',        c:'t-bol' },
+  { k:'dyskomfort', n:'Dyskomfort', c:'' },
+  { k:'forsowanie', n:'Forsowanie', c:'' },
+  { k:'zmeczenie',  n:'Zmęczenie',  c:'' },
+  { k:'pogoda',     n:'Pogoda',     c:'' },
+  { k:'brak_czasu', n:'Brak czasu', c:'' }
+];
+const RN_ZMAP = { easy:'Swobodny', long:'Długi', tempo:'Tempo', int:'Interwały',
+                   rec:'Regeneracja', czas:'Swobodny', mw:'Regeneracja' };
+const RN_ZONES = [
+  { n:'Regeneracja', lo:90,  hi:120, c:'#6a6a7a' },
+  { n:'Swobodny',    lo:60,  hi:90,  c:'#f0b429' },
+  { n:'Długi',       lo:60,  hi:75,  c:'#9b6dff' },
+  { n:'Tempo',       lo:20,  hi:40,  c:'#ff9600' },
+  { n:'Interwały',   lo:-10, hi:10,  c:'#ff3a5c' }
+];
+
+// ── DRABINA: L01–L13, worek sesji, okno RN_GAP dni (bez zmian względem
+//    przekazania — L12 skorygowane jak w komentarzu powyżej) ──
+const RN_LEVELS = [
+  { n:'01', req:[{typ:'easy',dyst:3.3,ile:3}] },
+  { n:'02', req:[{typ:'easy',dyst:3.3,ile:3},{typ:'long',dyst:6.6,ile:1}] },
+  { n:'03', req:[{typ:'easy',dyst:4.3,ile:3},{typ:'long',dyst:6.6,ile:3},
+                 {typ:'int',dyst:null,ile:3,vest:13,opis:'0,3 km sprint / 0,3 km marsz'}] },
+  { n:'04', req:[{typ:'easy',dyst:3.3,ile:3},{typ:'easy',dyst:4.3,ile:1},
+                 {typ:'long',dyst:9.9,ile:1},
+                 {typ:'int',dyst:null,ile:1,vest:16,opis:'0,3 km sprint / 0,3 km marsz'}] },
+  { n:'05', req:[{typ:'czas',czas:63,ile:1,opis:'dystans bez znaczenia'}] },
+  { n:'06', req:[{typ:'easy',dyst:3.3,ile:3},{typ:'easy',dyst:6.6,ile:6},
+                 {typ:'int',dyst:null,ile:3,vest:13,opis:'0,3 km sprint / 0,3 km marsz'},
+                 {typ:'long',dyst:13,ile:1}] },
+  { n:'07', req:[{typ:'czas',czas:93,ile:1},{typ:'easy',dyst:9.9,ile:6},
+                 {typ:'long',dyst:13.3,ile:3},
+                 {typ:'int',dyst:null,ile:3,vest:23,opis:'0,3 km sprint / 0,3 km marsz'}] },
+  { n:'08', prop:true, req:[{typ:'czas',czas:113,ile:2},{typ:'easy',dyst:11,ile:9},
+                 {typ:'long',dyst:14.3,ile:6},
+                 {typ:'int',dyst:null,ile:6,vest:26,opis:'propozycja — most L07→L09'}] },
+  { n:'09', req:[{typ:'czas',czas:133,ile:3},{typ:'easy',dyst:13,ile:13},
+                 {typ:'long',dyst:16,ile:13},
+                 {typ:'int',dyst:null,ile:13,vest:33,opis:'0,3 km sprint / 0,3 km marsz'}] },
+  { n:'10', spec:true, req:[
+      {typ:'long',dyst:16,ile:3,
+       opis:'WSTAWKI: 5 km swobodnie + 3× 2 km w tempie docelowym (1 km trucht) + reszta'},
+      {typ:'long',dyst:18,ile:2,
+       opis:'PROGRESYWNY: 12 km swobodnie, ostatnie 6 km narastająco do tempa docelowego'},
+      {typ:'easy',dyst:13,ile:6,opis:'objętość podtrzymująca'},
+      {typ:'czas',czas:163,ile:1,opis:'długi czasowy — bez presji tempa'},
+      {typ:'int',dyst:null,ile:2,vest:33,opis:'0,3 km sprint / 0,3 km marsz'}
+  ]},
+  { n:'11', spec:true, req:[
+      {typ:'czas',czas:333,ile:3,opis:'333 min ciągłego biegu · ok. 40–45 km przy tempie swobodnym'}
+  ]},
+  { n:'12', spec:true, req:[
+      // V203 FIX: przekazanie (tabela + suma 138 sesji) rozstrzyga na 6× 6,6 km —
+      // próbka v08 miała ile:9, dyst:null. Patrz komentarz na górze pliku.
+      {typ:'rec',dyst:6.6,ile:6,opis:'biegi rekreacyjne — bez presji tempa, utrzymanie przed startem'}
+  ]},
+  { n:'13', fin:true, req:[{typ:'long',dyst:21.1,ile:1}] }
+];
+
+const RN_DETS = [
+  { i:'D1', n:'Rampa objętości', d:'przyrost tydzień do tygodnia', need:'2 tygodnie', ok:() => rnWeeks().length >= 2 },
+  { i:'D2', n:'Konsekwencja',    d:'sesje w oknie 13 dni',         need:'4 sesje',     ok:() => rnS.sesje.length >= 4 },
+  { i:'D3', n:'Trend tempa',     d:'swobodne wcześniej vs później',need:'6 swobodnych',ok:() => rnS.sesje.filter(s => s.typ === 'easy').length >= 6 },
+  { i:'D4', n:'Przerwa',         d:'najdłuższa luka',              need:'3 sesje',     ok:() => rnS.sesje.length >= 3 },
+  { i:'D5', n:'Decoupling',      d:'tempo vs tętno w długim',      need:'3 długie + tętno', ok:() => rnS.sesje.filter(s => s.typ === 'long' && s.hr).length >= 3 },
+  { i:'D6', n:'Split',           d:'druga połowa szybsza?',        need:'podział na połowy', ok:() => false },
+  { i:'D7', n:'Efekt kamizelki', d:'czy obciążenie pomaga',        need:'4+4 sesje',
+    ok:() => rnS.sesje.filter(s => s.w > 0).length >= 4 && rnS.sesje.filter(s => !s.w).length >= 4 },
+  { i:'D8', n:'Regeneracja',     d:'jakość vs dni przerwy',        need:'8 sesji',     ok:() => rnS.sesje.length >= 8 },
+  { i:'D9', n:'Pora dnia',       d:'rano / popołudnie / wieczór',  need:'6 na porę',   ok:() => false },
+  { i:'D10',n:'Sen × jakość',    d:'gotowe pod Garmina',           need:'dane ze snu', ok:() => false }
+];
+
+// ── STAN: dcSave/dcLoad, granica dnia dcDayStr — jak wszędzie w systemie ──
+const RN_DEFAULT = {
+  goal: { nazwa:'Półmaraton', data:'2027-03-01', dystans:21.0975, rywal:{ nazwa:'Brat', cel:null } },
+  mc: 94.5,
+  poziom: 0,
+  sesje: [],
+  plany: [],
+  edycja: null
+};
+function rnLoad() {
+  let st = (typeof dcLoad === 'function') ? dcLoad('runState', null) : null;
+  if (!st) st = JSON.parse(JSON.stringify(RN_DEFAULT));
+  // normalizacja: pola efemeryczne formularza nie żyją w RN_DEFAULT, ale
+  // muszą istnieć, żeby render nie wywalił się na undefined
+  if (!st.goal) st.goal = JSON.parse(JSON.stringify(RN_DEFAULT.goal));
+  if (!st.mc) st.mc = RN_MC;
+  if (typeof st.poziom !== 'number') st.poziom = 0;
+  if (!Array.isArray(st.sesje)) st.sesje = [];
+  if (!Array.isArray(st.plany)) st.plany = [];
+  if (st.edycja === undefined) st.edycja = null;
+  if (!st.selType) st.selType = 'easy';
+  if (!Array.isArray(st.selTags)) st.selTags = [];
+  return st;
+}
+let rnS = rnLoad();
+function rnSaveState() { if (typeof dcSave === 'function') dcSave('runState', rnS); }
+
+// ── narzędzia ──
+const rnT2s = t => { const p = String(t).split(':').map(Number);
+  return p.length === 3 ? p[0]*3600+p[1]*60+p[2] : (p[0]||0)*60+(p[1]||0); };
+const rnS2t = s => { s = Math.round(s); const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
+  return h ? `${h}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`
+           : `${m}:${String(x).padStart(2,'0')}`; };
+// V203: toISOString().slice(0,10) → dcDayStr() — spójna granica dnia w całym systemie
+const rnDs = d => (typeof dcDayStr === 'function') ? dcDayStr(d) : d.toISOString().slice(0,10);
+const rnKmEkw = (km, w) => km * (1 + (w||0) / (rnS.mc || RN_MC));
+const rnShift = w => Math.round((w||0) / (rnS.mc || RN_MC) * 100 * 4);
+const rnDaysAgo = d => Math.floor((new Date(rnDs(new Date())+'T12:00:00') - new Date(d+'T12:00:00')) / 864e5);
+const rnRiegel = (d, sec) => sec * Math.pow(((rnS.goal && rnS.goal.dystans) || RN_HM_DEFAULT) / d, 1.06);
+
+// V203: ciągłość zamiast okna — checkLevelDown, nie deadline. Bez zmian logiki.
+function rnStreak() {
+  const ss = rnS.sesje.slice().sort((a,b) => a.date < b.date ? -1 : 1);
+  if (!ss.length) return [];
+  let st = 0;
+  for (let i = 1; i < ss.length; i++) {
+    const g = (new Date(ss[i].date) - new Date(ss[i-1].date)) / 864e5;
+    if (g > RN_GAP) st = i;
+  }
+  return ss.slice(st);
+}
+const rnInWin = s => rnStreak().indexOf(s) >= 0;
+
+function rnMatch(s, r) {
+  if (s.typ !== r.typ) return false;
+  if (r.dyst != null && s.km < r.dyst - 0.05) return false;
+  if (r.czas != null && rnT2s(s.t)/60 < r.czas - 0.5) return false;
+  if (r.vest && (s.w||0) < r.vest) return false;
+  return true;
+}
+// V203: alokacja od najostrzejszego wymogu — bez tego L04/L06 liczą się źle
+// (luźniejszy wymóg zjadałby sesję potrzebną ostrzejszemu). Bez zmian logiki.
+function rnProgress() {
+  const L = RN_LEVELS[rnS.poziom];
+  if (!L.req) return { rows:[], pct:0, done:false };
+  const win = rnStreak();
+  const used = new Set();
+  const spec = r => (r.czas||0)*1000 + (r.dyst||0)*10 + (r.vest||0);
+  const order = L.req.map((r,i) => ({r,i})).sort((a,b) => spec(b.r) - spec(a.r));
+  const cnt = new Array(L.req.length).fill(0);
+  order.forEach(({r,i}) => {
+    let n = 0;
+    win.forEach((s,j) => { if (n < r.ile && !used.has(j) && rnMatch(s,r)) { used.add(j); n++; } });
+    cnt[i] = n;
+  });
+  const rows = L.req.map((r,i) => ({ r, n:cnt[i], ok:cnt[i] >= r.ile }));
+  const tot = L.req.reduce((a,r) => a+r.ile, 0);
+  const got = rows.reduce((a,x) => a+Math.min(x.n, x.r.ile), 0);
+  return { rows, pct: tot ? got/tot*100 : 0, done: rows.every(x => x.ok), tot, got };
+}
+function rnWeeks() {
+  const m = {};
+  rnS.sesje.forEach(s => {
+    const d = new Date(s.date+'T12:00:00'); d.setDate(d.getDate() - ((d.getDay()+6)%7));
+    const k = rnDs(d); m[k] = m[k] || { km:0, ekw:0, n:0 };
+    m[k].km += s.km; m[k].ekw += rnKmEkw(s.km, s.w); m[k].n++;
+  });
+  return Object.keys(m).sort().map(k => ({ wk:k, ...m[k] }));
+}
+function rnRef() {
+  let b = null;
+  rnS.sesje.forEach(s => {
+    if ((s.w||0) > 0 || s.km < 3 || s.typ === 'int' || s.typ === 'mw') return;
+    const p = rnT2s(s.t) * Math.pow(5/s.km, 1.06);
+    if (!b || p < b.sec) b = { sec:p, from:s.km, date:s.date };
+  });
+  return b;
+}
+
+// ══ RENDER ══
+function rnRender() {
+  const now = new Date();
+  const raceDate = new Date(((rnS.goal && rnS.goal.data) || '2027-03-01') + 'T09:00:00');
+  const cdD = document.getElementById('rnCdD');
+  if (cdD) cdD.textContent = Math.max(0, Math.ceil((raceDate - now) / 864e5));
+  const cdW = document.getElementById('rnCdW');
+  if (cdW) cdW.textContent = Math.max(1, Math.floor((now - RN_W1) / 6048e5) + 1);
+  const gl = document.getElementById('rnGoalLine');
+  if (gl) gl.textContent = 'DYZMCRYPT · ' + RN_LEVELS.length + ' / ' + RN_LEVELS.length + ' POZIOMÓW USTALONYCH';
+  const gn = document.getElementById('rnGoalNote');
+  if (gn) {
+    const g = rnS.goal || RN_DEFAULT.goal;
+    gn.innerHTML = 'CEL: <span class="rn-tag">' + (g.nazwa||'Cel') + ' ' + (g.dystans||RN_HM_DEFAULT).toFixed(4).replace(/0+$/,'').replace(/\.$/,'') + ' km</span> · '
+      + (g.data||'').split('-').reverse().join('.') + ' · MC ' + (rnS.mc||RN_MC).toFixed(1).replace('.', ',') + ' kg'
+      + (g.rywal && g.rywal.nazwa ? ' · rywalizacja: ' + g.rywal.nazwa + (g.rywal.cel ? ' (cel ' + g.rywal.cel + ')' : ' (czas nieznany)') : '')
+      + '<br>Poziom to <b>worek sesji bez terminu</b>. Zeruje go tylko przerwa ' + RN_GAP + ' dni bez biegu.';
+  }
+
+  const P = rnProgress(), win = rnStreak();
+  const ekw = win.reduce((a,s) => a + rnKmEkw(s.km, s.w), 0);
+  const raw = win.reduce((a,s) => a + s.km, 0);
+
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  set('rnKLv', 'L' + RN_LEVELS[rnS.poziom].n);
+  set('rnKLvS', rnS.poziom + ' / ' + RN_LEVELS.length + ' zamkniętych');
+  set('rnKPro', Math.round(P.pct) + '%');
+  set('rnKProS', (P.got||0) + ' / ' + (P.tot||0) + ' sesji');
+  set('rnKEkw', ekw.toFixed(1).replace('.', ','));
+  set('rnKEkwS', 'surowe ' + raw.toFixed(1).replace('.', ',') + ' km');
+
+  const R = rnRef(), pred = R ? rnRiegel(5, R.sec) : null;
+  set('rnKPred', pred ? rnS2t(pred) : '—');
+  set('rnKPredS', R ? ('z biegu ' + R.from + ' km') : 'brak biegu ≥3 km');
+
+  rnChecklist(P); rnStreakPanel(); rnPending();
+  const rf = document.getElementById('rnResFor');
+  if (rf) {
+    const P2 = rnS.edycja ? rnS.plany.find(x => x.id === rnS.edycja) : null;
+    rf.textContent = P2 ? ('PLAN: ' + rnTN(P2.typ) + ' ' + (P2.dyst ? P2.dyst+' km' : P2.czas+' min')) : 'BEZ PLANU';
+  }
+  rnLadder(); rnRenderList(); rnZones(R); rnChart(rnWeeks()); rnDets(); rnLive(); rnPlanZone();
+}
+window.rnRender = rnRender;
+
+// ── checklista (V203 FIX: OKNO→RN_GAP, była niezdefiniowana zmienna) ──
+function rnChecklist(P) {
+  const L = RN_LEVELS[rnS.poziom], el = document.getElementById('rnChk');
+  if (!el) return;
+  const actN = document.getElementById('rnActN');
+  if (actN) actN.textContent = 'L' + L.n + (L.prop ? ' · PROPOZYCJA' : '');
+  if (!L.req) { el.innerHTML = '<div class="rn-empty">POZIOM DO USTALENIA</div>';
+    const tb0 = document.getElementById('rnTbar'); if (tb0) tb0.firstElementChild.style.width = '0%'; return; }
+  el.innerHTML = '';
+  P.rows.forEach(x => {
+    const r = x.r;
+    const dyst = r.czas != null ? r.czas + ' min' : (r.dyst != null ? r.dyst + ' km' : 'dowolny dystans');
+    const vest = r.vest ? `<span class="rn-vtag">🎽 ${r.vest} KG</span>` : '';
+    let dots = ''; for (let i = 0; i < r.ile; i++) dots += `<i class="${i < x.n ? 'rn-f' : ''}"></i>`;
+    el.innerHTML += `<div class="rn-ci ${x.ok ? 'rn-ok' : ''}">
+      <div class="rn-cbox">✓</div>
+      <div><div class="rn-cn">${rnTN(r.typ)} · ${dyst}${vest}</div>
+       <div class="rn-cd">${r.opis || 'w ciągłej serii'}</div>
+       <div class="rn-dots">${dots}</div></div>
+      <div class="rn-cc">${x.n} / ${r.ile}</div></div>`;
+  });
+  const tb = document.getElementById('rnTbar');
+  if (tb) { tb.className = 'rn-totbar' + (P.done ? ' rn-done' : ''); tb.firstElementChild.style.width = P.pct + '%'; }
+
+  const win = rnS.sesje.filter(rnInWin).sort((a,b) => a.date < b.date ? -1 : 1);
+  const n = document.getElementById('rnExpNote');
+  if (!n) return;
+  if (P.done) { n.innerHTML = '<span style="color:var(--green)">✓ POZIOM DOMKNIĘTY — awans dostępny</span>'; }
+  else if (win.length) {
+    const old = win[0], left = RN_GAP - rnDaysAgo(old.date);
+    n.innerHTML = `Najstarsza licząca się sesja: <b>${old.date.slice(5)}</b> · ${rnTN(old.typ)} ${old.km} km — wypada za <b>${left} ${left===1?'dzień':'dni'}</b>`;
+  } else n.innerHTML = 'Brak sesji w oknie.';
+}
+
+// ── ciągłość ──
+function rnStreakPanel() {
+  const el = document.getElementById('rnWin');
+  if (!el) return;
+  const S2 = rnStreak();
+  if (!S2.length) { el.innerHTML = '<div class="rn-empty">BRAK SESJI</div>';
+    const wn0 = document.getElementById('rnWinN'); if (wn0) wn0.textContent = '—'; return; }
+  const last = rnDaysAgo(S2[S2.length-1].date);
+  const dni = rnDaysAgo(S2[0].date) - last + 1;
+  const pct = Math.min(100, last / RN_GAP * 100);
+  const kryt = last >= RN_GAP - 3;
+  el.innerHTML = `
+   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+    <div><div class="rn-kl">Seria trwa</div><div class="rn-kv rn-gold">${dni} dni</div>
+         <div class="rn-ks">${S2.length} sesji</div></div>
+    <div><div class="rn-kl">Ostatnia sesja</div><div class="rn-kv ${kryt?'rn-rd':'rn-cy'}">${last===0?'dziś':last+' dni'}</div>
+         <div class="rn-ks">${last===0?'':'temu'}</div></div>
+    <div><div class="rn-kl">Do zerowania</div><div class="rn-kv ${kryt?'rn-rd':'rn-gr'}">${Math.max(0,RN_GAP-last)}</div>
+         <div class="rn-ks">dni bez biegu</div></div>
+   </div>
+   <div class="rn-totbar"><i style="width:${pct}%;background:${kryt?'linear-gradient(90deg,#cc0020,var(--red))':'linear-gradient(90deg,var(--gold),var(--gold2))'}"></i></div>`;
+  const wn = document.getElementById('rnWinN'); if (wn) wn.textContent = S2.length + ' SESJI W SERII';
+  if (kryt && last < RN_GAP) el.innerHTML += `<div class="rn-warn" style="margin-top:10px">
+   ⚠ Za ${RN_GAP-last} dni bez biegu licznik poziomu wyzeruje się. Postęp ${S2.length} sesji przepadnie.</div>`;
+}
+
+// ── drabina ──
+function rnLadder() {
+  const el = document.getElementById('rnLad'); if (!el) return; el.innerHTML = '';
+  RN_LEVELS.forEach((L, i) => {
+    const done = i < rnS.poziom, act = i === rnS.poziom;
+    const pr = (L.spec ? '<span class="rn-vtag" style="background:rgba(255,150,0,.18);color:var(--orange)">FAZA SPECYFICZNA</span>' : '')
+             + (L.prop ? '<span class="rn-vtag" style="background:rgba(0,200,240,.15);color:var(--cyan)">PROPOZYCJA</span>' : '');
+    let desc, badge;
+    if (L.tbd) { desc = 'do ustalenia'; badge = '—'; }
+    else {
+      desc = L.req.map(r => `${r.ile}× ${rnTN(r.typ)}${r.czas?' '+r.czas+'min':(r.dyst?' '+r.dyst+'km':'')}${r.vest?' 🎽'+r.vest+'kg':''}`).join(' · ');
+      badge = L.req.reduce((a,r) => a+r.ile, 0) + ' sesji';
+    }
+    el.innerHTML += `<div class="rn-lv ${done?'rn-done':act?'rn-act':L.tbd?'rn-tbd':'rn-lock'}">
+     <div class="rn-lvn">L${L.n}</div>
+     <div><div class="rn-lvt">${L.fin?'PÓŁMARATON':'Poziom '+L.n}${pr}</div><div class="rn-lvd">${desc}</div></div>
+     <div class="rn-lvb">${done?'✓':badge}</div></div>`;
+  });
+}
+
+// ── historia ──
+function rnRenderList() {
+  const el = document.getElementById('rnList'); if (!el) return;
+  const ss = rnS.sesje.slice().sort((a,b) => a.date < b.date ? 1 : -1);
+  if (!ss.length) { el.innerHTML = '<div class="rn-empty">BRAK SESJI</div>'; return; }
+  el.innerHTML = '';
+  ss.slice(0, 14).forEach(s => {
+    const tempo = s.km > 0 ? rnS2t(rnT2s(s.t)/s.km) : '—';
+    const K = rnKROTier(s.kro);
+    const dd = s.date.slice(8), mm = s.date.slice(5,7);
+    const tags = (s.tags||[]).map(t => `<span class="rn-kro ${t==='bol'?'rn-t-h':'rn-t-l'}">${(RN_TAGS.find(x=>x.k===t)||{n:t}).n}</span>`).join(' ');
+    let pv = '';
+    if (s.plan && s.plan.dyst) {
+      const d = (s.km - s.plan.dyst) / s.plan.dyst * 100;
+      pv = Math.abs(d) <= 5 ? '<span style="color:var(--green)">✓ wg planu</span>'
+         : `<span style="color:var(--dim)">plan ${s.plan.dyst} km (${d>0?'+':''}${d.toFixed(0)}%)</span>`;
+    }
+    el.innerHTML += `<div class="rn-scard ${rnInWin(s)?'':'rn-out'}">
+     <div class="rn-sdate"><b>${dd}</b>${mm}</div>
+     <div class="rn-smain">
+      <div class="rn-stop"><span class="rn-tp rn-tp-${s.typ}">${rnTN(s.typ)}</span>
+       <span class="rn-sdist">${s.km.toFixed(2)} km</span>
+       ${s.w?`<span class="rn-kro rn-t-l">🎽 ${s.w} kg</span>`:''}
+       ${K?`<span class="rn-kro rn-t-${K.c}">${K.n}</span>`:''}${tags}</div>
+      <div class="rn-sbot">${s.t} · ${tempo}/km · ${rnKmEkw(s.km,s.w).toFixed(1)} km ekw.${s.hr?' · '+s.hr+' bpm':''} ${pv?'· '+pv:''}</div>
+     </div>
+     <div class="rn-sright" style="color:var(--dim2)">${s.kro!=null?s.kro.toFixed(1):''}</div></div>`;
+  });
+}
+
+// ── podgląd strefy w planie ──
+function rnPlanZone() {
+  const el = document.getElementById('rnPZone'); if (!el) return;
+  const R = rnRef(), z = rnZoneFor(rnS.selType), w = parseFloat((document.getElementById('rnPW')||{}).value) || 0;
+  if (!R || !z) { el.innerHTML = '<div class="rn-note" style="margin-top:0">strefa pojawi się po pierwszym biegu ≥3 km</div>'; return; }
+  const p5 = R.sec/5;
+  el.innerHTML = `<div class="rn-note" style="margin-top:0">
+   docelowa strefa: <b style="color:var(--cyan)">${rnS2t(p5+z.lo+rnShift(w))} – ${rnS2t(p5+z.hi+rnShift(w))}</b> /km
+   ${w?`<span style="color:var(--purple)"> (z ${w} kg)</span>`:''}</div>`;
+}
+
+// ── strefy ──
+function rnZones(R) {
+  const box = document.getElementById('rnZBox'); if (!box) return;
+  const zn = document.getElementById('rnZN');
+  if (!R) { if (zn) zn.textContent = 'BRAK ODNIESIENIA';
+    box.innerHTML = '<div class="rn-empty">STREFY POJAWIĄ SIĘ PO PIERWSZYM BIEGU ≥3 KM<br>bez kamizelki, typ swobodny lub długi</div>'; return; }
+  const p5 = R.sec/5;
+  if (zn) zn.textContent = '5 KM ≈ ' + rnS2t(R.sec) + ' · ' + rnS2t(p5) + '/km';
+  const w = parseFloat((document.getElementById('rnFW')||{}).value) || 0, sh = rnShift(w);
+  let h = `<table class="rn-zt"><tr><th>STREFA</th><th>OD</th><th>DO</th>` + (sh?`<th>+${w} KG</th>`:``) + `</tr>`;
+  RN_ZONES.forEach(z => { h += `<tr><td><span class="rn-zdot" style="background:${z.c}"></span>${z.n}</td>
+   <td>${rnS2t(p5+z.lo)}</td><td>${rnS2t(p5+z.hi)}</td>` +
+   (sh?`<td style="color:var(--purple)">${rnS2t(p5+z.lo+sh)}–${rnS2t(p5+z.hi+sh)}</td>`:``) + `</tr>`; });
+  box.innerHTML = h + '</table>';
+}
+
+// ── wykres ──
+function rnChart(W) {
+  const svg = document.getElementById('rnChartSvg'); if (!svg) return; svg.innerHTML = '';
+  if (!W.length) { svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" class="rn-gt">BRAK DANYCH</text>'; return; }
+  const w = svg.clientWidth || 860, h = 150, pl = 30, pr = 8, pt = 16, pb = 22, cw = w-pl-pr, ch = h-pt-pb;
+  const mx = Math.max(...W.map(x=>x.ekw), 8) * 1.2, gap = cw/W.length, bw = gap*0.58;
+  for (let i = 0; i <= 4; i++) { const y = pt+ch-ch*i/4;
+    svg.innerHTML += `<line x1="${pl}" y1="${y}" x2="${w-pr}" y2="${y}" stroke="rgba(255,255,255,.05)"/>
+     <text x="${pl-5}" y="${y+3}" text-anchor="end" class="rn-gt">${(mx*i/4).toFixed(0)}</text>`; }
+  W.forEach((x,i) => { const bx = pl+gap*i+(gap-bw)/2, he = x.ekw/mx*ch, hr = x.km/mx*ch;
+    svg.innerHTML += `<rect x="${bx}" y="${pt+ch-he}" width="${bw}" height="${he}" rx="3" fill="rgba(155,109,255,.35)"/>
+     <rect x="${bx}" y="${pt+ch-hr}" width="${bw}" height="${hr}" rx="3" fill="${i===W.length-1?'var(--gold)':'rgba(240,180,41,.45)'}"/>
+     <text x="${bx+bw/2}" y="${pt+ch-he-4}" text-anchor="middle" class="rn-gt">${x.ekw.toFixed(0)}</text>
+     <text x="${bx+bw/2}" y="${h-6}" text-anchor="middle" class="rn-gt">${x.wk.slice(5)}</text>`; });
+}
+
+// ── detektory (return null/false przy słabej próbce — ta sama doktryna co insD_*) ──
+function rnDets() {
+  const el = document.getElementById('rnDetsList'); if (!el) return; el.innerHTML = ''; let on = 0;
+  RN_DETS.forEach(d => { const a = d.ok(); if (a) on++;
+    el.innerHTML += `<div class="rn-dt ${a?'rn-on':'rn-sil'}"><div class="rn-dti">${d.i}</div>
+     <div><div class="rn-dtn">${d.n}</div><div class="rn-dtd">${d.d}</div></div>
+     <div class="rn-dts">${a?'● AKTYWNY':d.need}</div></div>`; });
+  const dn = document.getElementById('rnDN'); if (dn) dn.textContent = on + ' / ' + RN_DETS.length;
+}
+
+// ══ KRO — krotność przekroczenia planowanej intensywności (bez zmian logiki) ══
+function rnZoneFor(typ) { return RN_ZONES.find(z => z.n === RN_ZMAP[typ]) || null; }
+function rnKRO(typ, km, t, w) {
+  const R = rnRef(); if (!R || !km || !t) return null;
+  const z = rnZoneFor(typ); if (!z) return null;
+  const p5 = R.sec/5;
+  const gorna = p5 + z.lo + rnShift(w);      // najszybsze dozwolone tempo
+  const real = rnT2s(t)/km;
+  return (gorna - real) / 15;                 // dodatnie = za szybko; ujemne = wolniej niż plan (nie jest przewinieniem)
+}
+function rnKROTier(k) {
+  if (k == null) return null;
+  if (k >= 3) return { n:'KRO HIGH',   c:'h', v:'bad' };
+  if (k >= 2) return { n:'KRO MEDIUM', c:'m', v:'w2' };
+  if (k >= 1.5) return { n:'KRO LOW',  c:'l', v:'w1' };
+  return { n:'W NORMIE', c:'n', v:'ok' };
+}
+
+// ── który wymóg zaliczy ta sesja ──
+function rnFills(typ, km, t, w) {
+  const L = RN_LEVELS[rnS.poziom]; if (!L.req) return null;
+  const P = rnProgress();
+  const s = { typ, km, t, w: w||0 };
+  for (let i = 0; i < L.req.length; i++) {
+    const r = L.req[i], row = P.rows[i];
+    if (row.n < r.ile && rnMatch(s, r)) return { r, row, i };
+  }
+  return null;
+}
+
+// ══ PLAN ══
+function rnPlan() {
+  const km = parseFloat((document.getElementById('rnPKm')||{}).value) || null;
+  const min = parseFloat((document.getElementById('rnPMin')||{}).value) || null;
+  const w = parseFloat((document.getElementById('rnPW')||{}).value) || 0;
+  if (!km && !min) { if (typeof dcToast === 'function') dcToast('Podaj planowany dystans albo czas', 'toast-red'); return; }
+  rnS.plany.push({ id:Date.now(), typ:rnS.selType, dyst:km, czas:min, w, ts:new Date().toISOString() });
+  rnSaveState();
+  ['rnPKm','rnPMin'].forEach(i => { const e = document.getElementById(i); if (e) e.value = ''; });
+  rnRender();
+}
+function rnDropPlan(id) {
+  rnS.plany = rnS.plany.filter(x => x.id !== id);
+  if (rnS.edycja === id) rnS.edycja = null;
+  rnSaveState(); rnRender();
+}
+function rnFill(id) {
+  const p = rnS.plany.find(x => x.id === id); if (!p) return;
+  rnS.edycja = id; rnS.selType = p.typ;
+  rnSaveState();
+  const fw = document.getElementById('rnFW'); if (fw) fw.value = p.w || '';
+  const fkm = document.getElementById('rnFKm'); if (fkm) fkm.value = p.dyst || '';
+  rnSyncChips(); rnRender();
+  const ft = document.getElementById('rnFT'); if (ft) ft.focus();
+}
+
+// ── podgląd na żywo ──
+function rnLive() {
+  const el = document.getElementById('rnLiveBox'); if (!el) return;
+  const km = parseFloat((document.getElementById('rnFKm')||{}).value) || 0;
+  const t = ((document.getElementById('rnFT')||{}).value || '').trim();
+  const w = parseFloat((document.getElementById('rnFW')||{}).value) || 0;
+  if (!km || !t) { el.innerHTML = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:9.5px;color:var(--dim2);text-align:center">wpisz dystans i czas</div>'; return; }
+  const sec = rnT2s(t), tempo = sec/km, ekw = rnKmEkw(km, w);
+  const k = rnKRO(rnS.selType, km, t, w), K = rnKROTier(k);
+  const R = rnRef(), z = rnZoneFor(rnS.selType);
+  let strefa = '—';
+  if (R && z) { const p5 = R.sec/5; strefa = rnS2t(p5+z.lo+rnShift(w)) + '–' + rnS2t(p5+z.hi+rnShift(w)); }
+  el.innerHTML = `<div class="rn-lvR">
+    <div class="rn-lvC"><div class="rn-lvL">TEMPO</div><div class="rn-lvV rn-cy">${rnS2t(tempo)}</div></div>
+    <div class="rn-lvC"><div class="rn-lvL">KM EKW.</div><div class="rn-lvV rn-pu">${ekw.toFixed(2)}</div></div>
+    <div class="rn-lvC"><div class="rn-lvL">STREFA</div><div class="rn-lvV" style="font-size:12px;color:var(--dim)">${strefa}</div></div>
+    <div class="rn-lvC"><div class="rn-lvL">KRO</div><div class="rn-lvV ${K?(K.c==='n'?'rn-gr':K.c==='l'?'rn-gold':K.c==='m'?'rn-org':'rn-rd'):'rn-dm'}" style="${K&&K.c==='m'?'color:var(--orange)':''}">${k!=null?k.toFixed(2):'—'}</div></div>
+   </div>`;
+  const P = rnS.edycja ? rnS.plany.find(x => x.id === rnS.edycja) : null;
+  let v = '', vc = 'rn-v-ok';
+  if (K) { v = K.n; vc = 'rn-v-' + K.v; }
+  if (P && P.dyst) {
+    const d = (km - P.dyst) / P.dyst * 100;
+    if (Math.abs(d) <= 5) { v = '✓ PLAN WYKONANY' + (K && K.c !== 'n' ? ' · ' + K.n : ''); vc = (K && K.c !== 'n') ? 'rn-v-'+K.v : 'rn-v-good'; }
+    else if (d < -5) { v = 'KRÓCEJ NIŻ PLAN · ' + d.toFixed(0) + '%' + (K && K.c !== 'n' ? ' · ' + K.n : ''); vc = (K && K.c !== 'n') ? 'rn-v-'+K.v : 'rn-v-w1'; }
+    else { v = 'DŁUŻEJ NIŻ PLAN · +' + d.toFixed(0) + '%' + (K && K.c !== 'n' ? ' · ' + K.n : ''); vc = (K && K.c !== 'n') ? 'rn-v-'+K.v : 'rn-v-ok'; }
+  }
+  if (v) el.innerHTML += `<div class="rn-verd ${vc}">${v}</div>`;
+  const Z = rnFills(rnS.selType, km, t, w);
+  if (Z) el.innerHTML += `<div class="rn-fills">→ zaliczy: ${rnTN(Z.r.typ)}${Z.r.czas?' '+Z.r.czas+'min':(Z.r.dyst?' '+Z.r.dyst+'km':'')} &nbsp;(${Z.row.n} → ${Z.row.n+1} / ${Z.r.ile})</div>`;
+  else el.innerHTML += `<div class="rn-fills" style="color:var(--dim2)">→ nie zalicza żadnego wymogu na L${RN_LEVELS[rnS.poziom].n}</div>`;
+}
+
+// ══ ZAPIS ══
+function rnSave() {
+  const d = (document.getElementById('rnFD')||{}).value,
+        km = parseFloat((document.getElementById('rnFKm')||{}).value),
+        t = ((document.getElementById('rnFT')||{}).value || '').trim(),
+        w = parseFloat((document.getElementById('rnFW')||{}).value) || 0,
+        hr = parseInt((document.getElementById('rnFH')||{}).value) || null;
+  if (!d || !km || !t) { if (typeof dcToast === 'function') dcToast('Data, dystans i czas wymagane', 'toast-red'); return; }
+  const P = rnS.edycja ? rnS.plany.find(x => x.id === rnS.edycja) : null;
+  rnS.sesje.push({ date:d, km, t, typ:rnS.selType, w, hr,
+    tags: rnS.selTags.slice(), kro: rnKRO(rnS.selType, km, t, w),
+    plan: P ? { dyst:P.dyst, czas:P.czas, w:P.w } : null });
+  if (P) rnS.plany = rnS.plany.filter(x => x.id !== P.id);
+  rnS.edycja = null; rnS.selTags = [];
+  rnSaveState();
+  ['rnFKm','rnFT','rnFH'].forEach(i => { const e = document.getElementById(i); if (e) e.value = ''; });
+  rnSyncChips(); rnRender();
+  if (typeof dcToast === 'function') dcToast('✓ Sesja zapisana', 'toast-green');
+}
+
+// ── lista zaplanowanych ──
+function rnPending() {
+  const el = document.getElementById('rnPendList'); if (!el) return;
+  if (!rnS.plany.length) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div class="rn-kl" style="margin-bottom:7px">ZAPLANOWANE · ' + rnS.plany.length + '</div>';
+  rnS.plany.forEach(p => {
+    const co = p.dyst ? p.dyst+' km' : (p.czas ? p.czas+' min' : '—');
+    el.innerHTML += `<div class="rn-pend">
+     <div><div class="rn-pendT">${rnTN(p.typ)} · ${co}${p.w?' · 🎽'+p.w+'kg':''}</div>
+      <div class="rn-pendD">zaplanowane ${new Date(p.ts).toLocaleDateString('pl-PL')}${rnS.edycja===p.id?' · WYPEŁNIASZ':''}</div></div>
+     <div style="display:flex;gap:5px">
+      <button class="rn-btn rn-sm" onclick="rnFill(${p.id})">WYKONANE</button>
+      <button class="rn-btn rn-sm rn-gh" onclick="rnDropPlan(${p.id})">✕</button></div></div>`;
+  });
+}
+
+// ── init ──
+function rnSyncChips() {
+  const c = document.getElementById('rnTChips');
+  if (c) [...c.children].forEach(x => x.classList.toggle('rn-on', x.dataset.k === rnS.selType));
+  const g = document.getElementById('rnTagChips');
+  if (g) [...g.children].forEach(x => x.classList.toggle('rn-on', rnS.selTags.includes(x.dataset.k)));
+}
+function rnVestWarn() {
+  const w = parseFloat((document.getElementById('rnFW')||{}).value) || 0;
+  const el = document.getElementById('rnVWarn'); if (!el) return;
+  if (rnS.selType === 'int' && w >= 13) {
+    const mc = rnS.mc || RN_MC;
+    el.innerHTML = `<div class="rn-warn">⚠ SPRINT + ${w} KG · siła uderzenia ≈ ${Math.round((mc+w)*4)} kg na krok
+     (bieg swobodny bez obciążenia: ≈ ${Math.round(mc*2.7)} kg)<br>
+     To najwyższe obciążenie w całym module. Detektor D1 śledzi kumulację.</div>`;
+  } else if (w > 0) {
+    el.innerHTML = `<div class="rn-note">+${w} kg → km ekw. ×${(1+w/(rnS.mc||RN_MC)).toFixed(3)} · tempo +${rnShift(w)} s/km</div>`;
+  } else el.innerHTML = '';
+}
+
+// bootstrap chipów typu/tagów — jednorazowo, przy pierwszym wejściu w moduł
+let _rnBooted = false;
+function rnBoot() {
+  if (_rnBooted) return;
+  const c = document.getElementById('rnTChips');
+  const g = document.getElementById('rnTagChips');
+  if (!c || !g) return; // panel jeszcze nie w DOM
+  _rnBooted = true;
+  RN_TYPES.forEach(t => {
+    const b = document.createElement('div');
+    b.className = 'rn-chip' + (t.c ? ' ' + t.c : '') + (t.k === rnS.selType ? ' rn-on' : '');
+    b.textContent = t.n; b.dataset.k = t.k;
+    b.onclick = () => { rnS.selType = t.k; rnSaveState(); rnSyncChips(); rnPlanZone(); rnLive(); rnVestWarn(); };
+    c.appendChild(b);
+  });
+  RN_TAGS.forEach(t => {
+    const b = document.createElement('div');
+    b.className = 'rn-tg' + (t.c ? ' ' + t.c : '');
+    b.textContent = t.n; b.dataset.k = t.k;
+    b.onclick = () => {
+      const i = rnS.selTags.indexOf(t.k);
+      if (i < 0) rnS.selTags.push(t.k); else rnS.selTags.splice(i, 1);
+      rnSaveState(); rnSyncChips();
+    };
+    g.appendChild(b);
+  });
+  const fd = document.getElementById('rnFD'); if (fd && !fd.value) fd.value = rnDs(new Date());
+  ['rnFKm','rnFT','rnFW'].forEach(i => { const e = document.getElementById(i); if (e) e.addEventListener('input', () => { rnLive(); rnVestWarn(); }); });
+  const pw = document.getElementById('rnPW'); if (pw) pw.addEventListener('input', rnPlanZone);
+  window.addEventListener('resize', () => { if (document.getElementById('rnChartSvg')) rnChart(rnWeeks()); });
+}
+window.rnBoot = rnBoot;
 </script>
 
 <!-- ════════════════════════════════════════════════════════
