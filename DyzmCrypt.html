@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v204 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v206 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7114,7 +7114,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v204 · EXECUTION OS</div>
+    <div class="splash-ver">v206 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7374,7 +7374,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v204</div>
+      <div class="sb-logo-sub">EXECUTION OS · v206</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7428,18 +7428,19 @@ body.os-lockdown #workspace::before {
         <span class="sb-label">Sessions</span>
       </div>
 
+      <div class="sb-item" onclick="navTo('sessionlog',this)" data-tooltip="Session Log" data-tier="secondary">
+        <span class="sb-icon">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2.5" y="2" width="11" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/><line x1="5" y1="5.5" x2="11" y2="5.5" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="10.5" x2="8.5" y2="10.5" stroke="currentColor" stroke-width="1.2"/></svg>
+        </span>
+        <span class="sb-label">Session Log</span>
+      </div>
+
       <div class="sb-item" onclick="navTo('pozycje',this)" data-tooltip="Otwarte Pozycje" data-tier="primary">
         <span class="sb-icon">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/><line x1="8" y1="0.5" x2="8" y2="2.5" stroke="currentColor" stroke-width="1.2"/><line x1="8" y1="13.5" x2="8" y2="15.5" stroke="currentColor" stroke-width="1.2"/><line x1="0.5" y1="8" x2="2.5" y2="8" stroke="currentColor" stroke-width="1.2"/><line x1="13.5" y1="8" x2="15.5" y2="8" stroke="currentColor" stroke-width="1.2"/></svg>
         </span>
         <span class="sb-label">Pozycje</span>
         <span class="sb-badge" id="sbPozBadge" style="display:none;">0</span>
-      </div>
-      <div class="sb-item" onclick="navTo('sessionlog',this)" data-tooltip="Session Log" data-tier="secondary">
-        <span class="sb-icon">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2.5" y="2" width="11" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/><line x1="5" y1="5.5" x2="11" y2="5.5" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="10.5" x2="8.5" y2="10.5" stroke="currentColor" stroke-width="1.2"/></svg>
-        </span>
-        <span class="sb-label">Session Log</span>
       </div>
     </div>
 
@@ -7960,7 +7961,7 @@ body.os-lockdown #workspace::before {
 const _SB_URL = 'https://kawkfhvijblbdnlwsese.supabase.co';
 const _SB_KEY = 'sb_publishable_0G0d3H6TuYNyEBdDcCo_QA_w2Mma09p';
 const _SB_SESS = 'dc_sb_session_v2';
-const _DC_KEYS = ['day','trades','sessions','krdCounters','krdLastTrigger','riskState','archive','activeState','levelState','positions','lastAutoArchive','pdbHistory','settings','medState','todayExec','todaySupp','dayReview','tradeShots','sessionlog','sessionShots','runState'];
+const _DC_KEYS = ['day','trades','sessions','krdCounters','krdLastTrigger','riskState','archive','activeState','levelState','positions','lastAutoArchive','pdbHistory','settings','medState','todayExec','todaySupp','dayReview','tradeShots','sessionlog','sessionShots','runState','d6Choice'];
 
 // ══ V128: KANONICZNA GRANICA DNIA ══
 // toISOString() zwraca datę UTC — Polska to UTC+1/UTC+2, więc między północą
@@ -7984,7 +7985,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v204';
+window.DC_VERSION = 'v206';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -12802,6 +12803,7 @@ th.hl{color:var(--green) !important;}
   <div class="ctabs">
     <button class="ctab c1a active" id="planTab13" onclick="switchPlanMode('d13',this)">D13×33</button>
     <button class="ctab c2a" id="planTab9" onclick="switchPlanMode('d9',this)">D9×33</button>
+    <button class="ctab c3a" id="planTab6" onclick="switchPlanMode('d6',this)">D6×33</button>
     <button class="ctab" id="planTabDash" onclick="switchCycleDash('plan-dash',this)">📊 Dashboard</button>
     <button class="ctab" onclick="switchCycle('plan','supp',this)">Suplementacja</button>
   </div>
@@ -12836,6 +12838,21 @@ th.hl{color:var(--green) !important;}
     </div>
     <div class="eb-section-label">Execution Blocks</div>
     <div class="plan-blocks" id="blocks9"></div>
+  </div>
+
+  <div class="cc" id="plan-d6">
+    <!-- OKNA WYBORU -->
+    <div class="d6-picker" id="d6Picker"></div>
+    <!-- SESSION TRACKER -->
+    <div class="session-track-wrap">
+      <div class="strack-header">
+        <div class="strack-label">Sessions</div>
+        <div class="strack-summary" id="strackSummary6"><span id="strackDone6">0</span> / 6 done</div>
+      </div>
+      <div class="strack" id="strack6"></div>
+    </div>
+    <div class="eb-section-label">Execution Blocks</div>
+    <div class="plan-blocks" id="blocks6"></div>
   </div>
 
   <!-- GLOBAL COMPLIANCE STRIP -->
@@ -17616,8 +17633,11 @@ function atEnabled() {
 }
 function atSlots() {
   // okna sesji z aktywnego trybu planu (D13×33 lub D9×33)
-  const blocks = (typeof currentPlanMode !== 'undefined' && currentPlanMode === 'd9' && typeof blocksD9 !== 'undefined')
-    ? blocksD9 : (typeof blocksD13 !== 'undefined' ? blocksD13 : null);
+  // V206: auto-start czyta też D6×33 (bloki generowane dynamicznie)
+  let blocks = null;
+  if (typeof currentPlanMode !== 'undefined' && currentPlanMode === 'd6' && typeof buildBlocksD6 === 'function') blocks = buildBlocksD6();
+  else if (typeof currentPlanMode !== 'undefined' && currentPlanMode === 'd9' && typeof blocksD9 !== 'undefined') blocks = blocksD9;
+  else if (typeof blocksD13 !== 'undefined') blocks = blocksD13;
   if (!blocks) return [];
   const out = [];
   blocks.forEach(function(b) {
@@ -19877,10 +19897,16 @@ const blocksD9 = [
 // ─── RENDER FUNCTIONS ───
 
 function buildPlanCockpit(mode){
-  const blocks = mode==='d13' ? blocksD13 : blocksD9;
+  // V206: D6×33 generowany dynamicznie — jego kształt zależy od porannego
+  // wyboru w oknach, więc oś czasu musi powstawać przy każdym renderze.
+  const blocks = mode==='d13' ? blocksD13
+               : mode==='d6'  ? (typeof buildBlocksD6==='function' ? buildBlocksD6() : blocksD9)
+               : blocksD9;
   // Store globally so togglePbcDone can refresh session tracker
   if(mode==='d13') window._blocks13 = blocks;
+  else if(mode==='d6') window._blocks6 = blocks;
   else window._blocks9 = blocks;
+  if(mode==='d6' && typeof d6RenderPicker==='function') d6RenderPicker();
   buildDayView(mode, blocks);
   buildMissionFlow(mode, blocks);
   buildSessionTracker(mode, blocks);
@@ -19937,7 +19963,7 @@ function buildDayView(mode, blocks){
 }
 
 function buildMissionFlow(mode, blocks){
-  const el = document.getElementById('missionFlow'+( mode==='d13'?'13':'9' ));
+  const el = document.getElementById('missionFlow'+( mode==='d13'?'13':(mode==='d6'?'6':'9') ));
   if(!el) return;
   const nm = nowMin();
   el.innerHTML = '';
@@ -19964,7 +19990,7 @@ function buildMissionFlow(mode, blocks){
 }
 
 function buildSessionTracker(mode, blocks){
-  const suffix = mode==='d13'?'13':'9';
+  const suffix = mode==='d13'?'13':(mode==='d6'?'6':'9');
   const el = document.getElementById('strack'+suffix);
   if(!el) return;
   el.innerHTML = '';
@@ -20204,7 +20230,7 @@ function togglePbcDone(mode, blockId){
 // ────────────────────────────────────────────────────────────────────
 
 function buildBlockCards(mode, blocks){
-  const el = document.getElementById('blocks'+(mode==='d13'?'13':'9'));
+  const el = document.getElementById('blocks'+(mode==='d13'?'13':(mode==='d6'?'6':'9')));
   if(!el) return;
   el.innerHTML='';
   const nm = nowMin();
@@ -20361,7 +20387,7 @@ function updateNowActive(){
   if(dayStatEl){
     const hh=Math.floor(nm/60), mm2=nm%60;
     const timeStr = String(hh).padStart(2,'0')+':'+String(mm2).padStart(2,'0');
-    dayStatEl.textContent = timeStr + ' · ' + (currentPlanMode==='d13'?'D13×33':'D9×33');
+    dayStatEl.textContent = timeStr + ' · ' + (currentPlanMode==='d13'?'D13×33':currentPlanMode==='d6'?'D6×33':'D9×33');
   }
 
   if(!active){
@@ -20846,11 +20872,209 @@ function toggleOpb(){}
 // ─── INIT ───
 buildPlanCockpit('d13');
 buildPlanCockpit('d9');
+buildPlanCockpit('d6');
 updateNowActive();
 setInterval(()=>{ updateNowActive(); buildPlanCockpit(currentPlanMode); }, 30000);
 setInterval(updateNowActive, 1000); // countdown updates every second
 </script>
 
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// DYZMCRYPT v206 — PLAN DNIA D6×33
+//
+// Trzeci wariant obok D13×33 i D9×33. Powstaje z D9 — ta sama oś czasu,
+// te same godziny bloków. Różnią się dwie rzeczy:
+//
+//  1) DWA OKNA WYBORU zamiast sztywnych bloków
+//     Okno I  (9:49–12:38, 169 min) ← zastępuje Blok 2 i Blok 3
+//     Okno II (15:22–18:09, 167 min) ← zastępuje Regenerację i Trening
+//
+//  2) WARUNKOWA SESJA S10 w Bloku 5
+//     Odblokowuje się TYLKO gdy w Oknie I nie wybrano sesji.
+//     Oddajesz cztery sesje z południa → dostajesz jedną wieczorem.
+//
+// Dlatego blocksD6 nie jest stałą, tylko funkcją: kształt dnia zależy
+// od porannego wyboru, więc oś czasu musi być przeliczana przy każdym
+// renderze. Wybór żyje w kluczu 'd6Choice' (sync + reset dobowy).
+// ════════════════════════════════════════════════════════════════
+
+const D6_OPTS = {
+  win1: [
+    { k:'bieg',  n:'BIEG',        d:'Trening biegowy w oknie południowym',      ico:'🏃' },
+    { k:'sesje', n:'SESJE S3–S6', d:'Cztery sesje jak w D9 — Blok 2 i Blok 3',  ico:'📊' },
+    { k:'wolne', n:'CZAS WOLNY',  d:'Bez ekranów. Regeneracja albo sprawy',     ico:'○'  }
+  ],
+  win2: [
+    { k:'bieg',  n:'BIEG',                    d:'Trening biegowy popołudniowy',        ico:'🏃' },
+    { k:'trening', n:'REGENERACJA + TRENING', d:'Czytanie, przerwa, trening fizyczny', ico:'🏋' },
+    { k:'wolne', n:'CZAS WOLNY',              d:'Bez ekranów. Regeneracja albo sprawy', ico:'○'  }
+  ]
+};
+
+function d6Load() {
+  let c = (typeof dcLoad === 'function') ? dcLoad('d6Choice', null) : null;
+  const today = (typeof dcDayStr === 'function') ? dcDayStr() : new Date().toISOString().slice(0,10);
+  // reset dobowy — wybór obowiązuje na jeden dzień
+  if (!c || c.date !== today) c = { date: today, win1: null, win2: null };
+  return c;
+}
+function d6Save(c) { if (typeof dcSave === 'function') dcSave('d6Choice', c); }
+function d6Pick(win, k) {
+  const c = d6Load();
+  c[win] = (c[win] === k) ? null : k;   // ponowny klik = cofnięcie wyboru
+  d6Save(c);
+  if (typeof buildPlanCockpit === 'function') buildPlanCockpit('d6');
+  d6RenderPicker();
+  if (typeof updateNowActive === 'function') updateNowActive();
+  if (typeof dcToast === 'function' && c[win]) {
+    const o = D6_OPTS[win].find(x => x.k === c[win]);
+    dcToast((win === 'win1' ? 'Okno I' : 'Okno II') + ': ' + (o ? o.n : k), 'toast-green');
+  }
+}
+// S10 odblokowana ⟺ w Oknie I NIE wybrano sesji
+function d6S10() { return d6Load().win1 !== 'sesje'; }
+function d6SessionCount() { return d6Load().win1 === 'sesje' ? 9 : 6; }
+window.d6S10 = d6S10;
+
+// ── generator bloków ─────────────────────────────────────────────
+function buildBlocksD6() {
+  const c = d6Load();
+  const B = [];
+  const src = (typeof blocksD9 !== 'undefined') ? blocksD9 : [];
+  const from = id => JSON.parse(JSON.stringify(src.find(b => b.id === id) || {}));
+
+  // bez zmian: poranek, blok 1, nauka
+  B.push(from('morning'), from('blok1'), from('nauka1'));
+
+  // ── OKNO I ── 9:49–12:38
+  if (c.win1 === 'sesje') {
+    B.push(from('blok2'), from('blok3'));
+  } else {
+    const bieg = c.win1 === 'bieg';
+    B.push({
+      id:'okno1', type: bieg ? TYPE.LIFE : TYPE.BREAK, time:'9:49', end:'12:38',
+      mfLabel: bieg ? 'BIEG' : (c.win1 === 'wolne' ? 'WOLNE' : 'OKNO I'),
+      title: bieg ? 'OKNO I — BIEG' : (c.win1 === 'wolne' ? 'OKNO I — CZAS WOLNY' : 'OKNO I — WYBIERZ DROGĘ'),
+      sessions: null,
+      focus: c.win1 ? (bieg
+              ? 'Trening biegowy. Po nim prysznic i posiłek — bez wracania do ekranów.'
+              : 'Bez ekranów tradingowych. Dzień oddaje cztery sesje, wieczorem wraca S10.')
+            : 'Nie wybrano drogi. Kliknij w karcie OKNA DNIA nad blokami.',
+      tasks: bieg
+        ? [{ time:'9:49–11:19', label:'Bieg', note:'Zgodnie z planem sesji w module Bieganie.' },
+           { time:'11:19–11:49', label:'Prysznic + rozciąganie', note:'Schłodzenie, mobilność.' },
+           { time:'11:49–12:38', label:'Posiłek + zapis', note:'Uzupełnienie. Wpisz wynik biegu w module Bieganie.' }]
+        : [{ time:'9:49–12:38', label: c.win1 === 'wolne' ? 'Czas wolny — 169 min' : 'Okno niewybrane',
+             note: c.win1 === 'wolne' ? 'Brak ekranów tradingowych.' : 'Wybierz drogę rano.' }],
+      rules: c.win1 ? [] : ['Wybierz drogę przed 9:49']
+    });
+  }
+
+  // bez zmian: obiad, blok 4
+  B.push(from('break1'), from('blok4'));
+
+  // ── OKNO II ── 15:22–18:09
+  if (c.win2 === 'trening') {
+    B.push(from('regen'), from('training'));
+  } else {
+    const bieg = c.win2 === 'bieg';
+    B.push({
+      id:'okno2', type: TYPE.LIFE, time:'15:22', end:'18:09',
+      mfLabel: bieg ? 'BIEG' : (c.win2 === 'wolne' ? 'WOLNE' : 'OKNO II'),
+      title: bieg ? 'OKNO II — BIEG' : (c.win2 === 'wolne' ? 'OKNO II — CZAS WOLNY' : 'OKNO II — WYBIERZ DROGĘ'),
+      sessions: null,
+      focus: c.win2 ? (bieg
+              ? 'Trening biegowy popołudniowy. 167 min z prysznicem i posiłkiem.'
+              : 'Bez ekranów. Odpoczynek albo sprawy poza systemem.')
+            : 'Nie wybrano drogi. Kliknij w karcie OKNA DNIA nad blokami.',
+      tasks: bieg
+        ? [{ time:'15:22–17:00', label:'Bieg', note:'Zgodnie z planem sesji w module Bieganie.' },
+           { time:'17:00–17:30', label:'Prysznic + rozciąganie', note:'Schłodzenie, mobilność.' },
+           { time:'17:30–18:09', label:'Posiłek + zapis', note:'Białko obowiązkowe. Wpisz wynik biegu.' }]
+        : [{ time:'15:22–18:09', label: c.win2 === 'wolne' ? 'Czas wolny — 167 min' : 'Okno niewybrane',
+             note: c.win2 === 'wolne' ? 'Brak ekranów tradingowych.' : 'Wybierz drogę rano.' }],
+      rules: c.win2 ? [] : ['Wybierz drogę przed 15:22']
+    });
+  }
+
+  // kolacja + nauka wieczorna (z D9)
+  B.push(from('nauka2'));
+
+  // ── BLOK 5 — S9 zawsze, S10 warunkowo ──
+  const s10 = d6S10();
+  B.push({
+    id:'blok5', type:TYPE.TRADING, time:'19:46', end: s10 ? '20:59' : '20:19', mfLabel:'BLK 5',
+    title: s10 ? 'BLOK 5 — S9 + S10 [FINALNY]' : 'BLOK 5 — S9 [FINALNA]',
+    sessions: s10 ? 'S9 + S10' : 'S9',
+    focus: s10
+      ? 'Rekompensata za oddane południe. Dwie sesje wieczorne — spokój, dyscyplina, precyzja.'
+      : 'Ostatnia sesja dnia. Spokój, dyscyplina, precyzja.',
+    tasks: s10
+      ? [{ time:'19:46–20:19', label:'Sesja 9 — 33 min', note:'Nocny rynek. Tylko setup spełniający WSZYSTKIE kryteria.' },
+         { time:'20:19–20:26', label:'Raport + przerwa', note:'P&L check. Reset przed ostatnią.' },
+         { time:'20:26–20:59', label:'Sesja 10 — 33 min', note:'Odblokowana za oddane Okno I. Nie handluj z FOMO.' }]
+      : [{ time:'19:46–20:19', label:'Sesja 9 — 33 min', note:'Nocny rynek. Tylko jeśli setup spełnia WSZYSTKIE kryteria. Nie handluj z FOMO.' }],
+    rules: ['Tylko 1 pozycja jeśli A+','RR 1:3','Zakończ dzień czysty']
+  });
+
+  // ── ZAMKNIĘCIE — przesunięte gdy S10 aktywna ──
+  B.push({
+    id:'close', type:TYPE.CLOSE, time: s10 ? '20:59' : '20:19', end: s10 ? '21:23' : '21:06',
+    mfLabel:'ZAMK.', title:'ZAMKNIĘCIE — Raport Operacyjny', sessions:null,
+    focus: s10 ? 'Przesunięte o 40 min przez S10. Do kąpieli zostaje 37 min luzu.'
+               : 'Pełny przegląd i aktualizacja systemu.',
+    tasks: s10
+      ? [{ time:'20:59', label:'P&L dnia', note:'Łączny P&L. W/P/BE.' },
+         { time:'21:03', label:'KRD review', note:'Analiza błędów.' },
+         { time:'21:13', label:'Aktualizacja metryki', note:'Licznik sesji.' },
+         { time:'21:23', label:'Journal', note:'Wpis dnia. Zamknięcie.' }]
+      : [{ time:'20:19', label:'P&L dnia', note:'Łączny P&L. W/P/BE.' },
+         { time:'20:25', label:'KRD review', note:'Analiza błędów.' },
+         { time:'20:35', label:'Aktualizacja metryki', note:'Licznik sesji.' }],
+    rules: []
+  });
+
+  B.push(from('sleep'));
+  return B.filter(b => b && b.id);
+}
+window.buildBlocksD6 = buildBlocksD6;
+
+// ── karta wyboru okien ───────────────────────────────────────────
+function d6RenderPicker() {
+  const el = document.getElementById('d6Picker');
+  if (!el) return;
+  const c = d6Load();
+  const s10 = d6S10();
+  const row = (win, label, czas) => {
+    const sel = c[win];
+    return '<div class="d6-row">'
+      + '<div class="d6-rh"><span class="d6-rl">' + label + '</span><span class="d6-rt">' + czas + '</span></div>'
+      + '<div class="d6-opts">'
+      + D6_OPTS[win].map(o =>
+          '<div class="d6-opt' + (sel === o.k ? ' d6-on d6-' + o.k : '') + '" onclick="d6Pick(\'' + win + '\',\'' + o.k + '\')">'
+          + '<div class="d6-oi">' + o.ico + '</div>'
+          + '<div class="d6-on-t">' + o.n + '</div>'
+          + '<div class="d6-od">' + o.d + '</div></div>').join('')
+      + '</div></div>';
+  };
+  el.innerHTML =
+    '<div class="d6-head"><span class="d6-ht">OKNA DNIA</span>'
+    + '<span class="d6-hs">' + (c.win1 && c.win2 ? 'droga wybrana' : 'wybierz rano, zanim wejdzie Okno I') + '</span></div>'
+    + row('win1', 'OKNO I', '9:49 – 12:38 · 169 min')
+    + row('win2', 'OKNO II', '15:22 – 18:09 · 167 min')
+    + '<div class="d6-sum">'
+    +   '<div class="d6-sc"><div class="d6-sl">Sesje dziś</div><div class="d6-sv">' + d6SessionCount() + '</div></div>'
+    +   '<div class="d6-sc"><div class="d6-sl">S10 wieczorem</div><div class="d6-sv ' + (s10 ? 'd6-yes' : 'd6-no') + '">'
+    +     (s10 ? 'ODBLOKOWANA' : 'ZABLOKOWANA') + '</div></div>'
+    +   '<div class="d6-sc"><div class="d6-sl">Zamknięcie</div><div class="d6-sv">' + (s10 ? '20:59' : '20:19') + '</div></div>'
+    + '</div>'
+    + '<div class="d6-note">' + (s10
+        ? 'Okno I nie idzie w sesje, więc <b>S10 wraca wieczorem</b> jako rekompensata — 20:26–20:59. Zamknięcie przesuwa się na 20:59, kąpiel 22:00 i sen 22:30 zostają bez zmian.'
+        : 'Okno I w sesjach — pełne dziewięć sesji jak w D9. <b>S10 się nie pojawia</b>, zamknięcie o 20:19.') + '</div>';
+}
+window.d6RenderPicker = d6RenderPicker;
+</script>
 
 <script>
 
@@ -34093,5 +34317,51 @@ body.dc-phone #panel-journal .tl-be{font-size:9.5px;padding:7px 12px;}
 #panel-pozycje #opzDesk{grid-template-columns:repeat(auto-fit,minmax(155px,1fr)) !important;}
 body.dc-phone #panel-pozycje #opzDesk{grid-template-columns:1fr 1fr !important;}
 body.dc-phone #panel-pozycje .opz-desk-s{font-size:8.5px !important;line-height:1.4 !important;}
+
+
+/* ══ V206 · D6×33 — okna wyboru ══ */
+#panel-plan .d6-picker{border:1px solid rgba(118,158,205,.17);border-radius:15px;margin-bottom:14px;padding:15px 16px;
+  background:linear-gradient(168deg,rgba(0,200,240,.06),rgba(10,16,26,.45) 58%);position:relative;overflow:hidden;}
+#panel-plan .d6-picker::before{content:'';position:absolute;top:0;left:18px;right:52%;height:1.5px;
+  background:linear-gradient(90deg,var(--cyan),transparent);opacity:.7;}
+#panel-plan .d6-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+#panel-plan .d6-ht{font-family:'Orbitron',monospace;font-weight:800;font-size:10.5px;letter-spacing:2.6px;color:var(--cyan);}
+#panel-plan .d6-hs{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim);letter-spacing:1.2px;}
+#panel-plan .d6-row{margin-bottom:13px;}
+#panel-plan .d6-rh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:7px;}
+#panel-plan .d6-rl{font-family:'Orbitron',monospace;font-weight:800;font-size:9.5px;letter-spacing:2px;color:var(--gold2);}
+#panel-plan .d6-rt{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim);}
+#panel-plan .d6-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+@media(max-width:700px){#panel-plan .d6-opts{grid-template-columns:1fr;}}
+#panel-plan .d6-opt{border:1px solid rgba(118,158,205,.14);border-radius:11px;padding:11px 12px;cursor:pointer;
+  background:linear-gradient(160deg,rgba(255,255,255,.018),rgba(0,0,0,.24));transition:all .17s;}
+#panel-plan .d6-opt:hover{border-color:rgba(118,158,205,.32);transform:translateY(-1px);}
+#panel-plan .d6-oi{font-size:15px;margin-bottom:5px;opacity:.75;}
+#panel-plan .d6-on-t{font-family:'Share Tech Mono',monospace;font-weight:700;font-size:11.5px;color:var(--text2);letter-spacing:.8px;}
+#panel-plan .d6-od{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--dim);margin-top:4px;line-height:1.5;}
+#panel-plan .d6-opt.d6-on{border-color:var(--gold);background:linear-gradient(160deg,rgba(240,180,41,.13),rgba(0,0,0,.26));
+  box-shadow:0 0 18px rgba(240,180,41,.13);}
+#panel-plan .d6-opt.d6-on .d6-on-t{color:var(--gold2);}
+#panel-plan .d6-opt.d6-on .d6-oi{opacity:1;}
+#panel-plan .d6-opt.d6-on.d6-bieg{border-color:var(--purple);background:linear-gradient(160deg,rgba(155,109,255,.14),rgba(0,0,0,.26));
+  box-shadow:0 0 18px rgba(155,109,255,.14);}
+#panel-plan .d6-opt.d6-on.d6-bieg .d6-on-t{color:var(--purple);}
+#panel-plan .d6-opt.d6-on.d6-wolne{border-color:rgba(118,158,205,.4);background:linear-gradient(160deg,rgba(118,158,205,.1),rgba(0,0,0,.26));
+  box-shadow:none;}
+#panel-plan .d6-opt.d6-on.d6-wolne .d6-on-t{color:rgba(200,220,240,.75);}
+#panel-plan .d6-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;padding-top:13px;
+  border-top:1px solid rgba(118,158,205,.11);}
+#panel-plan .d6-sc{text-align:center;}
+#panel-plan .d6-sl{font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:1.8px;color:var(--dim);text-transform:uppercase;}
+#panel-plan .d6-sv{font-family:'Orbitron',monospace;font-size:15px;font-weight:900;margin-top:5px;color:var(--text2);}
+#panel-plan .d6-sv.d6-yes{color:var(--green);font-size:11px;}
+#panel-plan .d6-sv.d6-no{color:var(--dim2);font-size:11px;}
+#panel-plan .d6-note{font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(200,220,240,.55);line-height:1.75;
+  margin-top:12px;padding:10px 12px;border-radius:9px;background:rgba(0,0,0,.24);border-left:2px solid var(--cyan);}
+#panel-plan .ctab.c3a.active{border-color:var(--purple);color:var(--purple);background:rgba(155,109,255,.1);}
+body.dc-phone #panel-plan .d6-opts{grid-template-columns:1fr !important;}
+body.dc-phone #panel-plan .d6-sum{grid-template-columns:1fr 1fr 1fr !important;}
+body.dc-phone #panel-plan .d6-on-t{font-size:13px;}
+body.dc-phone #panel-plan .d6-od{font-size:9.5px;}
 </style>
 <!-- ════════ END V80 DASHBOARD CSS ════════ -->
