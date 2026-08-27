@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v208 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v209 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -3299,11 +3299,7 @@ body { overflow: hidden; height: 100vh; }
 
 /* ── BODY MODE: DASHBOARD ── */
 body.dashboard-mode #workspace {
-  /* V208: było overflow:hidden !important — ucinało kafle POZIOM/DZISIAJ
-     na ekranach, na których kokpit się nie mieści (iPad, niższe okna). */
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden !important;
 }
 /* In dashboard mode, all module panels are completely removed from render */
 body.dashboard-mode .panel:not(#panel-start) {
@@ -7118,7 +7114,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v208 · EXECUTION OS</div>
+    <div class="splash-ver">v209 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7378,7 +7374,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v208</div>
+      <div class="sb-logo-sub">EXECUTION OS · v209</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7989,7 +7985,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v208';
+window.DC_VERSION = 'v209';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -21252,12 +21248,10 @@ function navTo(panelId, btn) {
     ws.classList.add('right-hidden');
     // V179 FIX: na telefonie kokpit nie mieści się na ekranie — blokada scrolla
     // sprawiała, że sekcje POZIOM i DZISIAJ były fizycznie nieosiągalne.
-    // V208: Dashboard był celowo nieprzewijalny ("immersyjny kokpit"), ale od
-    // czasu dołożenia kafli POZIOM i DZISIAJ treść przestała się mieścić —
-    // na iPadzie sekcja DZISIAJ była ucięta i fizycznie nieosiągalna.
-    // 'auto' nie zmienia wyglądu, gdy treść się mieści: pasek pojawia się
-    // dopiero wtedy, gdy jest co przewijać.
-    ws.style.overflow = 'auto';
+    // V209: Dashboard ma się MIEŚCIĆ, nie przewijać — tak jak działał zawsze.
+    // v208 dał scroll i to było złe rozwiązanie problemu: właściwym jest
+    // zmieszczenie kokpitu (patrz kompaktowanie przy niskim oknie w CSS).
+    ws.style.overflow = document.body.classList.contains('dc-phone') ? 'auto' : 'hidden';
     if (rp) rp.classList.add('hidden');
     if (btnEl) btnEl.textContent = '▶';
 
@@ -34516,12 +34510,66 @@ body.dc-phone .pm-hint{font-size:10px;}
    bez widocznego paska, czyli wyglądało to na uciętą treść.
    Teraz kolumna rośnie naturalnie, a przewija się cały workspace.
 ══════════════════════════════════════════════════════════════ */
-body.dashboard-mode #panel-start .tele-center{
-  overflow:visible !important;
-  max-height:none !important;}
-body.dashboard-mode #panel-start .v8-cockpit{
-  min-height:0 !important;
-  align-items:start !important;}
-body.dashboard-mode #workspace{padding-bottom:28px !important;}
+/* (v208 cofnięte w v209 — Dashboard nie przewija się poza telefonem) */
+
+
+/* ══════════════════════════════════════════════════════════════
+   V209 · DASHBOARD MIEŚCI SIĘ NA EKRANIE
+   Problem: kokpit rósł z każdą wersją (doszły kafle POZIOM i DZISIAJ),
+   aż przestał się mieścić na iPadzie i sekcja DZISIAJ była ucięta.
+   Rozwiązanie NIE przez scroll — przez kompaktowanie: im niższe okno,
+   tym ciaśniejsze kafle. Na wysokich ekranach nic się nie zmienia.
+══════════════════════════════════════════════════════════════ */
+
+/* kolumna kafli: pełna wysokość kokpitu, bez własnego ucinania */
+body.dashboard-mode:not(.dc-phone) #panel-start .tele-center{
+  min-height:0 !important;}
+body.dashboard-mode:not(.dc-phone) #panel-start .tele-center-grid{
+  align-content:start !important;}
+
+/* ── poniżej 1000 px wysokości: lekkie ściśnięcie ── */
+@media (max-height: 1000px){
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-block{
+    padding:8px 12px !important;margin-bottom:6px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-block-cd{font-size:19px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-cell{padding:8px 11px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-val{font-size:17px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-center{padding:11px 16px 10px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-center-grid{gap:7px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-sep{margin-top:10px !important;}
+}
+
+/* ── poniżej 860 px: mocniejsze ściśnięcie (iPad w Safari z paskiem kart) ── */
+@media (max-height: 860px){
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-block{
+    padding:6px 11px !important;margin-bottom:5px !important;border-radius:9px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-block-cd{font-size:16px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-block-name{font-size:11px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-block-time{font-size:8px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-cell{padding:6px 10px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-val{font-size:15px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-key{font-size:6px !important;margin-bottom:3px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-sub{font-size:7px !important;line-height:1.3 !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-center{padding:9px 14px 8px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-center-grid{gap:6px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-sep{margin-top:8px !important;min-height:9px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .v8-clock{font-size:30px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .v8-center{padding:10px 10px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .orb-ring-container{
+    width:150px !important;height:150px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .orb-ring-svg{width:150px !important;height:150px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .orb-timer-wrap{margin-bottom:10px !important;}
+}
+
+/* ── poniżej 740 px: awaryjne, maksymalne zagęszczenie ── */
+@media (max-height: 740px){
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-block{padding:5px 10px !important;margin-bottom:4px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-block-cd{font-size:14px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-val{font-size:13px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-cell{padding:5px 9px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .orb-ring-container,
+  body.dashboard-mode:not(.dc-phone) #panel-start .orb-ring-svg{width:120px !important;height:120px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .v8-clock{font-size:24px !important;}
+}
 </style>
 <!-- ════════ END V80 DASHBOARD CSS ════════ -->
