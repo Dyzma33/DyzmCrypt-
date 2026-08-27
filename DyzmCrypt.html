@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v209 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v210 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7114,7 +7114,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v209 · EXECUTION OS</div>
+    <div class="splash-ver">v210 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7374,7 +7374,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v209</div>
+      <div class="sb-logo-sub">EXECUTION OS · v210</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7985,7 +7985,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v209';
+window.DC_VERSION = 'v210';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -34530,29 +34530,32 @@ body.dashboard-mode:not(.dc-phone) #panel-start .tele-center-grid{
 /* ── poniżej 1000 px wysokości: lekkie ściśnięcie ── */
 @media (max-height: 1000px){
   body.dashboard-mode:not(.dc-phone) #panel-start .tele-block{
-    padding:8px 12px !important;margin-bottom:6px !important;}
-  body.dashboard-mode:not(.dc-phone) #panel-start .tele-block-cd{font-size:19px !important;}
-  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-cell{padding:8px 11px !important;}
-  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-val{font-size:17px !important;}
-  body.dashboard-mode:not(.dc-phone) #panel-start .tele-center{padding:11px 16px 10px !important;}
-  body.dashboard-mode:not(.dc-phone) #panel-start .tele-center-grid{gap:7px !important;}
-  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-sep{margin-top:10px !important;}
+    padding:9px 13px !important;margin-bottom:7px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-block-cd{font-size:20px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-cell{padding:12px 14px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-val{font-size:20px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-center{padding:13px 16px 12px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-center-grid{gap:9px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-sep{margin-top:12px !important;}
 }
 
 /* ── poniżej 860 px: mocniejsze ściśnięcie (iPad w Safari z paskiem kart) ── */
 @media (max-height: 860px){
+  /* V210: v209 ścisnęło kafle za mocno — a pod sekcją DZISIAJ i tak zostawało
+     wolne miejsce. Wracamy do czytelnych rozmiarów; wysokość domyka
+     rozciąganie wierszy (align-content:stretch niżej), nie zmniejszanie. */
   body.dashboard-mode:not(.dc-phone) #panel-start .tele-block{
-    padding:6px 11px !important;margin-bottom:5px !important;border-radius:9px !important;}
-  body.dashboard-mode:not(.dc-phone) #panel-start .tele-block-cd{font-size:16px !important;}
-  body.dashboard-mode:not(.dc-phone) #panel-start .tele-block-name{font-size:11px !important;}
-  body.dashboard-mode:not(.dc-phone) #panel-start .tele-block-time{font-size:8px !important;}
-  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-cell{padding:6px 10px !important;}
-  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-val{font-size:15px !important;}
-  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-key{font-size:6px !important;margin-bottom:3px !important;}
-  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-sub{font-size:7px !important;line-height:1.3 !important;}
-  body.dashboard-mode:not(.dc-phone) #panel-start .tele-center{padding:9px 14px 8px !important;}
-  body.dashboard-mode:not(.dc-phone) #panel-start .tele-center-grid{gap:6px !important;}
-  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-sep{margin-top:8px !important;min-height:9px !important;}
+    padding:8px 12px !important;margin-bottom:6px !important;border-radius:10px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-block-cd{font-size:18px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-block-name{font-size:12px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-block-time{font-size:8.5px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-cell{padding:11px 14px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-val{font-size:19px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-key{font-size:7px !important;margin-bottom:5px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-sub{font-size:8px !important;line-height:1.45 !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-center{padding:12px 16px 12px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-center-grid{gap:9px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-sep{margin-top:11px !important;min-height:11px !important;}
   body.dashboard-mode:not(.dc-phone) #panel-start .v8-clock{font-size:30px !important;}
   body.dashboard-mode:not(.dc-phone) #panel-start .v8-center{padding:10px 10px !important;}
   body.dashboard-mode:not(.dc-phone) #panel-start .orb-ring-container{
@@ -34570,6 +34573,33 @@ body.dashboard-mode:not(.dc-phone) #panel-start .tele-center-grid{
   body.dashboard-mode:not(.dc-phone) #panel-start .orb-ring-container,
   body.dashboard-mode:not(.dc-phone) #panel-start .orb-ring-svg{width:120px !important;height:120px !important;}
   body.dashboard-mode:not(.dc-phone) #panel-start .v8-clock{font-size:24px !important;}
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   V210 · KAFLE WYPEŁNIAJĄ WYSOKOŚĆ, ZAMIAST KULIĆ SIĘ U GÓRY
+   Siatka miała align-content:start — wiersze upychały się na górze,
+   a pod sekcją DZISIAJ zostawała pusta przestrzeń. Teraz wiersze
+   rozciągają się na dostępną wysokość, więc ramki są większe
+   i czytelniejsze, a dół kolumny nie świeci pustką.
+══════════════════════════════════════════════════════════════ */
+body.dashboard-mode:not(.dc-phone) #panel-start .tele-center-grid{
+  align-content:stretch !important;
+  grid-auto-rows:minmax(56px,auto) !important;}
+body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-cell{
+  display:flex !important;flex-direction:column !important;justify-content:center !important;
+  min-height:56px !important;}
+/* separatory sekcji nie mają się rozciągać — to tylko etykiety */
+body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-sep{
+  align-self:end !important;min-height:0 !important;}
+/* liczby-bohaterowie: PHASE i P&L dnia mocniej wyróżnione */
+body.dashboard-mode:not(.dc-phone) #panel-start .tgc-phase .tele-grid-val{font-size:24px !important;}
+body.dashboard-mode:not(.dc-phone) #panel-start .tgc-pnl .tele-grid-val{font-size:26px !important;}
+@media (max-height: 860px){
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-grid-cell{min-height:50px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tele-center-grid{grid-auto-rows:minmax(50px,auto) !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tgc-phase .tele-grid-val{font-size:21px !important;}
+  body.dashboard-mode:not(.dc-phone) #panel-start .tgc-pnl .tele-grid-val{font-size:23px !important;}
 }
 </style>
 <!-- ════════ END V80 DASHBOARD CSS ════════ -->
