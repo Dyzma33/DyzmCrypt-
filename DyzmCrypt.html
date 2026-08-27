@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v206 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v207 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7114,7 +7114,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v206 · EXECUTION OS</div>
+    <div class="splash-ver">v207 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7374,7 +7374,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v206</div>
+      <div class="sb-logo-sub">EXECUTION OS · v207</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7985,7 +7985,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v206';
+window.DC_VERSION = 'v207';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -8173,6 +8173,21 @@ window.slFitModals = slFitModals;
 //   strata ≥ 3R (9,99$)  → KRD MEDIUM
 //   strata ≥ 4R (13,32$) → KRD HIGH
 // Wszystko poniżej 2R = stop wg planu + koszty, ZERO presji w systemie.
+// ══════════════════════════════════════════════════════════════
+// V207 · TRYB PAPER — transakcje papierowe
+// Pełna ścieżka (Session Log → pending → pozycja → plan wyjścia →
+// werdykt → journal) bez pieniędzy. Backtest, demo, "co by było".
+//
+// DOKTRYNA: paper produkuje WSZYSTKO (dane nie znikają), ale nie
+// dotyka NICZEGO, co decyduje o awansie i o dyscyplinie. Bez tego
+// filtra funkcja byłaby szkodliwa — backtest przechodzi bramkę
+// z definicji, bo nie ma kosztu.
+// ══════════════════════════════════════════════════════════════
+function dcIsPaper(x) { return !!(x && x.paper); }
+function dcLiveOnly(arr) { return (Array.isArray(arr) ? arr : []).filter(function(x){ return !dcIsPaper(x); }); }
+function dcPaperOnly(arr) { return (Array.isArray(arr) ? arr : []).filter(dcIsPaper); }
+window.dcIsPaper = dcIsPaper; window.dcLiveOnly = dcLiveOnly; window.dcPaperOnly = dcPaperOnly;
+
 function dcSlipTier(r) {
   const v = parseFloat(r);
   if (isNaN(v)) return 0;
@@ -8722,10 +8737,12 @@ function dcArchiveDayIfMissing(dayStr) {
     if ((!t || !t.length) && !(s || []).some(Boolean)) return;
     const archive = dcLoad('archive', []);
     if (archive.some(function(d){ return d && d.date === dayStr; })) return; // już zapisany
-    const wins = t.filter(function(x){ return x.pnl > 1; }).length;
-    const losses = t.filter(function(x){ return x.pnl < -1; }).length;
-    const be = t.filter(function(x){ return Math.abs(x.pnl) <= 1; }).length;
-    const totalPnL = t.reduce(function(a, x){ return a + (parseFloat(x.pnl) || 0); }, 0);
+    // V207: statystyki archiwum liczą tylko LIVE — paper zostaje w trades[], ale nie w liczbach
+    const _tl = (typeof dcLiveOnly === 'function') ? dcLiveOnly(t) : t;
+    const wins = _tl.filter(function(x){ return x.pnl > 1; }).length;
+    const losses = _tl.filter(function(x){ return x.pnl < -1; }).length;
+    const be = _tl.filter(function(x){ return Math.abs(x.pnl) <= 1; }).length;
+    const totalPnL = _tl.reduce(function(a, x){ return a + (parseFloat(x.pnl) || 0); }, 0);
     archive.unshift({
       date: dayStr,
       savedAt: new Date().toISOString(),
@@ -8775,10 +8792,11 @@ function dcDayGuard() {
         Object.keys(byDay).forEach(function(dstr) {
           if (archive.some(function(d){ return d && d.date === dstr; })) return;
           const tr = byDay[dstr];
-          const w = tr.filter(function(x){ return x.pnl > 1; }).length;
-          const l = tr.filter(function(x){ return x.pnl < -1; }).length;
-          const be = tr.filter(function(x){ return Math.abs(x.pnl) <= 1; }).length;
-          const pnl = tr.reduce(function(a, x){ return a + (parseFloat(x.pnl) || 0); }, 0);
+          const _trl = (typeof dcLiveOnly === 'function') ? dcLiveOnly(tr) : tr;
+          const w = _trl.filter(function(x){ return x.pnl > 1; }).length;
+          const l = _trl.filter(function(x){ return x.pnl < -1; }).length;
+          const be = _trl.filter(function(x){ return Math.abs(x.pnl) <= 1; }).length;
+          const pnl = _trl.reduce(function(a, x){ return a + (parseFloat(x.pnl) || 0); }, 0);
           archive.unshift({
             date: dstr, savedAt: new Date().toISOString(),
             trades: tr.slice(), sessions: [],
@@ -14208,8 +14226,11 @@ function klmLevelRisk() {
 }
 // dzisiejsze transakcje (filtr V119) + metryki dyscypliny
 function klmDayFacts() {
-  const t = (typeof window.dcTodayTrades === 'function') ? window.dcTodayTrades()
+  const _traw = (typeof window.dcTodayTrades === 'function') ? window.dcTodayTrades()
           : ((typeof trades !== 'undefined' && Array.isArray(trades)) ? trades : []);
+  // V207: dyscyplina mierzy zachowanie pod presją — papierowa strata nie boli,
+  // więc nie generuje poślizgu, serii strat ani stanu ryzyka.
+  const t = (typeof dcLiveOnly === 'function') ? dcLiveOnly(_traw) : _traw;
   let streak = 0;
   for (let i = t.length - 1; i >= 0; i--) {
     if (t[i].pnl < -1) streak++;
@@ -15112,13 +15133,15 @@ updateExposureBar();
       const tradingDays = (Array.isArray(arch) ? arch : [])
         .filter(function(d){ return d && d.date !== today && d.trades && d.trades.length; })
         .map(function(d) {
-          const w = d.trades.filter(function(t){ return t.pnl > 1; }).length;
-          const l = d.trades.filter(function(t){ return t.pnl < -1; }).length;
+          const _dl = (typeof dcLiveOnly === 'function') ? dcLiveOnly(d.trades) : d.trades;
+          const w = _dl.filter(function(t){ return t.pnl > 1; }).length;
+          const l = _dl.filter(function(t){ return t.pnl < -1; }).length;
           const krd = d.krdCounters ? ((d.krdCounters.low||0) + (d.krdCounters.med||0) + (d.krdCounters.high||0)) : 0;
-          return { pnl: d.trades.reduce(function(a,t){ return a + (parseFloat(t.pnl)||0); }, 0),
+          return { pnl: _dl.reduce(function(a,t){ return a + (parseFloat(t.pnl)||0); }, 0),
                    w: w, l: l, krd: krd, hasMed: (medMin[d.date] || 0) > 0 };
         });
-      const liveT = (typeof trades !== 'undefined' && Array.isArray(trades)) ? trades : [];
+      let liveT = (typeof trades !== 'undefined' && Array.isArray(trades)) ? trades : [];
+      if (typeof dcLiveOnly === 'function') liveT = dcLiveOnly(liveT);   // V207: bez paper
       if (liveT.length) {
         const w = liveT.filter(function(t){ return t.pnl > 1; }).length;
         const l = liveT.filter(function(t){ return t.pnl < -1; }).length;
@@ -16820,6 +16843,17 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
     </div>
 
     <div class="opz-field-row">
+      <div class="opz-field" style="grid-column:1 / -1;">
+        <div class="opz-field-label">Tryb</div>
+        <div class="opz-dir-toggle pm-toggle">
+          <button class="opz-dir-opt pm-live sel-live" id="opzModeLive" onclick="opzSelectMode('live')" type="button">◉ LIVE</button>
+          <button class="opz-dir-opt pm-paper" id="opzModePaper" onclick="opzSelectMode('paper')" type="button">◌ PAPER</button>
+        </div>
+        <div class="pm-hint" id="opzModeHint">Realne pieniądze — liczy się do poziomu, KRD i detektorów.</div>
+      </div>
+    </div>
+
+    <div class="opz-field-row">
       <div class="opz-field">
         <div class="opz-field-label">Cena wejścia</div>
         <input class="opz-field-input" id="opzEntry" type="number" placeholder="0.00" oninput="opzUpdateRRPreview()">
@@ -17141,6 +17175,12 @@ function opzRenderPositions() {
       const freeN = opzPositions.filter(function(p){
         return _has && tpRiskOnTable(p) <= 0.001; }).length;
 
+      // V207: paper liczony osobno — nigdy nie miesza się z live
+      const paperPos = opzPositions.filter(function(p){ return p.paper; }).length;
+      const _allT = (typeof window.dcTodayTrades === 'function') ? window.dcTodayTrades()
+                  : ((typeof trades !== 'undefined' && Array.isArray(trades)) ? trades : []);
+      const _pp = (typeof dcPaperOnly === 'function') ? dcPaperOnly(_allT) : [];
+
       desk.style.display = '';
       desk.innerHTML =
         '<div class="opz-desk-cell dk-red"><div class="opz-desk-l">Ryzyko na stole</div>'
@@ -17169,7 +17209,12 @@ function opzRenderPositions() {
 
         + '<div class="opz-desk-cell dk-gold"><div class="opz-desk-l">Ekspozycja</div>'
         + '<div class="opz-desk-v gold">' + longs + 'L · ' + shorts + 'S</div>'
-        + '<div class="opz-desk-s">long / short</div></div>';
+        + '<div class="opz-desk-s">long / short</div></div>'
+        + ((paperPos || _pp.length)
+            ? '<div class="opz-desk-cell dk-paper"><div class="opz-desk-l">Paper</div>'
+              + '<div class="opz-desk-v paper">' + paperPos + ' otw. · ' + _pp.length + ' zamk.</div>'
+              + '<div class="opz-desk-s">poza statystykami</div></div>'
+            : '');
     }
   }
 
@@ -17184,8 +17229,9 @@ function opzRenderPositions() {
       const riskPct = Math.max(7, Math.min(50, 100 / (1 + Math.max(rr, 0.1))));
       const tok = opzEsc(p.token), note = opzEsc(p.note);
       return `
-      <div class="opz-card ${isShort ? 'short' : ''}" id="opz-card-${p.id}">
+      <div class="opz-card ${isShort ? 'short' : ''} ${p.paper ? 'is-paper' : ''}" id="opz-card-${p.id}">
         <div class="opz-header">
+          ${p.paper ? '<span class="pm-badge">PAPER</span>' : ''}
           <div class="opz-left">
             <span class="opz-dir-arrow" style="color:${isShort ? 'var(--red)' : 'var(--green)'}">${isShort ? '▼' : '▲'}</span>
             <div class="opz-token">${tok}</div>
@@ -17339,6 +17385,7 @@ function opzOpenAddModal() {
   document.getElementById('opzRisk').value = lvlRisk;
   document.getElementById('opzRR').value = '';
   if (typeof tpDraftReset === 'function') { tpDraftReset(); const _rk = document.getElementById('tpRocket'); if (_rk) _rk.checked = false; }
+  if (typeof opzSelectMode === 'function') opzSelectMode('live');   // V207: domyślnie LIVE
   document.getElementById('opzNote').value = '';
   opzUpdateRRPreview();
   const now = new Date().toTimeString().slice(0,5);
@@ -17395,6 +17442,20 @@ function opzCloseModals() {
   document.querySelectorAll('.opz-modal-overlay').forEach(m => m.classList.remove('open'));
 }
 
+// V207: tryb pozycji — LIVE domyślnie, PAPER dziedziczony z typu pracy w Session Logu
+let opzSelectedMode = 'live';
+function opzSelectMode(m) {
+  opzSelectedMode = (m === 'paper') ? 'paper' : 'live';
+  const L = document.getElementById('opzModeLive'), P = document.getElementById('opzModePaper');
+  if (L) L.classList.toggle('sel-live', opzSelectedMode === 'live');
+  if (P) P.classList.toggle('sel-paper', opzSelectedMode === 'paper');
+  const h = document.getElementById('opzModeHint');
+  if (h) h.innerHTML = opzSelectedMode === 'paper'
+    ? 'Bez pieniędzy. Przechodzi <b>cały obieg</b>, ale nie liczy się do poziomu, KRD ani detektorów.'
+    : 'Realne pieniądze — liczy się do poziomu, KRD i detektorów.';
+}
+window.opzSelectMode = opzSelectMode;
+
 function opzConfirmAdd() {
   const token = document.getElementById('opzToken').value.trim().toUpperCase();
   const entry = parseFloat(document.getElementById('opzEntry').value);
@@ -17410,6 +17471,8 @@ function opzConfirmAdd() {
   const _ots = opzTimeToTs(document.getElementById('opzTime').value);
   const openedAt = (_ots !== null && _ots <= Date.now() + 60000) ? _ots : Date.now();
   opzPositions.push({ id: opzNextId++, token, dir: opzSelectedDir, entry, risk, rr, openedAt, note,
+    paper: opzSelectedMode === 'paper',                            // V207: flaga trybu
+
     // V194: plan wyjścia (nogi) + puste wypełnienia; SL→BE jako osobna decyzja
     tps: (_tpDraft.tps || []).filter(t => t.size > 0).map(t => ({ size: t.size, r: t.r })),
     rocket: _tpDraft.rocket ? { size: _tpDraft.rocket.size, r: _tpDraft.rocket.r } : null,
@@ -17470,6 +17533,7 @@ function opzConfirmClose() {
     if (!isNaN(closePrice)) note = (note ? note + ' · ' : '') + `${pos.entry}→${closePrice}`;
     trades.push({
       token: pos.token, dir: pos.dir, pnl: _totalUsd, note,
+      paper: !!pos.paper,                                          // V207: transakcja dziedziczy tryb
       rr: rrStr, setup: 'POZYCJE',
       posId: pos.id,                                               // V151: łącznik z Session Log
       // V194: pełna anatomia wyjścia — plan i realizacja
@@ -18117,6 +18181,7 @@ function renderJournal() {
 
     // V148: realizacja planu — PLAN (ile R chciałem) → OSIĄGNIĘTE (ile R zrobiłem)
     // → WYNIK w dolarach. Werdykt po prawej.
+    const _isPaper = !!t.paper;   // V207
     const _achR = (typeof anTradeR === 'function') ? anTradeR(t) : null;
     // V200: jeśli transakcja miała plan częściowych TP, miarą wykonania jest
     // OCZEKIWANE R z planu wyjścia (expR), a nie zasięg setupu (plannedRR).
@@ -21859,7 +21924,8 @@ function tgcLevelStats() {
   // archiwum 18.07, raz jako rzekomo dzisiejszy) → poziom pokazywał +26$ zamiast +13$.
   const _src = (typeof window.dcTodayTrades === 'function') ? window.dcTodayTrades()
              : ((typeof trades !== 'undefined' && Array.isArray(trades)) ? trades : []);
-  const live = _src.filter(match);
+  // V207: paper poza bramką awansu — nie liczy się do pozycji poziomu
+  const live = (typeof dcLiveOnly === 'function' ? dcLiveOnly(_src) : _src).filter(match);
   const livePnl = live.reduce(function(a, t) { return a + (parseFloat(t.pnl) || 0); }, 0);
   let archTs = '';
   try { archTs = localStorage.getItem('dyzmcrypt_v34_ts_archive') || ''; } catch(e) {}
@@ -21873,7 +21939,7 @@ function tgcLevelStats() {
     const arch = (typeof dcLoad === 'function') ? dcLoad('archive', []) : [];
     (Array.isArray(arch) ? arch : []).forEach(function(d) {
       if (!d || d.date === today || !Array.isArray(d.trades)) return;
-      const m = d.trades.filter(match);
+      const m = (typeof dcLiveOnly === 'function' ? dcLiveOnly(d.trades) : d.trades).filter(match);
       if (m.length) { all = all.concat(m); lvlDays++; }
     });
   } catch(e) {}
@@ -28975,6 +29041,23 @@ function slPickShot() {
 function slNoTrades(cb) { if (_slDraft) _slDraft.noTrades = !!cb.checked; }
 
 // linkowanie transakcji
+// V207: Backtest / Test na demo → pozycja domyślnie PAPER (można nadpisać)
+const SL_PAPER_TYPES = ['Backtest', 'Test na demo'];
+function slDraftIsPaper() {
+  try {
+    const t = (_slDraft && Array.isArray(_slDraft.types)) ? _slDraft.types : [];
+    return t.length > 0 && t.some(function(x){ return SL_PAPER_TYPES.indexOf(x) !== -1; });
+  } catch(e) { return false; }
+}
+function slApplyPaperMode() {
+  if (typeof opzSelectMode !== 'function') return;
+  const p = slDraftIsPaper();
+  opzSelectMode(p ? 'paper' : 'live');
+  if (p && typeof dcToast === 'function')
+    dcToast('Typ pracy: backtest/demo → tryb PAPER (możesz zmienić)', 'toast-gold');
+}
+window.slApplyPaperMode = slApplyPaperMode;
+
 function slLinkOpen() {
   // V151: otwarcie pozycji = moduł POZYCJE (risk desk), nie modal transakcji.
   slSyncFields();
@@ -28982,6 +29065,7 @@ function slLinkOpen() {
   if (typeof dcToast === 'function') dcToast('Otwórz pozycję — podepnę ją do sesji jako OTWARTA', 'toast-gold');
   if (typeof opzOpenAddModal === 'function') {
     opzOpenAddModal();
+    setTimeout(slApplyPaperMode, 40);   // V207: dziedziczenie trybu z typu pracy
     // V166: podpowiedz token z pierwszego aktywu sesji (ryzyko wchodzi już samo)
     setTimeout(function() {
       try {
@@ -29793,6 +29877,7 @@ function tpLockedUsd(p) { return tpRealR(p) * (parseFloat(p.risk) || 0); }
 // ryzyko REALNIE na stole: po SL→BE zero, inaczej proporcjonalne do otwartej części
 function tpRiskOnTable(p) {
   if (!p) return 0;
+  if (p.paper) return 0;        // V207: papier nie zajmuje realnej ekspozycji
   if (p.beMoved) return 0;
   return tpOpen(p) / 100 * (parseFloat(p.risk) || 0);
 }
@@ -30627,10 +30712,15 @@ const INS_CONF_LEVELS = [
 ];
 
 function insDays() {
+  // V207: detektory mierzą zachowanie pod presją. Papierowa strata nie boli,
+  // więc nic o operatorze nie mówi — mieszanie rozcieńcza jedyny sygnał,
+  // dla którego te detektory istnieją. Decyzja świadoma.
   const today = dcDayStr();
   const arch = (typeof dcLoad === 'function') ? dcLoad('archive', []) : [];
-  let days = (Array.isArray(arch) ? arch : []).filter(d => d && d.date !== today && Array.isArray(d.trades));
-  const live = (typeof trades !== 'undefined' && Array.isArray(trades)) ? trades : [];
+  let days = (Array.isArray(arch) ? arch : []).filter(d => d && d.date !== today && Array.isArray(d.trades))
+             .map(d => Object.assign({}, d, { trades: dcLiveOnly(d.trades) }))
+             .filter(d => d.trades.length);
+  const live = dcLiveOnly((typeof trades !== 'undefined' && Array.isArray(trades)) ? trades : []);
   if (live.length) days = days.concat([{ date: today, trades: live, krdCounters: dcLoad('krdCounters', {}), review: (dcLoad('dayReview', {}) || {})[today] || null }]);
   days.sort((a, b) => a.date < b.date ? -1 : 1);
   return days;
@@ -34363,5 +34453,50 @@ body.dc-phone #panel-plan .d6-opts{grid-template-columns:1fr !important;}
 body.dc-phone #panel-plan .d6-sum{grid-template-columns:1fr 1fr 1fr !important;}
 body.dc-phone #panel-plan .d6-on-t{font-size:13px;}
 body.dc-phone #panel-plan .d6-od{font-size:9.5px;}
+
+
+/* ══════════════════════════════════════════════════════════════
+   V207 · TRYB PAPER — rozróżnienie wizualne
+   Kolor NEUTRALNY (stal). Nie zielony, nie czerwony — papier nie
+   może wyglądać ani na sukces, ani na porażkę.
+══════════════════════════════════════════════════════════════ */
+.pm-badge{display:inline-flex;align-items:center;gap:5px;
+  font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:2.2px;
+  padding:3px 9px;border-radius:8px;white-space:nowrap;
+  background:rgba(150,170,195,.12);border:1px solid rgba(150,170,195,.4);
+  color:rgba(200,215,235,.85);text-transform:uppercase;}
+.pm-badge::before{content:'◌';font-size:9px;opacity:.8;}
+
+/* karta pozycji */
+#panel-pozycje .opz-card.is-paper{
+  border-style:dashed !important;
+  border-color:rgba(150,170,195,.42) !important;
+  background:linear-gradient(165deg,rgba(150,170,195,.045),rgba(0,0,0,.24) 55%) !important;
+  opacity:.9;}
+#panel-pozycje .opz-card.is-paper:hover{
+  border-color:rgba(150,170,195,.6) !important;box-shadow:0 2px 14px rgba(150,170,195,.07) !important;}
+#panel-pozycje .opz-card.is-paper .opz-header{position:relative;}
+#panel-pozycje .opz-card.is-paper .pm-badge{position:absolute;top:0;right:0;}
+#panel-pozycje .opz-desk-cell.dk-paper{--dkc:rgba(150,170,195,.8);border-style:dashed;}
+#panel-pozycje .opz-desk-v.paper{color:rgba(200,215,235,.85) !important;font-size:13px;}
+
+/* wiersz w Journalu / historii */
+#panel-journal .tcard.is-paper,
+#panel-pozycje .opz-hist-row.is-paper,
+#panel-sessionlog .sl-tr.is-paper{
+  border-style:dashed !important;border-color:rgba(150,170,195,.38) !important;opacity:.9;}
+#panel-journal .tcard.is-paper .tcard-pnl{color:rgba(200,215,235,.85) !important;}
+
+/* przełącznik w modalu */
+.pm-toggle .opz-dir-opt.pm-live.sel-live{
+  background:rgba(0,232,122,.12) !important;border-color:rgba(0,232,122,.45) !important;color:var(--green) !important;}
+.pm-toggle .opz-dir-opt.pm-paper.sel-paper{
+  background:rgba(150,170,195,.14) !important;border-color:rgba(150,170,195,.5) !important;
+  color:rgba(210,225,240,.9) !important;border-style:dashed !important;}
+.pm-hint{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim2);
+  margin-top:7px;line-height:1.6;}
+.pm-hint b{color:rgba(200,215,235,.85);}
+body.dc-phone .pm-badge{font-size:9px;padding:4px 11px;}
+body.dc-phone .pm-hint{font-size:10px;}
 </style>
 <!-- ════════ END V80 DASHBOARD CSS ════════ -->
