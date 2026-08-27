@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v211 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v212 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7114,7 +7114,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v211 · EXECUTION OS</div>
+    <div class="splash-ver">v212 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7374,7 +7374,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v211</div>
+      <div class="sb-logo-sub">EXECUTION OS · v212</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7985,7 +7985,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v211';
+window.DC_VERSION = 'v212';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -8092,6 +8092,12 @@ function slViewportH() {
 function slFitModals() {
   var phone = document.body.classList.contains('dc-phone');
   var h = slViewportH();
+  // V212: modale POZYCJI dostają limit wysokości na każdym układzie.
+  // Na iPadzie okno "Nowa pozycja" było wyższe niż ekran i przycisk
+  // OTWÓRZ POZYCJĘ wypadał poniżej krawędzi — bez żadnego sposobu,
+  // żeby do niego dojechać. Teraz treść przewija się w środku,
+  // a przyciski są przyklejone na dole ramki.
+  var OPZ = ['opzModalAdd', 'opzModalEdit', 'opzModalClose'];
   // V196: modale pozycji (nowa/edycja/zamknięcie) dostają to samo dopasowanie
   // co Session Log — na telefonie mają być arkuszem na pełną wysokość.
   [['slModal','.sl-box'], ['slPicker','.sl-box'],
@@ -8102,11 +8108,14 @@ function slFitModals() {
     if (!ov) return;
     var box = ov.querySelector(pair[1]);
     if (!phone) {
+      // poza telefonem: modale pozycji dostają SAM limit (max-height),
+      // więc rosną tylko do wysokości ekranu i dalej przewijają treść
       ov.style.removeProperty('height'); ov.style.removeProperty('max-height');
       if (box) {
         box.style.removeProperty('height');
-        box.style.removeProperty('max-height');
         box.style.removeProperty('min-height');
+        if (OPZ.indexOf(id) !== -1) box.style.setProperty('max-height', Math.max(320, h - 40) + 'px', 'important');
+        else box.style.removeProperty('max-height');
       }
       return;
     }
@@ -34578,5 +34587,48 @@ body.dashboard-mode:not(.dc-phone) #panel-start .tele-center-grid{
 
 /* V211: blok rozciągający z v210 usunięty — kafle puchły na całą wysokość
    i wypychały sekcję DZISIAJ poza ekran. Wracamy do naturalnej wysokości. */
+
+
+/* ══════════════════════════════════════════════════════════════
+   V212 · MODAL POZYCJI — PRZYCISKI ZAWSZE DOSTĘPNE
+   Okno miało max-width:380px i ZERO ograniczenia wysokości: przy
+   rozwiniętym planie wyjścia rosło poza ekran, a OTWÓRZ POZYCJĘ
+   lądowało pod krawędzią — nie dało się otworzyć pozycji.
+   Teraz: szersza ramka, treść przewija się w środku, rząd przycisków
+   przyklejony do dołu. Wysokość limituje JS (slFitModals), bo
+   jednostki vh potrafią liczyć się źle w tych przeglądarkach.
+══════════════════════════════════════════════════════════════ */
+.opz-modal-box{
+  max-width:520px !important;
+  display:flex !important;flex-direction:column !important;
+  max-height:calc(100vh - 40px);
+  overflow-y:auto !important;overflow-x:hidden !important;
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;}
+.opz-modal-overlay{padding:20px 20px !important;align-items:center !important;}
+
+/* rząd przycisków przyklejony do dolnej krawędzi ramki */
+.opz-modal-btns{
+  position:sticky !important;bottom:0 !important;z-index:6 !important;
+  margin:14px -22px -22px !important;padding:15px 22px !important;
+  background:linear-gradient(180deg,transparent,var(--bg2) 42%) !important;
+  border-top:1px solid rgba(255,255,255,.07) !important;}
+.opz-mbtn{flex:1 !important;padding:14px 16px !important;}
+.opz-mbtn-cancel{flex:0 0 32% !important;}
+
+/* tytuł zostaje na górze przy przewijaniu */
+.opz-modal-box > .opz-modal-title{
+  position:sticky;top:-22px;z-index:5;
+  margin:-22px -22px 14px !important;padding:18px 22px 12px !important;
+  background:var(--bg2);border-bottom:1px solid rgba(255,255,255,.06);}
+
+/* pola: więcej oddechu, skoro ramka jest szersza */
+.opz-field-row{gap:12px !important;}
+.opz-field-input{padding:11px 12px !important;font-size:13.5px !important;}
+.opz-dir-opt{padding:11px 10px !important;}
+
+/* telefon: arkusz pełnoekranowy jak dotąd (v196) — nie ruszamy */
+body.dc-phone .opz-modal-box{max-width:100% !important;max-height:none !important;}
+body.dc-phone .opz-modal-box > .opz-modal-title{top:-16px;margin:-16px -14px 14px !important;padding:16px 14px 12px !important;}
+body.dc-phone .opz-modal-btns{margin:8px -14px 0 !important;padding:14px !important;}
 </style>
 <!-- ════════ END V80 DASHBOARD CSS ════════ -->
