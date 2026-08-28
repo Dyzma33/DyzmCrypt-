@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v212 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v215 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7114,7 +7114,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v212 · EXECUTION OS</div>
+    <div class="splash-ver">v215 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7374,7 +7374,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v212</div>
+      <div class="sb-logo-sub">EXECUTION OS · v215</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7985,7 +7985,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v212';
+window.DC_VERSION = 'v215';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -16946,7 +16946,8 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
 
     <div class="opz-field-row single">
       <div class="opz-field">
-        <div class="opz-field-label">Wynik ($) — + zysk / − strata</div>
+        <div class="opz-field-label" id="opzCloseResultLabel">Wynik ($) — + zysk / − strata</div>
+        <div class="opz-close-split" id="opzCloseSplit"></div>
         <input class="opz-field-input" id="opzCloseResult" type="number" placeholder="+6.66 lub -3.33" oninput="opzUpdateCloseRR()">
         <div class="opz-rr-preview" id="opzCloseRRPreview"></div>
       </div>
@@ -17240,10 +17241,10 @@ function opzRenderPositions() {
       return `
       <div class="opz-card ${isShort ? 'short' : ''} ${p.paper ? 'is-paper' : ''}" id="opz-card-${p.id}">
         <div class="opz-header">
-          ${p.paper ? '<span class="pm-badge">PAPER</span>' : ''}
           <div class="opz-left">
             <span class="opz-dir-arrow" style="color:${isShort ? 'var(--red)' : 'var(--green)'}">${isShort ? '▼' : '▲'}</span>
             <div class="opz-token">${tok}</div>
+            ${p.paper ? '<span class="pm-badge">PAPER</span>' : ''}
             <div class="opz-dir ${isShort ? 'short' : 'long'}">${p.dir}</div>
             ${note ? `<div class="opz-note" title="${note}">${note}</div>` : ''}
           </div>
@@ -17355,10 +17356,16 @@ function opzUpdateCloseRR() {
   const pos = opzPositions.find(p => p.id === opzClosingId);
   const el = document.getElementById('opzCloseRRPreview');
   if (!el || !pos) return;
-  if (!isNaN(result) && pos.risk > 0) {
-    const rr = (result / pos.risk).toFixed(2);
-    const isWinR = result > 0;
-    el.textContent = `→ ${isWinR ? '+' : ''}${rr}R ${isWinR ? '✅ WIN' : '❌ LOSS'}`;
+  // V215: podgląd pokazuje WYNIK CAŁEJ POZYCJI (reszta + zaklepane),
+  // żeby liczba w podglądzie zgadzała się z tym, co trafi do Dziennika
+  const _lk2 = (typeof tpLockedUsd === 'function') ? tpLockedUsd(pos) : 0;
+  const _op2 = (typeof tpOpen === 'function') ? tpOpen(pos) : 100;
+  const _tot = ((_op2 > 0.5 && !isNaN(result)) ? result : 0) + _lk2;
+  if ((!isNaN(result) || _op2 <= 0.5) && pos.risk > 0) {
+    const rr = (_tot / pos.risk).toFixed(2);
+    const isWinR = _tot > 0;
+    el.textContent = `→ ${isWinR ? '+' : ''}${_tot.toFixed(2)}$ · ${isWinR ? '+' : ''}${rr}R ${isWinR ? '✅ WIN' : '❌ LOSS'}`
+      + ((_lk2 !== 0 && _op2 > 0.5) ? `  (reszta ${result.toFixed(2)}$ + zaklepane ${_lk2.toFixed(2)}$)` : '');
     el.style.color = isWinR ? 'var(--green)' : 'var(--red)';
   } else {
     el.textContent = '';
@@ -17413,6 +17420,28 @@ function opzOpenCloseModal(id) {
   document.getElementById('opzClosePrice').value = '';
   document.getElementById('opzCloseResult').value = '';
   document.getElementById('opzCloseRRPreview').textContent = '';
+  // V215: interfejs musi mówić wprost, czego dotyczy pole "wynik"
+  const _lk = (typeof tpLockedUsd === 'function') ? tpLockedUsd(pos) : 0;
+  const _op = (typeof tpOpen === 'function') ? tpOpen(pos) : 100;
+  const _full = _op <= 0.5;
+  const _fld = document.getElementById('opzCloseResult');
+  const _lbl = document.getElementById('opzCloseResultLabel');
+  const _hint = document.getElementById('opzCloseSplit');
+  if (_full) {
+    if (_fld) { _fld.value = '0'; _fld.disabled = true; _fld.style.opacity = '.45'; }
+    if (_lbl) _lbl.textContent = 'Wynik — pozycja zamknięta w całości przez TP';
+    if (_hint) _hint.innerHTML = '<b>Wszystkie nogi odklikane.</b> Wynik pozycji to '
+      + (_lk >= 0 ? '+' : '') + _lk.toFixed(2) + '$ — nic nie wpisujesz.';
+  } else {
+    if (_fld) { _fld.disabled = false; _fld.style.opacity = ''; }
+    if (_lbl) _lbl.textContent = _lk !== 0
+      ? 'Wynik POZOSTAŁEJ części (' + Math.round(_op) + '% pozycji)'
+      : 'Wynik ($) — + zysk / − strata';
+    if (_hint) _hint.innerHTML = _lk !== 0
+      ? 'Zaklepane z TP: <b>' + (_lk >= 0 ? '+' : '') + _lk.toFixed(2) + '$</b> · doliczy się automatycznie. '
+        + 'Wpisz tylko wynik pozostałych ' + Math.round(_op) + '%.'
+      : '';
+  }
   const now = new Date().toTimeString().slice(0,5);
   document.getElementById('opzCloseTime').value = now;
   const _ch = document.getElementById('opzCloseTimeHint'); if (_ch) { _ch.textContent = ''; }
@@ -17520,7 +17549,10 @@ function opzConfirmClose() {
   const closePrice = parseFloat(document.getElementById('opzClosePrice').value);
   const logToJournal = document.getElementById('opzLogToJournal').checked;
   const pos = opzPositions.find(p => p.id === opzClosingId);
-  if (!pos || isNaN(result)) return;
+  if (!pos) return;
+  // V215: gdy nogi zamknęły 100%, pole jest wyłączone i nie musi mieć wartości
+  const _fullFill = ((typeof tpOpen === 'function') ? tpOpen(pos) : 100) <= 0.5;
+  if (!_fullFill && isNaN(result)) return;
 
   // V107: godzina zamknięcia z walidacją (nie z przyszłości, nie przed otwarciem);
   // przy backdacie czas na rynku liczy się do WPISANEJ godziny, nie do teraz
@@ -17528,10 +17560,16 @@ function opzConfirmClose() {
   const _cts = opzTimeToTs(closeTime);
   const closedAt = (_cts !== null && _cts <= Date.now() + 60000 && _cts >= pos.openedAt) ? _cts : Date.now();
   const durationMin = Math.max(0, Math.floor((closedAt - pos.openedAt) / 60000));
-  // V194: wynik z pola = TYLKO reszta pozycji; do niego doliczamy zaklepane części
+  // ══ V215 FIX: PODWÓJNE LICZENIE PRZY PEŁNYM WYPEŁNIENIU ══
+  // v194 przyjęło, że pole "wynik" opisuje TYLKO resztę pozycji i dolicza do
+  // niego zaklepane nogi. Ale gdy wszystkie TP zostały odklikane, reszta = 0%,
+  // a użytkownik naturalnie wpisywał pełny wynik (16.68$) — i system dodawał
+  // do tego zaklepane 16.68$, dając 33.36$. Teraz: jeśli pozycja jest
+  // wypełniona nogami w 100%, wynikiem jest SAMO zaklepane.
   const _lockedUsd = (typeof tpLockedUsd === 'function') ? tpLockedUsd(pos) : 0;
   const _openPct = (typeof tpOpen === 'function') ? tpOpen(pos) : 100;
-  const _totalUsd = result + _lockedUsd;
+  const _restUsd = (_openPct > 0.5) ? result : 0;
+  const _totalUsd = _restUsd + _lockedUsd;
   const ratio = pos.risk > 0 ? _totalUsd / pos.risk : 0;
   const rrStr = (ratio >= 0 ? '1:' : '-1:') + Math.abs(ratio).toFixed(2);
 
@@ -17549,7 +17587,7 @@ function opzConfirmClose() {
       legs: (typeof tpLegs === 'function') ? tpLegs(pos).map(l => ({ size: l.size, r: l.r, tag: l.tag })) : null,
       fills: (typeof tpFills === 'function')
         ? tpFills(pos).map(f => ({ size: f.size, r: f.r, tag: f.tag }))
-            .concat(_openPct > 0.5 ? [{ size: _openPct, r: (pos.risk > 0 ? result / pos.risk / (_openPct / 100) : 0), tag: 'END' }] : [])
+            .concat(_openPct > 0.5 ? [{ size: _openPct, r: (pos.risk > 0 ? _restUsd / pos.risk / (_openPct / 100) : 0), tag: 'END' }] : [])
         : null,
       beMoved: !!pos.beMoved, beAfter: (pos.beAfter != null ? pos.beAfter : null),
       expR: (typeof tpExpR === 'function') ? parseFloat(tpExpR(pos).toFixed(3)) : null,
@@ -18250,7 +18288,7 @@ function renderJournal() {
     const sessHtml = (t.sess && t.sess !== '—') ? `<div class="tcard-metric"><div class="tcard-m-l">Sesja</div><div class="tcard-m-v" style="color:var(--text2)">${t.sess}</div></div>` : '';
 
     return `
-    <div class="tcard ${tcClass}" id="tcard-${t.id}">
+    <div class="tcard ${tcClass} ${_isPaper ? 'is-paper' : ''}" id="tcard-${t.id}">
       <div class="tcard-head">
         <div class="tcard-num">${String(i+1).padStart(2,'0')}</div>
         <div>
@@ -18258,6 +18296,7 @@ function renderJournal() {
           <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--dim2);margin-top:2px;">${t.time} · ${t.sess}</div>
         </div>
         <div class="tcard-dir ${t.dir.toLowerCase()}">${t.dir}</div>
+        ${_isPaper ? '<span class="pm-badge">PAPER</span>' : ''}
         <div style="font-family:'Orbitron',monospace;font-size:9px;color:${gradeColor};padding:2px 6px;background:var(--bg3);border-radius:3px;">${execGrade}</div>
         <div class="tcard-pnl ${pnlClass}">${pnlSign}${t.pnl.toFixed(2)}$${beBadge}</div>
         <div class="tcard-del" onclick="event.stopPropagation();deleteTrade(${t.id})">✕</div>
@@ -34487,8 +34526,10 @@ body.dc-phone #panel-plan .d6-od{font-size:9.5px;}
   opacity:.9;}
 #panel-pozycje .opz-card.is-paper:hover{
   border-color:rgba(150,170,195,.6) !important;box-shadow:0 2px 14px rgba(150,170,195,.07) !important;}
-#panel-pozycje .opz-card.is-paper .opz-header{position:relative;}
-#panel-pozycje .opz-card.is-paper .pm-badge{position:absolute;top:0;right:0;}
+/* V213: plakietka PAPER była pozycjonowana absolutnie w rogu nagłówka
+   i nakładała się na licznik "NA RYNKU". Teraz jest normalnym elementem
+   w rzędzie z tokenem i kierunkiem — nic na siebie nie wchodzi. */
+#panel-pozycje .opz-card.is-paper .pm-badge{flex-shrink:0;}
 #panel-pozycje .opz-desk-cell.dk-paper{--dkc:rgba(150,170,195,.8);border-style:dashed;}
 #panel-pozycje .opz-desk-v.paper{color:rgba(200,215,235,.85) !important;font-size:13px;}
 
@@ -34630,5 +34671,43 @@ body.dashboard-mode:not(.dc-phone) #panel-start .tele-center-grid{
 body.dc-phone .opz-modal-box{max-width:100% !important;max-height:none !important;}
 body.dc-phone .opz-modal-box > .opz-modal-title{top:-16px;margin:-16px -14px 14px !important;padding:16px 14px 12px !important;}
 body.dc-phone .opz-modal-btns{margin:8px -14px 0 !important;padding:14px !important;}
+
+
+/* ══ V213 · nagłówek karty pozycji — nic się nie nakłada ══ */
+#panel-pozycje .opz-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;}
+#panel-pozycje .opz-header{gap:10px !important;}
+#panel-pozycje .opz-age{flex-shrink:0;white-space:nowrap;}
+/* podpisy nad paskiem R: przy ciasnej karcie zawijają się zamiast nachodzić */
+#panel-pozycje .opz-rr-cap{gap:10px;flex-wrap:wrap;}
+#panel-pozycje .opz-rr-cap .cl,
+#panel-pozycje .opz-rr-cap .cr{white-space:nowrap;}
+body.dc-phone #panel-pozycje .pm-badge{font-size:8.5px;padding:3px 9px;}
+
+
+/* ══ V214 · PAPER widoczny w Dzienniku ══
+   W v207 zadeklarowałem zmienną _isPaper, ale nigdy jej nie użyłem
+   w renderze — CSS czekał na klasę, której nic nie dodawało.
+   Teraz karta transakcji papierowej jest oznaczona tak samo
+   jak karta pozycji: przerywana ramka + neutralna plakietka. */
+#panel-journal .tcard.is-paper{
+  border-style:dashed !important;
+  border-color:rgba(150,170,195,.4) !important;
+  background:linear-gradient(165deg,rgba(150,170,195,.04),rgba(0,0,0,.22) 55%) !important;
+  opacity:.92;}
+#panel-journal .tcard.is-paper .tcard-pnl{color:rgba(205,220,240,.9) !important;}
+#panel-journal .tcard.is-paper .tcard-num{color:rgba(150,170,195,.75) !important;}
+#panel-journal .tcard-head{flex-wrap:wrap;gap:8px;}
+#panel-journal .tcard.is-paper .pm-badge{flex-shrink:0;}
+body.dc-phone #panel-journal .pm-badge{font-size:8.5px;padding:3px 9px;}
+
+
+/* ══ V215 · modal zamknięcia — jasno, co wpisać ══ */
+#panel-pozycje .opz-close-split,
+.opz-close-split{font-family:'Share Tech Mono',monospace;font-size:9px;line-height:1.65;
+  color:rgba(200,220,240,.6);background:rgba(0,200,240,.06);border-left:2px solid var(--cyan);
+  border-radius:0 8px 8px 0;padding:8px 11px;margin:0 0 8px;}
+.opz-close-split b{color:var(--green);}
+.opz-close-split:empty{display:none;}
+body.dc-phone .opz-close-split{font-size:11px;padding:10px 13px;}
 </style>
 <!-- ════════ END V80 DASHBOARD CSS ════════ -->
