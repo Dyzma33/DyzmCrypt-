@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v215 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v216 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7114,7 +7114,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v215 · EXECUTION OS</div>
+    <div class="splash-ver">v216 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7374,7 +7374,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v215</div>
+      <div class="sb-logo-sub">EXECUTION OS · v216</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7985,7 +7985,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v215';
+window.DC_VERSION = 'v216';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -16369,6 +16369,17 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
  <div class="rn-card" style="--rn-acc:var(--green)"><div class="rn-kl">Prognoza</div><div class="rn-kv rn-gr" id="rnKPred">—</div><div class="rn-ks" id="rnKPredS">brak danych</div></div>
 </div>
 
+<!-- ZAKŁADKI MODUŁU -->
+<div class="ctabs rn-tabs">
+  <button class="ctab active" onclick="rnTab('teraz',this)">Teraz</button>
+  <button class="ctab" onclick="rnTab('log',this)">Log treningu</button>
+  <button class="ctab" onclick="rnTab('progresja',this)">Progresja</button>
+  <button class="ctab" onclick="rnTab('analiza',this)">Analiza</button>
+</div>
+
+<!-- ══ ZAKŁADKA: TERAZ ══ -->
+<div class="cc active" id="rn-teraz">
+
 <!-- AKTYWNY POZIOM -->
 <div class="rn-sec" style="--rn-acc:var(--gold)">
  <div class="rn-sh"><div class="rn-st">AKTYWNY POZIOM · CHECKLISTA</div><div class="rn-sn" id="rnActN">—</div></div>
@@ -16391,11 +16402,21 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
  </div>
 </div>
 
+</div><!-- /rn-teraz -->
+
+<!-- ══ ZAKŁADKA: PROGRESJA ══ -->
+<div class="cc" id="rn-progresja">
+
 <!-- DRABINA -->
 <div class="rn-sec" style="--rn-acc:var(--purple)">
  <div class="rn-sh"><div class="rn-st">PROGRESJA</div><div class="rn-sn" id="rnLadN">13 / 13 USTALONE</div></div>
  <div class="rn-sb"><div class="rn-lad" id="rnLad"></div></div>
 </div>
+
+</div><!-- /rn-progresja -->
+
+<!-- ══ ZAKŁADKA: LOG TRENINGU ══ -->
+<div class="cc" id="rn-log">
 
 <!-- LOG -->
 <div class="rn-sec" style="--rn-acc:var(--cyan)">
@@ -16450,6 +16471,11 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
  </div>
 </div>
 
+</div><!-- /rn-log -->
+
+<!-- ══ ZAKŁADKA: ANALIZA ══ -->
+<div class="cc" id="rn-analiza">
+
 <!-- STREFY -->
 <div class="rn-sec" style="--rn-acc:var(--cyan)">
  <div class="rn-sh"><div class="rn-st">STREFY TEMPA</div><div class="rn-sn" id="rnZN">BRAK ODNIESIENIA</div></div>
@@ -16467,6 +16493,8 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
  <div class="rn-sh"><div class="rn-st">DETEKTORY</div><div class="rn-sn" id="rnDN">0 / 10</div></div>
  <div class="rn-sb" id="rnDetsList"></div>
 </div>
+
+</div><!-- /rn-analiza -->
 
 </div>
 
@@ -30379,6 +30407,15 @@ function rnRender() {
 }
 window.rnRender = rnRender;
 
+// V216: zakładki modułu. Wykres SVG liczy szerokość z clientWidth, a ukryty
+// kontener ma zero — dlatego po wejściu w Analizę rysujemy go ponownie.
+function rnTab(id, btn) {
+  if (typeof switchCycle === 'function') switchCycle('rn', id, btn);
+  if (id === 'analiza') setTimeout(function(){ try { rnChart(rnWeeks()); } catch(e) {} }, 40);
+  try { localStorage.setItem('dyzmcrypt_v34_rnTab', id); } catch(e) {}
+}
+window.rnTab = rnTab;
+
 // ── checklista (V203 FIX: OKNO→RN_GAP, była niezdefiniowana zmienna) ──
 function rnChecklist(P) {
   const L = RN_LEVELS[rnS.poziom], el = document.getElementById('rnChk');
@@ -30734,6 +30771,16 @@ function rnBoot() {
     };
     g.appendChild(b);
   });
+  // V216: wróć do zakładki, na której ostatnio byłeś
+  try {
+    const last = localStorage.getItem('dyzmcrypt_v34_rnTab');
+    if (last && last !== 'teraz') {
+      const btns = document.querySelectorAll('#panel-bieganie .rn-tabs .ctab');
+      const map = { teraz:0, log:1, progresja:2, analiza:3 };
+      const b = btns[map[last]];
+      if (b) rnTab(last, b);
+    }
+  } catch(e) {}
   const fd = document.getElementById('rnFD'); if (fd && !fd.value) fd.value = rnDs(new Date());
   ['rnFKm','rnFT','rnFW'].forEach(i => { const e = document.getElementById(i); if (e) e.addEventListener('input', () => { rnLive(); rnVestWarn(); }); });
   const pw = document.getElementById('rnPW'); if (pw) pw.addEventListener('input', rnPlanZone);
@@ -34709,5 +34756,25 @@ body.dc-phone #panel-journal .pm-badge{font-size:8.5px;padding:3px 9px;}
 .opz-close-split b{color:var(--green);}
 .opz-close-split:empty{display:none;}
 body.dc-phone .opz-close-split{font-size:11px;padding:10px 13px;}
+
+
+/* ══ V216 · zakładki modułu BIEGANIE ══ */
+#panel-bieganie .rn-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:13px;}
+#panel-bieganie .rn-tabs .ctab{
+  font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:1.6px;
+  padding:11px 18px;border-radius:11px;cursor:pointer;transition:all .17s;
+  border:1px solid rgba(118,158,205,.16);background:linear-gradient(160deg,rgba(255,255,255,.02),rgba(0,0,0,.26));
+  color:var(--dim2);}
+#panel-bieganie .rn-tabs .ctab:hover{color:var(--text2);border-color:rgba(118,158,205,.34);transform:translateY(-1px);}
+#panel-bieganie .rn-tabs .ctab.active{
+  color:var(--gold2);border-color:rgba(240,180,41,.5);
+  background:linear-gradient(160deg,rgba(240,180,41,.13),rgba(0,0,0,.28));
+  box-shadow:0 0 16px rgba(240,180,41,.12);}
+#panel-bieganie .cc{display:none;}
+#panel-bieganie .cc.active{display:block;animation:rnFade .22s ease;}
+@keyframes rnFade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+/* w osobnej zakładce log ma pełną szerokość — plan i wynik obok siebie mają sens */
+#panel-bieganie #rn-log .rn-lgrid{gap:14px;}
+body.dc-phone #panel-bieganie .rn-tabs .ctab{font-size:11px;padding:12px 16px;flex:1 1 auto;text-align:center;}
 </style>
 <!-- ════════ END V80 DASHBOARD CSS ════════ -->
