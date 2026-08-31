@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v216 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v217 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7114,7 +7114,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v216 · EXECUTION OS</div>
+    <div class="splash-ver">v217 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7374,7 +7374,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v216</div>
+      <div class="sb-logo-sub">EXECUTION OS · v217</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7985,7 +7985,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v216';
+window.DC_VERSION = 'v217';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -16432,9 +16432,9 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
      <div class="rn-chips" id="rnTChips"></div>
     </div>
     <div class="rn-f3">
-     <div class="rn-fi"><label>Dystans km</label><input type="number" step="0.01" id="rnPKm" placeholder="3.30"></div>
-     <div class="rn-fi"><label>Lub czas min</label><input type="number" id="rnPMin" placeholder="—"></div>
-     <div class="rn-fi"><label>Kamizelka kg</label><input type="number" step="1" id="rnPW" placeholder="0"></div>
+     <div class="rn-fi"><label>Dystans</label><div class="rn-in"><input type="number" inputmode="decimal" step="0.01" id="rnPKm" placeholder="3.30"><span class="rn-u">km</span></div></div>
+     <div class="rn-fi"><label>Lub czas</label><div class="rn-in"><input type="number" inputmode="numeric" id="rnPMin" placeholder="—"><span class="rn-u">min</span></div></div>
+     <div class="rn-fi"><label>Kamizelka</label><div class="rn-in"><input type="number" inputmode="numeric" step="1" id="rnPW" placeholder="0"><span class="rn-u">kg</span></div></div>
     </div>
     <div id="rnPZone"></div>
     <button class="rn-btn" style="margin-top:9px" onclick="rnPlan()">ZAPLANUJ SESJĘ</button>
@@ -16445,12 +16445,12 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
     <div class="rn-lbh">2 · WYNIK<span id="rnResFor">WYBIERZ Z LISTY</span></div>
     <div class="rn-f3">
      <div class="rn-fi"><label>Data</label><input type="date" id="rnFD"></div>
-     <div class="rn-fi"><label>Dystans km</label><input type="number" step="0.01" id="rnFKm" placeholder="—"></div>
-     <div class="rn-fi"><label>Czas mm:ss</label><input type="text" id="rnFT" placeholder="24:00"></div>
+     <div class="rn-fi"><label>Dystans</label><div class="rn-in"><input type="number" inputmode="decimal" step="0.01" id="rnFKm" placeholder="3.30"><span class="rn-u">km</span></div></div>
+     <div class="rn-fi"><label>Czas</label><div class="rn-in"><input type="text" inputmode="numeric" id="rnFT" placeholder="24:00"><span class="rn-u">mm:ss</span></div></div>
     </div>
     <div class="rn-f2">
-     <div class="rn-fi"><label>Tętno średnie</label><input type="number" id="rnFH" placeholder="—"></div>
-     <div class="rn-fi"><label>Kamizelka kg</label><input type="number" step="1" id="rnFW" placeholder="0"></div>
+     <div class="rn-fi"><label>Tętno średnie</label><div class="rn-in"><input type="number" inputmode="numeric" id="rnFH" placeholder="—"><span class="rn-u">bpm</span></div></div>
+     <div class="rn-fi"><label>Kamizelka</label><div class="rn-in"><input type="number" inputmode="numeric" step="1" id="rnFW" placeholder="0"><span class="rn-u">kg</span></div></div>
     </div>
     <div>
      <label style="font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim);letter-spacing:1.1px;text-transform:uppercase;">Tagi</label>
@@ -30650,8 +30650,12 @@ function rnFill(id) {
   const p = rnS.plany.find(x => x.id === id); if (!p) return;
   rnS.edycja = id; rnS.selType = p.typ;
   rnSaveState();
-  const fw = document.getElementById('rnFW'); if (fw) fw.value = p.w || '';
-  const fkm = document.getElementById('rnFKm'); if (fkm) fkm.value = p.dyst || '';
+  // V217 FIX: plan czasowy nie ma dystansu (dyst:null), a kod wpisywał wtedy
+  // pustą wartość — kasując to, co użytkownik już wpisał. Efekt: "Data, dystans
+  // i czas wymagane" mimo wypełnionego formularza. Teraz nadpisujemy TYLKO gdy
+  // plan faktycznie coś niesie.
+  const fw = document.getElementById('rnFW'); if (fw && p.w) fw.value = p.w;
+  const fkm = document.getElementById('rnFKm'); if (fkm && p.dyst) fkm.value = p.dyst;
   rnSyncChips(); rnRender();
   const ft = document.getElementById('rnFT'); if (ft) ft.focus();
 }
@@ -30691,12 +30695,29 @@ function rnLive() {
 
 // ══ ZAPIS ══
 function rnSave() {
+  // V217: przecinek dziesiętny nie może wywracać zapisu
+  const _num = function(id) {
+    const v = String((document.getElementById(id) || {}).value || '').replace(',', '.').trim();
+    const n = parseFloat(v);
+    return isNaN(n) ? null : n;
+  };
   const d = (document.getElementById('rnFD')||{}).value,
-        km = parseFloat((document.getElementById('rnFKm')||{}).value),
+        km = _num('rnFKm'),
         t = ((document.getElementById('rnFT')||{}).value || '').trim(),
-        w = parseFloat((document.getElementById('rnFW')||{}).value) || 0,
-        hr = parseInt((document.getElementById('rnFH')||{}).value) || null;
-  if (!d || !km || !t) { if (typeof dcToast === 'function') dcToast('Data, dystans i czas wymagane', 'toast-red'); return; }
+        w = _num('rnFW') || 0,
+        hr = _num('rnFH') || null;
+  if (!d || !km || !t) {
+    // V217: komunikat mówi, CZEGO brakuje — zamiast wyliczać wszystko naraz
+    const brak = [];
+    if (!d) brak.push('data');
+    if (!km) brak.push('dystans');
+    if (!t) brak.push('czas');
+    if (typeof dcToast === 'function') dcToast('Uzupełnij: ' + brak.join(' · '), 'toast-red');
+    const focus = !d ? 'rnFD' : (!km ? 'rnFKm' : 'rnFT');
+    const fe = document.getElementById(focus);
+    if (fe) { fe.focus(); fe.classList.add('rn-miss'); setTimeout(function(){ fe.classList.remove('rn-miss'); }, 1600); }
+    return;
+  }
   const P = rnS.edycja ? rnS.plany.find(x => x.id === rnS.edycja) : null;
   rnS.sesje.push({ date:d, km, t, typ:rnS.selType, w, hr,
     tags: rnS.selTags.slice(), kro: rnKRO(rnS.selType, km, t, w),
@@ -34776,5 +34797,100 @@ body.dc-phone .opz-close-split{font-size:11px;padding:10px 13px;}
 /* w osobnej zakładce log ma pełną szerokość — plan i wynik obok siebie mają sens */
 #panel-bieganie #rn-log .rn-lgrid{gap:14px;}
 body.dc-phone #panel-bieganie .rn-tabs .ctab{font-size:11px;padding:12px 16px;flex:1 1 auto;text-align:center;}
+
+
+/* ══════════════════════════════════════════════════════════════
+   V217 · LOG TRENINGU — MATERIAŁ PRODUKCYJNY
+   Formularz był z próbki: płaskie pola, etykiety bez rytmu, brak
+   jednostek, przyciski krzyczące żółcią. Tu dostaje ten sam język
+   co reszta systemu: numerowane kroki, pola ze stalową ramką
+   i jednostką w środku, akcent koloru zamiast plamy.
+══════════════════════════════════════════════════════════════ */
+
+/* ── ramki kroków ── */
+#panel-bieganie .rn-lbox{padding:16px 17px !important;border-radius:14px !important;}
+#panel-bieganie .rn-lbh{
+  font-size:10px !important;letter-spacing:2.6px !important;margin-bottom:14px !important;
+  padding-bottom:11px;border-bottom:1px solid rgba(118,158,205,.1);}
+#panel-bieganie .rn-lbh span{font-size:7.5px !important;letter-spacing:1.6px !important;}
+
+/* ── pola z jednostką ── */
+#panel-bieganie .rn-in{position:relative;}
+#panel-bieganie .rn-in input{padding-right:46px !important;}
+#panel-bieganie .rn-u{
+  position:absolute;right:11px;top:50%;transform:translateY(-50%);pointer-events:none;
+  font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.2px;
+  color:rgba(200,220,240,.35);text-transform:uppercase;}
+#panel-bieganie .rn-fi label{
+  font-size:7px !important;letter-spacing:2px !important;color:rgba(200,220,240,.4) !important;margin-bottom:6px !important;}
+#panel-bieganie .rn-fi input{
+  background:rgba(0,0,0,.34) !important;
+  border:1px solid rgba(118,158,205,.15) !important;
+  border-radius:10px !important;padding:12px 13px !important;
+  font-size:14px !important;color:var(--text) !important;
+  transition:border-color .18s, box-shadow .18s, background .18s !important;}
+#panel-bieganie .rn-fi input:focus{
+  border-color:rgba(240,180,41,.55) !important;
+  background:rgba(0,0,0,.44) !important;
+  box-shadow:0 0 0 3px rgba(240,180,41,.09) !important;}
+#panel-bieganie .rn-fi input::placeholder{color:rgba(200,220,240,.22);}
+/* pole, którego brakuje przy zapisie — puls zamiast samego toasta */
+#panel-bieganie .rn-fi input.rn-miss{
+  border-color:var(--red) !important;box-shadow:0 0 0 3px rgba(255,58,92,.14) !important;
+  animation:rnMiss .45s ease 2;}
+@keyframes rnMiss{0%,100%{transform:none;}25%{transform:translateX(-3px);}75%{transform:translateX(3px);}}
+
+/* ── siatki pól: równy rytm ── */
+#panel-bieganie .rn-f3{gap:10px !important;margin-bottom:12px !important;}
+#panel-bieganie .rn-f2{gap:10px !important;margin-bottom:12px !important;}
+
+/* ── chipy typu i tagów ── */
+#panel-bieganie .rn-chips{gap:7px !important;margin-top:7px !important;}
+#panel-bieganie .rn-chip{
+  padding:10px 15px !important;font-size:10.5px !important;border-radius:12px !important;
+  background:linear-gradient(160deg,rgba(255,255,255,.022),rgba(0,0,0,.28)) !important;
+  border-color:rgba(118,158,205,.15) !important;}
+#panel-bieganie .rn-tg{
+  padding:8px 13px !important;font-size:10px !important;border-radius:12px !important;
+  background:linear-gradient(160deg,rgba(255,255,255,.02),rgba(0,0,0,.26)) !important;}
+
+/* ── przyciski: akcent, nie plama ── */
+#panel-bieganie .rn-btn{
+  border-radius:12px !important;padding:15px 18px !important;
+  font-size:11px !important;letter-spacing:2.4px !important;
+  background:linear-gradient(180deg,#f3c245,#d99e14) !important;
+  box-shadow:0 4px 20px rgba(240,180,41,.18) !important;}
+#panel-bieganie #rn-log .rn-lbox.rn-plan .rn-btn{
+  background:linear-gradient(180deg,#4fd6f5,#1fa8cc) !important;color:#04121a !important;
+  box-shadow:0 4px 20px rgba(0,200,240,.18) !important;}
+#panel-bieganie .rn-btn.rn-sm{padding:10px 15px !important;font-size:9.5px !important;letter-spacing:1.4px !important;}
+#panel-bieganie .rn-btn.rn-gh{background:transparent !important;box-shadow:none !important;
+  border:1px solid rgba(118,158,205,.2) !important;color:var(--dim) !important;}
+
+/* ── podgląd na żywo ── */
+#panel-bieganie .rn-live{
+  border-radius:12px !important;padding:13px 14px !important;margin-top:13px !important;
+  background:linear-gradient(168deg,rgba(76,118,168,.06),rgba(0,0,0,.26) 60%) !important;
+  border:1px solid rgba(118,158,205,.14) !important;}
+#panel-bieganie .rn-lvL{font-size:6.5px !important;letter-spacing:1.9px !important;}
+#panel-bieganie .rn-lvV{font-size:16px !important;margin-top:5px !important;}
+#panel-bieganie .rn-verd{border-radius:10px !important;padding:11px 13px !important;
+  font-size:10px !important;letter-spacing:1.2px !important;}
+#panel-bieganie .rn-fills{font-size:9.5px !important;padding-top:2px;}
+
+/* ── zaplanowane sesje ── */
+#panel-bieganie .rn-pend{
+  border-radius:12px !important;padding:12px 14px !important;
+  border:1px dashed rgba(0,200,240,.32) !important;
+  background:linear-gradient(160deg,rgba(0,200,240,.06),rgba(0,0,0,.24)) !important;}
+#panel-bieganie .rn-pendT{font-size:13px !important;}
+
+/* ── historia ── */
+#panel-bieganie .rn-scard{padding:12px 14px !important;border-radius:12px !important;}
+#panel-bieganie .rn-sdist{font-size:16px !important;}
+
+body.dc-phone #panel-bieganie .rn-fi input{font-size:15px !important;padding:14px 13px !important;}
+body.dc-phone #panel-bieganie .rn-u{font-size:9px;}
+body.dc-phone #panel-bieganie .rn-f3{grid-template-columns:1fr 1fr !important;}
 </style>
 <!-- ════════ END V80 DASHBOARD CSS ════════ -->
