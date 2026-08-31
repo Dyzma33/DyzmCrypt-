@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v217 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v220 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7114,7 +7114,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v217 · EXECUTION OS</div>
+    <div class="splash-ver">v220 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7374,7 +7374,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v217</div>
+      <div class="sb-logo-sub">EXECUTION OS · v220</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7985,7 +7985,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v217';
+window.DC_VERSION = 'v220';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -16390,6 +16390,20 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
  </div>
 </div>
 
+<!-- ROZGRZEWKA -->
+<div class="rn-sec rn-warm" style="--rn-acc:var(--orange)">
+ <div class="rn-sh"><div class="rn-st">ROZGRZEWKA · PRZED KAŻDYM BIEGIEM</div><div class="rn-sn" id="rnWarmN">—</div></div>
+ <div class="rn-sb">
+  <div class="rn-warm-row">
+   <div class="rn-warm-txt">
+    <b>13 minut. Bez wyjątków — także przy 3,3 km.</b><br>
+    Rozgrzewka jest częścią sesji, nie dodatkiem. Nieodrobiona zostaje odnotowana w logu.
+   </div>
+   <a class="rn-warm-btn" href="https://youtu.be/3WUtJxLv-wI" rel="noopener">▶ ODPAL ROZGRZEWKĘ</a>
+  </div>
+ </div>
+</div>
+
 <!-- CIĄGŁOŚĆ -->
 <div class="rn-sec" style="--rn-acc:var(--gold)">
  <div class="rn-sh"><div class="rn-st">CIĄGŁOŚĆ SERII</div><div class="rn-sn" id="rnWinN">—</div></div>
@@ -16451,6 +16465,14 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
     <div class="rn-f2">
      <div class="rn-fi"><label>Tętno średnie</label><div class="rn-in"><input type="number" inputmode="numeric" id="rnFH" placeholder="—"><span class="rn-u">bpm</span></div></div>
      <div class="rn-fi"><label>Kamizelka</label><div class="rn-in"><input type="number" inputmode="numeric" step="1" id="rnFW" placeholder="0"><span class="rn-u">kg</span></div></div>
+    </div>
+    <div class="rn-warmq" id="rnWarmQ">
+     <span class="rn-warmq-l">Rozgrzewka przed tym biegiem
+       <a class="rn-yt-mini" href="https://youtu.be/3WUtJxLv-wI" rel="noopener">▶ FILM</a></span>
+     <span class="rn-warmq-b">
+       <span class="rn-wq" id="rnWqYes" onclick="rnSetWarm(true)">✓ ZROBIONA</span>
+       <span class="rn-wq no" id="rnWqNo" onclick="rnSetWarm(false)">✕ POMINIĘTA</span>
+     </span>
     </div>
     <div>
      <label style="font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim);letter-spacing:1.1px;text-transform:uppercase;">Tagi</label>
@@ -21103,7 +21125,8 @@ function buildBlocksD6() {
               : 'Bez ekranów tradingowych. Dzień oddaje cztery sesje, wieczorem wraca S10.')
             : 'Nie wybrano drogi. Kliknij w karcie OKNA DNIA nad blokami.',
       tasks: bieg
-        ? [{ time:'9:49–11:19', label:'Bieg', note:'Zgodnie z planem sesji w module Bieganie.' },
+        ? [{ time:'9:49–10:02', label:'ROZGRZEWKA — 13 min, obowiązkowa <a class=\'rn-yt-mini\' href=\'https://youtu.be/3WUtJxLv-wI\' onclick=\'event.stopPropagation();\' rel=\'noopener\'>▶ FILM</a>', note:'Przed każdym biegiem, bez wyjątku. Film w module Bieganie.' },
+           { time:'10:02–11:19', label:'Bieg', note:'Zgodnie z planem sesji w module Bieganie.' },
            { time:'11:19–11:49', label:'Prysznic + rozciąganie', note:'Schłodzenie, mobilność.' },
            { time:'11:49–12:38', label:'Posiłek + zapis', note:'Uzupełnienie. Wpisz wynik biegu w module Bieganie.' }]
         : [{ time:'9:49–12:38', label: c.win1 === 'wolne' ? 'Czas wolny — 169 min' : 'Okno niewybrane',
@@ -21130,7 +21153,8 @@ function buildBlocksD6() {
               : 'Bez ekranów. Odpoczynek albo sprawy poza systemem.')
             : 'Nie wybrano drogi. Kliknij w karcie OKNA DNIA nad blokami.',
       tasks: bieg
-        ? [{ time:'15:22–17:00', label:'Bieg', note:'Zgodnie z planem sesji w module Bieganie.' },
+        ? [{ time:'15:22–15:35', label:'ROZGRZEWKA — 13 min, obowiązkowa <a class=\'rn-yt-mini\' href=\'https://youtu.be/3WUtJxLv-wI\' onclick=\'event.stopPropagation();\' rel=\'noopener\'>▶ FILM</a>', note:'Przed każdym biegiem, bez wyjątku. Film w module Bieganie.' },
+           { time:'15:35–17:00', label:'Bieg', note:'Zgodnie z planem sesji w module Bieganie.' },
            { time:'17:00–17:30', label:'Prysznic + rozciąganie', note:'Schłodzenie, mobilność.' },
            { time:'17:30–18:09', label:'Posiłek + zapis', note:'Białko obowiązkowe. Wpisz wynik biegu.' }]
         : [{ time:'15:22–18:09', label: c.win2 === 'wolne' ? 'Czas wolny — 167 min' : 'Okno niewybrane',
@@ -30166,6 +30190,10 @@ const RN_MC = 94.5;                 // domyślna masa ciała (fallback, realna w
 const RN_HM_DEFAULT = 21.0975;      // domyślny dystans celu (fallback, realny w rnS.goal.dystans)
 const RN_W1 = new Date('2026-08-17T00:00:00');  // start programu — licznik tygodni
 const RN_GAP = 13;                  // dni bez biegu, ktore zeruja licznik poziomu
+// V218: rozgrzewka obowiazkowa przed KAZDYM biegiem.
+// V219: 13 min — zgodnie z rytmem systemu (13 sesji, 13 dni ciaglosci, 13 poziomow).
+const RN_WARM_URL = 'https://youtu.be/3WUtJxLv-wI';
+const RN_WARM_MIN = 13;
 
 const RN_TYPES = [
   { k:'easy', n:'Swobodny',   c:'' },
@@ -30274,6 +30302,7 @@ function rnLoad() {
   if (st.edycja === undefined) st.edycja = null;
   if (!st.selType) st.selType = 'easy';
   if (!Array.isArray(st.selTags)) st.selTags = [];
+  if (st.selWarm === undefined) st.selWarm = null;   // V218: null = jeszcze nie wskazano
   return st;
 }
 let rnS = rnLoad();
@@ -30396,6 +30425,16 @@ function rnRender() {
   }
   const smid = document.getElementById('rnStripMid');
   if (smid) smid.textContent = rnS.poziom + ' / ' + RN_LEVELS.length + ' zamkniętych';
+
+  // V218: ile ostatnich biegów miało rozgrzewkę — fakt, nie deklaracja
+  const wEl = document.getElementById('rnWarmN');
+  if (wEl) {
+    const last = rnS.sesje.slice().sort((a,b) => a.date < b.date ? 1 : -1).slice(0, 10);
+    const known = last.filter(s => s.warm !== null && s.warm !== undefined);
+    wEl.textContent = known.length
+      ? known.filter(s => s.warm).length + ' / ' + known.length + ' OSTATNICH BIEGÓW'
+      : RN_WARM_MIN + ' MIN · OBOWIĄZKOWA';
+  }
 
   rnChecklist(P); rnStreakPanel(); rnPending();
   const rf = document.getElementById('rnResFor');
@@ -30527,7 +30566,8 @@ function rnRenderList() {
     const tempo = s.km > 0 ? rnS2t(rnT2s(s.t)/s.km) : '—';
     const K = rnKROTier(s.kro);
     const dd = s.date.slice(8), mm = s.date.slice(5,7);
-    const tags = (s.tags||[]).map(t => `<span class="rn-kro ${t==='bol'?'rn-t-h':'rn-t-l'}">${(RN_TAGS.find(x=>x.k===t)||{n:t}).n}</span>`).join(' ');
+    const tags = (s.tags||[]).map(t => `<span class="rn-kro ${t==='bol'?'rn-t-h':'rn-t-l'}">${(RN_TAGS.find(x=>x.k===t)||{n:t}).n}</span>`).join(' ')
+      + (s.warm === false ? '<span class="rn-kro rn-t-m">bez rozgrzewki</span>' : '');
     let pv = '';
     if (s.plan && s.plan.dyst) {
       const d = (s.km - s.plan.dyst) / s.plan.dyst * 100;
@@ -30720,10 +30760,11 @@ function rnSave() {
   }
   const P = rnS.edycja ? rnS.plany.find(x => x.id === rnS.edycja) : null;
   rnS.sesje.push({ date:d, km, t, typ:rnS.selType, w, hr,
+    warm: rnS.selWarm,                                   // V218: true / false / null
     tags: rnS.selTags.slice(), kro: rnKRO(rnS.selType, km, t, w),
     plan: P ? { dyst:P.dyst, czas:P.czas, w:P.w } : null });
   if (P) rnS.plany = rnS.plany.filter(x => x.id !== P.id);
-  rnS.edycja = null; rnS.selTags = [];
+  rnS.edycja = null; rnS.selTags = []; rnS.selWarm = null;
   rnSaveState();
   ['rnFKm','rnFT','rnFH'].forEach(i => { const e = document.getElementById(i); if (e) e.value = ''; });
   rnSyncChips(); rnRender();
@@ -30747,7 +30788,20 @@ function rnPending() {
 }
 
 // ── init ──
+// V218: rozgrzewka jako fakt zapisywany, nie założenie
+function rnSetWarm(v) {
+  rnS.selWarm = v;
+  rnSaveState();
+  rnSyncChips();
+  if (v === false && typeof dcToast === 'function')
+    dcToast('Odnotowane: bieg bez rozgrzewki', 'toast-gold');
+}
+window.rnSetWarm = rnSetWarm;
+
 function rnSyncChips() {
+  const wy = document.getElementById('rnWqYes'), wn = document.getElementById('rnWqNo');
+  if (wy) wy.classList.toggle('on', rnS.selWarm === true);
+  if (wn) wn.classList.toggle('on', rnS.selWarm === false);
   const c = document.getElementById('rnTChips');
   if (c) [...c.children].forEach(x => x.classList.toggle('rn-on', x.dataset.k === rnS.selType));
   const g = document.getElementById('rnTagChips');
@@ -34892,5 +34946,46 @@ body.dc-phone #panel-bieganie .rn-tabs .ctab{font-size:11px;padding:12px 16px;fl
 body.dc-phone #panel-bieganie .rn-fi input{font-size:15px !important;padding:14px 13px !important;}
 body.dc-phone #panel-bieganie .rn-u{font-size:9px;}
 body.dc-phone #panel-bieganie .rn-f3{grid-template-columns:1fr 1fr !important;}
+
+
+/* ══ V218 · ROZGRZEWKA ══ */
+#panel-bieganie .rn-warm-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+#panel-bieganie .rn-warm-txt{font-family:'Share Tech Mono',monospace;font-size:10px;line-height:1.75;
+  color:rgba(200,220,240,.6);flex:1 1 260px;}
+#panel-bieganie .rn-warm-txt b{color:var(--orange);}
+#panel-bieganie .rn-warm-btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;
+  font-family:'Orbitron',monospace;font-weight:800;font-size:11px;letter-spacing:2.2px;
+  padding:14px 20px;border-radius:12px;white-space:nowrap;
+  background:linear-gradient(180deg,#ff9d3d,#e8720f);color:#140a02;
+  box-shadow:0 4px 20px rgba(255,150,0,.22);transition:all .18s;}
+#panel-bieganie .rn-warm-btn:hover{filter:brightness(1.08);transform:translateY(-1px);}
+#panel-bieganie .rn-warmq{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  margin:12px 0;padding:11px 13px;border-radius:11px;
+  background:linear-gradient(160deg,rgba(255,150,0,.06),rgba(0,0,0,.24));
+  border:1px solid rgba(255,150,0,.22);}
+#panel-bieganie .rn-warmq-l{font-family:'Share Tech Mono',monospace;font-size:9.5px;letter-spacing:1.2px;color:rgba(200,220,240,.65);}
+#panel-bieganie .rn-warmq-b{display:flex;gap:7px;}
+#panel-bieganie .rn-wq{font-family:'Share Tech Mono',monospace;font-size:9.5px;letter-spacing:1.2px;
+  padding:8px 14px;border-radius:11px;cursor:pointer;transition:all .15s;
+  border:1px solid rgba(118,158,205,.18);background:rgba(0,0,0,.28);color:var(--dim);}
+#panel-bieganie .rn-wq.on{border-color:rgba(0,232,122,.5);background:rgba(0,232,122,.13);color:var(--green);}
+#panel-bieganie .rn-wq.no.on{border-color:rgba(255,150,0,.55);background:rgba(255,150,0,.14);color:var(--orange);}
+body.dc-phone #panel-bieganie .rn-wq{font-size:11px;padding:10px 16px;}
+body.dc-phone #panel-bieganie .rn-warm-btn{width:100%;justify-content:center;}
+
+
+/* ══ V220 · szybki dostęp do rozgrzewki ══
+   Link bez target="_blank" — iOS i Android przechwytują wtedy adres
+   youtu.be i otwierają APLIKACJĘ YouTube zamiast karty przeglądarki. */
+.rn-yt-mini{
+  display:inline-flex;align-items:center;gap:5px;text-decoration:none;vertical-align:middle;
+  font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:1.4px;
+  padding:4px 10px;border-radius:9px;margin-left:8px;white-space:nowrap;
+  background:linear-gradient(160deg,rgba(255,58,92,.2),rgba(0,0,0,.3));
+  border:1px solid rgba(255,58,92,.45);color:#ff8095;transition:all .15s;}
+.rn-yt-mini:hover{background:linear-gradient(160deg,rgba(255,58,92,.32),rgba(0,0,0,.3));
+  border-color:rgba(255,58,92,.7);color:#ffa9b8;transform:translateY(-1px);}
+#panel-bieganie .rn-warmq-l{display:flex;align-items:center;flex-wrap:wrap;gap:4px;}
+body.dc-phone .rn-yt-mini{font-size:10px;padding:6px 13px;}
 </style>
 <!-- ════════ END V80 DASHBOARD CSS ════════ -->
