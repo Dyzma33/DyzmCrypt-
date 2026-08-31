@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v220 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v221 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7114,7 +7114,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v220 · EXECUTION OS</div>
+    <div class="splash-ver">v221 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7374,7 +7374,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v220</div>
+      <div class="sb-logo-sub">EXECUTION OS · v221</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7985,7 +7985,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v220';
+window.DC_VERSION = 'v221';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -16374,6 +16374,7 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
   <button class="ctab active" onclick="rnTab('teraz',this)">Teraz</button>
   <button class="ctab" onclick="rnTab('log',this)">Log treningu</button>
   <button class="ctab" onclick="rnTab('progresja',this)">Progresja</button>
+  <button class="ctab" onclick="rnTab('historia',this)">Historia</button>
   <button class="ctab" onclick="rnTab('analiza',this)">Analiza</button>
 </div>
 
@@ -16423,7 +16424,8 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
 
 <!-- DRABINA -->
 <div class="rn-sec" style="--rn-acc:var(--purple)">
- <div class="rn-sh"><div class="rn-st">PROGRESJA</div><div class="rn-sn" id="rnLadN">13 / 13 USTALONE</div></div>
+ <div class="rn-sh"><div class="rn-st">PROGRESJA</div>
+  <div class="rn-sn"><span id="rnLadN">13 / 13 USTALONE</span><button class="rn-lvbtn" onclick="rnCofnij()" title="Cofnij poziom">▼</button><button class="rn-lvbtn up" onclick="rnAwans(true)" title="Awansuj ręcznie">▲</button></div></div>
  <div class="rn-sb"><div class="rn-lad" id="rnLad"></div></div>
 </div>
 
@@ -16462,7 +16464,8 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
      <div class="rn-fi"><label>Dystans</label><div class="rn-in"><input type="number" inputmode="decimal" step="0.01" id="rnFKm" placeholder="3.30"><span class="rn-u">km</span></div></div>
      <div class="rn-fi"><label>Czas</label><div class="rn-in"><input type="text" inputmode="numeric" id="rnFT" placeholder="24:00"><span class="rn-u">mm:ss</span></div></div>
     </div>
-    <div class="rn-f2">
+    <div class="rn-f3">
+     <div class="rn-fi"><label>Start biegu</label><input type="time" id="rnFFrom"></div>
      <div class="rn-fi"><label>Tętno średnie</label><div class="rn-in"><input type="number" inputmode="numeric" id="rnFH" placeholder="—"><span class="rn-u">bpm</span></div></div>
      <div class="rn-fi"><label>Kamizelka</label><div class="rn-in"><input type="number" inputmode="numeric" step="1" id="rnFW" placeholder="0"><span class="rn-u">kg</span></div></div>
     </div>
@@ -16478,8 +16481,9 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
      <label style="font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim);letter-spacing:1.1px;text-transform:uppercase;">Tagi</label>
      <div class="rn-chips" id="rnTagChips"></div>
     </div>
+    <div class="rn-editbar" id="rnEditBar"></div>
     <div class="rn-live" id="rnLiveBox"></div>
-    <button class="rn-btn" style="margin-top:9px" onclick="rnSave()">ZAPISZ WYNIK</button>
+    <button class="rn-btn" id="rnSaveBtn" style="margin-top:9px" onclick="rnSave()">ZAPISZ WYNIK</button>
    </div>
   </div>
 
@@ -16494,6 +16498,14 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
 </div>
 
 </div><!-- /rn-log -->
+
+<!-- ══ ZAKŁADKA: HISTORIA ══ -->
+<div class="cc" id="rn-historia">
+ <div class="rn-sec" style="--rn-acc:var(--green)">
+  <div class="rn-sh"><div class="rn-st">WSZYSTKIE BIEGI</div><div class="rn-sn" id="rnHistN">—</div></div>
+  <div class="rn-sb"><div id="rnHistList"></div></div>
+ </div>
+</div><!-- /rn-historia -->
 
 <!-- ══ ZAKŁADKA: ANALIZA ══ -->
 <div class="cc" id="rn-analiza">
@@ -30303,6 +30315,14 @@ function rnLoad() {
   if (!st.selType) st.selType = 'easy';
   if (!Array.isArray(st.selTags)) st.selTags = [];
   if (st.selWarm === undefined) st.selWarm = null;   // V218: null = jeszcze nie wskazano
+  if (!Array.isArray(st.zuzyte)) st.zuzyte = [];    // V221: sesje skonsumowane przez domknięte poziomy
+  if (st.edytujSesje === undefined) st.edytujSesje = null;
+  // V221: starsze sesje nie mają id — nadajemy raz, żeby dało się je edytować
+  let _dirty = false;
+  st.sesje.forEach(function(s, i) {
+    if (!s.id) { s.id = 'r' + (new Date(s.date + 'T12:00:00').getTime()) + '_' + i; _dirty = true; }
+  });
+  if (_dirty && typeof dcSave === 'function') dcSave('runState', st);
   return st;
 }
 let rnS = rnLoad();
@@ -30343,10 +30363,16 @@ function rnMatch(s, r) {
 }
 // V203: alokacja od najostrzejszego wymogu — bez tego L04/L06 liczą się źle
 // (luźniejszy wymóg zjadałby sesję potrzebną ostrzejszemu). Bez zmian logiki.
+// V221: sesje, którymi domknąłeś wcześniejszy poziom, nie mogą liczyć się
+// ponownie do następnego — inaczej awans kaskadowałby przez pół drabiny.
+function rnFreeSessions() {
+  const used = rnS.zuzyte || [];
+  return rnStreak().filter(function(s) { return used.indexOf(s.id) === -1; });
+}
 function rnProgress() {
   const L = RN_LEVELS[rnS.poziom];
   if (!L.req) return { rows:[], pct:0, done:false };
-  const win = rnStreak();
+  const win = rnFreeSessions();
   const used = new Set();
   const spec = r => (r.czas||0)*1000 + (r.dyst||0)*10 + (r.vest||0);
   const order = L.req.map((r,i) => ({r,i})).sort((a,b) => spec(b.r) - spec(a.r));
@@ -30400,6 +30426,8 @@ function rnRender() {
   }
 
   const P = rnProgress(), win = rnStreak();
+  // V221: domknięty poziom przenosi automatycznie — bez klikania
+  if (P.done && rnS.poziom < RN_LEVELS.length - 1 && !_rnAwansBusy) { setTimeout(function(){ rnAwans(false); }, 350); }
   const ekw = win.reduce((a,s) => a + rnKmEkw(s.km, s.w), 0);
   const raw = win.reduce((a,s) => a + s.km, 0);
 
@@ -30443,8 +30471,58 @@ function rnRender() {
     rf.textContent = P2 ? ('PLAN: ' + rnTN(P2.typ) + ' ' + (P2.dyst ? P2.dyst+' km' : P2.czas+' min')) : 'BEZ PLANU';
   }
   rnLadder(); rnRenderList(); rnZones(R); rnChart(rnWeeks()); rnDets(); rnLive(); rnPlanZone();
+  rnRenderHist();
+  // V221: widoczny tryb edycji — inaczej łatwo nadpisać nie ten wpis
+  const eb = document.getElementById('rnEditBar');
+  const sb = document.getElementById('rnSaveBtn');
+  if (eb) {
+    if (rnS.edytujSesje) {
+      const es = rnS.sesje.find(function(x){ return x.id === rnS.edytujSesje; });
+      eb.innerHTML = '<span>✎ EDYTUJESZ WPIS' + (es ? ' · ' + es.date.split('-').reverse().join('.') : '') + '</span>'
+        + '<button class="rn-btn rn-sm rn-gh" onclick="rnEditAnuluj()">anuluj edycję</button>';
+      eb.classList.add('on');
+      if (sb) sb.textContent = 'ZAPISZ ZMIANY';
+    } else { eb.innerHTML = ''; eb.classList.remove('on'); if (sb) sb.textContent = 'ZAPISZ WYNIK'; }
+  }
 }
 window.rnRender = rnRender;
+
+// ══ V221: AWANS POZIOMU ══
+// Do tej pory nic nie zmieniało rnS.poziom — checklista dochodziła do 3/3
+// i na tym się kończyło. Teraz domknięcie poziomu przenosi na następny,
+// a sesje użyte do jego domknięcia zostają oznaczone jako zużyte.
+let _rnAwansBusy = false;
+function rnAwans(manual) {
+  if (_rnAwansBusy) return;
+  if (rnS.poziom >= RN_LEVELS.length - 1) {
+    if (manual && typeof dcToast === 'function') dcToast('To już ostatni poziom — półmaraton', 'toast-gold');
+    return;
+  }
+  const P = rnProgress();
+  if (!P.done && !manual) return;
+  _rnAwansBusy = true;
+  const stary = RN_LEVELS[rnS.poziom].n;
+  // sesje, które domknęły ten poziom → zużyte
+  const used = rnS.zuzyte || (rnS.zuzyte = []);
+  rnFreeSessions().forEach(function(s) { if (used.indexOf(s.id) === -1) used.push(s.id); });
+  rnS.poziom++;
+  rnSaveState();
+  _rnAwansBusy = false;
+  if (typeof dcToast === 'function')
+    dcToast('🎖 POZIOM DOMKNIĘTY · L' + stary + ' → L' + RN_LEVELS[rnS.poziom].n, 'toast-green');
+  rnRender();
+}
+function rnCofnij() {
+  if (rnS.poziom <= 0) { if (typeof dcToast === 'function') dcToast('Jesteś na pierwszym poziomie', 'toast-red'); return; }
+  if (!confirm('Cofnąć poziom z L' + RN_LEVELS[rnS.poziom].n + ' na L' + RN_LEVELS[rnS.poziom-1].n + '?\n\nSesje zużyte na poprzednim poziomie wrócą do puli.')) return;
+  rnS.poziom--;
+  // oddaj sesje z powrotem — te z bieżącej serii przestają być zużyte
+  const inStreak = rnStreak().map(function(s){ return s.id; });
+  rnS.zuzyte = (rnS.zuzyte || []).filter(function(id){ return inStreak.indexOf(id) === -1; });
+  rnSaveState(); rnRender();
+  if (typeof dcToast === 'function') dcToast('↩ Cofnięto na L' + RN_LEVELS[rnS.poziom].n, 'toast-gold');
+}
+window.rnAwans = rnAwans; window.rnCofnij = rnCofnij;
 
 // V216: zakładki modułu. Wykres SVG liczy szerokość z clientWidth, a ukryty
 // kontener ma zero — dlatego po wejściu w Analizę rysujemy go ponownie.
@@ -30586,6 +30664,78 @@ function rnRenderList() {
      <div class="rn-sright" style="color:var(--dim2)">${s.kro!=null?s.kro.toFixed(1):''}</div></div>`;
   });
 }
+
+// ══ V221: HISTORIA — wszystkie biegi, pogrupowane po dniach ══
+function rnHistRange(s) {
+  if (!s.from) return null;
+  const [h, m] = s.from.split(':').map(Number);
+  const end = h * 60 + m + Math.round(rnT2s(s.t) / 60);
+  return s.from + ' → ' + String(Math.floor(end / 60) % 24).padStart(2, '0') + ':' + String(end % 60).padStart(2, '0');
+}
+function rnRenderHist() {
+  const el = document.getElementById('rnHistList'); if (!el) return;
+  const ss = rnS.sesje.slice().sort(function(a, b){ return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
+  const n = document.getElementById('rnHistN');
+  if (!ss.length) {
+    if (n) n.textContent = 'BRAK';
+    el.innerHTML = '<div class="rn-empty"><div class="rn-empty-i">📋</div><b>HISTORIA PUSTA</b>'
+      + '<span>Każdy zapisany bieg wyląduje tutaj — z godziną, tempem, strefą i tagami.</span></div>';
+    return;
+  }
+  const totKm = ss.reduce(function(a,s){ return a + s.km; }, 0);
+  const totEkw = ss.reduce(function(a,s){ return a + rnKmEkw(s.km, s.w); }, 0);
+  const totSec = ss.reduce(function(a,s){ return a + rnT2s(s.t); }, 0);
+  if (n) n.textContent = ss.length + ' BIEGÓW · ' + totKm.toFixed(1).replace('.', ',') + ' KM';
+
+  let h = '<div class="rn-hsum">'
+    + '<div class="rn-hs"><div class="rn-hsl">Biegów</div><div class="rn-hsv">' + ss.length + '</div></div>'
+    + '<div class="rn-hs"><div class="rn-hsl">Dystans</div><div class="rn-hsv rn-gold">' + totKm.toFixed(1).replace('.', ',') + ' km</div></div>'
+    + '<div class="rn-hs"><div class="rn-hsl">Km ekwiwalentne</div><div class="rn-hsv rn-pu">' + totEkw.toFixed(1).replace('.', ',') + '</div></div>'
+    + '<div class="rn-hs"><div class="rn-hsl">Czas w ruchu</div><div class="rn-hsv rn-cy">' + rnS2t(totSec) + '</div></div>'
+    + '</div>';
+
+  let lastDay = null;
+  ss.forEach(function(s) {
+    if (s.date !== lastDay) {
+      lastDay = s.date;
+      const dd = new Date(s.date + 'T12:00:00');
+      const dni = ['niedziela','poniedziałek','wtorek','środa','czwartek','piątek','sobota'];
+      const dayKm = ss.filter(function(x){ return x.date === s.date; }).reduce(function(a,x){ return a + x.km; }, 0);
+      h += '<div class="rn-hday"><span class="rn-hday-d">' + s.date.split('-').reverse().join('.') + '</span>'
+        + '<span class="rn-hday-n">' + dni[dd.getDay()] + '</span>'
+        + '<span class="rn-hday-line"></span>'
+        + '<span class="rn-hday-km">' + dayKm.toFixed(2).replace('.', ',') + ' km</span></div>';
+    }
+    const tempo = s.km > 0 ? rnS2t(rnT2s(s.t) / s.km) : '—';
+    const K = rnKROTier(s.kro);
+    const rng = rnHistRange(s);
+    const tags = (s.tags || []).map(function(t){
+      return '<span class="rn-kro ' + (t === 'bol' ? 'rn-t-h' : 'rn-t-l') + '">'
+        + ((RN_TAGS.find(function(x){ return x.k === t; }) || { n:t }).n) + '</span>'; }).join(' ');
+    h += '<div class="rn-hrow' + (rnInWin(s) ? '' : ' rn-out') + '">'
+      + '<div class="rn-hmain">'
+      +   '<div class="rn-hline1">'
+      +     '<span class="rn-tp rn-tp-' + s.typ + '">' + rnTN(s.typ) + '</span>'
+      +     '<span class="rn-sdist">' + s.km.toFixed(2).replace('.', ',') + ' km</span>'
+      +     (rng ? '<span class="rn-hclock">🕑 ' + rng + '</span>' : '')
+      +     (s.w ? '<span class="rn-kro rn-t-l">🎽 ' + s.w + ' kg</span>' : '')
+      +     (K ? '<span class="rn-kro rn-t-' + K.c + '">' + K.n + '</span>' : '')
+      +     (s.warm === false ? '<span class="rn-kro rn-t-m">bez rozgrzewki</span>' : '')
+      +     tags
+      +   '</div>'
+      +   '<div class="rn-hline2">' + s.t + ' · ' + tempo + '/km · ' + rnKmEkw(s.km, s.w).toFixed(1).replace('.', ',') + ' km ekw.'
+      +     (s.hr ? ' · ' + s.hr + ' bpm' : '')
+      +     ((rnS.zuzyte || []).indexOf(s.id) >= 0 ? ' · <span class="rn-used">zaliczony do poziomu</span>' : '')
+      +   '</div>'
+      + '</div>'
+      + '<div class="rn-hact">'
+      +   '<button class="rn-hbtn" onclick="rnEditSesja(\'' + s.id + '\')">✎</button>'
+      +   '<button class="rn-hbtn del" onclick="rnDelSesja(\'' + s.id + '\')">✕</button>'
+      + '</div></div>';
+  });
+  el.innerHTML = h;
+}
+window.rnRenderHist = rnRenderHist;
 
 // ── podgląd strefy w planie ──
 function rnPlanZone() {
@@ -30759,19 +30909,65 @@ function rnSave() {
     return;
   }
   const P = rnS.edycja ? rnS.plany.find(x => x.id === rnS.edycja) : null;
-  rnS.sesje.push({ date:d, km, t, typ:rnS.selType, w, hr,
+  const from = ((document.getElementById('rnFFrom')||{}).value || '').trim();
+  const rec = { date:d, km, t, typ:rnS.selType, w, hr, from: from || null,
     warm: rnS.selWarm,                                   // V218: true / false / null
     tags: rnS.selTags.slice(), kro: rnKRO(rnS.selType, km, t, w),
-    plan: P ? { dyst:P.dyst, czas:P.czas, w:P.w } : null });
+    plan: P ? { dyst:P.dyst, czas:P.czas, w:P.w } : null };
+  // V221: edycja istniejącego wpisu zamiast dopisywania nowego
+  if (rnS.edytujSesje) {
+    const ix = rnS.sesje.findIndex(function(s){ return s.id === rnS.edytujSesje; });
+    if (ix >= 0) { rec.id = rnS.sesje[ix].id; rnS.sesje[ix] = rec; }
+    rnS.edytujSesje = null;
+  } else {
+    rec.id = 'r' + Date.now();
+    rnS.sesje.push(rec);
+  }
   if (P) rnS.plany = rnS.plany.filter(x => x.id !== P.id);
   rnS.edycja = null; rnS.selTags = []; rnS.selWarm = null;
   rnSaveState();
   ['rnFKm','rnFT','rnFH'].forEach(i => { const e = document.getElementById(i); if (e) e.value = ''; });
   rnSyncChips(); rnRender();
+  const _ffrom = document.getElementById('rnFFrom'); if (_ffrom) _ffrom.value = '';
   if (typeof dcToast === 'function') dcToast('✓ Sesja zapisana', 'toast-green');
 }
 
 // ── lista zaplanowanych ──
+// ══ V221: EDYCJA WPISU ══
+function rnEditSesja(id) {
+  const s = rnS.sesje.find(function(x){ return x.id === id; });
+  if (!s) return;
+  rnS.edytujSesje = id;
+  rnS.selType = s.typ;
+  rnS.selTags = Array.isArray(s.tags) ? s.tags.slice() : [];
+  rnS.selWarm = (s.warm === undefined ? null : s.warm);
+  rnSaveState();
+  const set = function(id2, v) { const e = document.getElementById(id2); if (e) e.value = (v === null || v === undefined) ? '' : v; };
+  set('rnFD', s.date); set('rnFKm', s.km); set('rnFT', s.t);
+  set('rnFH', s.hr); set('rnFW', s.w || 0); set('rnFFrom', s.from);
+  rnSyncChips(); rnRender();
+  const box = document.getElementById('rnLiveBox');
+  if (box && box.scrollIntoView) box.scrollIntoView({ behavior:'smooth', block:'center' });
+  if (typeof dcToast === 'function') dcToast('✎ Edytujesz wpis z ' + s.date.slice(5), 'toast-gold');
+}
+function rnEditAnuluj() {
+  rnS.edytujSesje = null; rnS.selTags = []; rnS.selWarm = null;
+  rnSaveState();
+  ['rnFKm','rnFT','rnFH','rnFFrom'].forEach(function(i){ const e = document.getElementById(i); if (e) e.value = ''; });
+  rnSyncChips(); rnRender();
+}
+function rnDelSesja(id) {
+  const s = rnS.sesje.find(function(x){ return x.id === id; });
+  if (!s) return;
+  if (!confirm('Usunąć bieg ' + s.date.slice(5) + ' · ' + s.km + ' km?')) return;
+  rnS.sesje = rnS.sesje.filter(function(x){ return x.id !== id; });
+  rnS.zuzyte = (rnS.zuzyte || []).filter(function(z){ return z !== id; });
+  if (rnS.edytujSesje === id) rnS.edytujSesje = null;
+  rnSaveState(); rnRender();
+  if (typeof dcToast === 'function') dcToast('✕ Bieg usunięty', 'toast-gold');
+}
+window.rnEditSesja = rnEditSesja; window.rnEditAnuluj = rnEditAnuluj; window.rnDelSesja = rnDelSesja;
+
 function rnPending() {
   const el = document.getElementById('rnPendList'); if (!el) return;
   if (!rnS.plany.length) { el.innerHTML = ''; return; }
@@ -30851,7 +31047,7 @@ function rnBoot() {
     const last = localStorage.getItem('dyzmcrypt_v34_rnTab');
     if (last && last !== 'teraz') {
       const btns = document.querySelectorAll('#panel-bieganie .rn-tabs .ctab');
-      const map = { teraz:0, log:1, progresja:2, analiza:3 };
+      const map = { teraz:0, log:1, progresja:2, historia:3, analiza:4 };
       const b = btns[map[last]];
       if (b) rnTab(last, b);
     }
@@ -34987,5 +35183,51 @@ body.dc-phone #panel-bieganie .rn-warm-btn{width:100%;justify-content:center;}
   border-color:rgba(255,58,92,.7);color:#ffa9b8;transform:translateY(-1px);}
 #panel-bieganie .rn-warmq-l{display:flex;align-items:center;flex-wrap:wrap;gap:4px;}
 body.dc-phone .rn-yt-mini{font-size:10px;padding:6px 13px;}
+
+
+/* ══ V221 · historia, edycja, awans ══ */
+#panel-bieganie .rn-hsum{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:16px;}
+@media(max-width:680px){#panel-bieganie .rn-hsum{grid-template-columns:1fr 1fr;}}
+#panel-bieganie .rn-hs{background:linear-gradient(168deg,rgba(76,118,168,.07),rgba(0,0,0,.26) 62%);
+  border:1px solid rgba(118,158,205,.14);border-radius:11px;padding:11px 13px;}
+#panel-bieganie .rn-hsl{font-family:'Share Tech Mono',monospace;font-size:6.5px;letter-spacing:1.9px;
+  color:rgba(200,220,240,.4);text-transform:uppercase;margin-bottom:6px;}
+#panel-bieganie .rn-hsv{font-family:'Orbitron',monospace;font-size:16px;font-weight:900;color:var(--text2);font-variant-numeric:tabular-nums;}
+#panel-bieganie .rn-hday{display:flex;align-items:center;gap:10px;margin:16px 0 8px;}
+#panel-bieganie .rn-hday:first-of-type{margin-top:0;}
+#panel-bieganie .rn-hday-d{font-family:'Orbitron',monospace;font-size:11px;font-weight:800;color:var(--gold2);}
+#panel-bieganie .rn-hday-n{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.6px;
+  color:rgba(200,220,240,.4);text-transform:uppercase;}
+#panel-bieganie .rn-hday-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(240,180,41,.3),transparent);}
+#panel-bieganie .rn-hday-km{font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(200,220,240,.5);}
+#panel-bieganie .rn-hrow{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
+  padding:12px 14px;margin-bottom:7px;border-radius:12px;
+  background:linear-gradient(160deg,rgba(255,255,255,.018),rgba(0,0,0,.22));
+  border:1px solid rgba(118,158,205,.12);}
+#panel-bieganie .rn-hrow.rn-out{opacity:.5;}
+#panel-bieganie .rn-hline1{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+#panel-bieganie .rn-hline2{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim);margin-top:6px;}
+#panel-bieganie .rn-hclock{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.6px;
+  color:var(--cyan);background:rgba(0,200,240,.1);border:1px solid rgba(0,200,240,.25);
+  border-radius:8px;padding:3px 9px;white-space:nowrap;}
+#panel-bieganie .rn-used{color:var(--green);}
+#panel-bieganie .rn-hact{display:flex;gap:6px;}
+#panel-bieganie .rn-hbtn{width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:13px;
+  border:1px solid rgba(118,158,205,.2);background:rgba(0,0,0,.3);color:var(--dim2);transition:all .15s;}
+#panel-bieganie .rn-hbtn:hover{color:var(--gold2);border-color:rgba(240,180,41,.45);transform:translateY(-1px);}
+#panel-bieganie .rn-hbtn.del:hover{color:var(--red);border-color:rgba(255,58,92,.45);}
+#panel-bieganie .rn-editbar{display:none;}
+#panel-bieganie .rn-editbar.on{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  margin-top:12px;padding:11px 13px;border-radius:11px;
+  background:linear-gradient(160deg,rgba(240,180,41,.1),rgba(0,0,0,.24));
+  border:1px dashed rgba(240,180,41,.45);
+  font-family:'Share Tech Mono',monospace;font-size:9.5px;letter-spacing:1.2px;color:var(--gold2);}
+#panel-bieganie .rn-lvbtn{width:26px;height:26px;margin-left:5px;border-radius:8px;cursor:pointer;font-size:10px;
+  border:1px solid rgba(118,158,205,.2);background:rgba(0,0,0,.3);color:var(--dim2);transition:all .15s;}
+#panel-bieganie .rn-lvbtn:hover{color:var(--red);border-color:rgba(255,58,92,.4);}
+#panel-bieganie .rn-lvbtn.up:hover{color:var(--green);border-color:rgba(0,232,122,.45);}
+#panel-bieganie .rn-sn{display:flex;align-items:center;gap:4px;}
+body.dc-phone #panel-bieganie .rn-hbtn{width:42px;height:42px;font-size:15px;}
+body.dc-phone #panel-bieganie .rn-hclock{font-size:10px;}
 </style>
 <!-- ════════ END V80 DASHBOARD CSS ════════ -->
