@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v221 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v222 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7114,7 +7114,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v221 · EXECUTION OS</div>
+    <div class="splash-ver">v222 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7374,7 +7374,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v221</div>
+      <div class="sb-logo-sub">EXECUTION OS · v222</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7985,7 +7985,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v221';
+window.DC_VERSION = 'v222';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -16232,6 +16232,62 @@ updateExposureBar();
 
 /* ── LOG DWUETAPOWY ── */
 #panel-bieganie .rn-lgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* ══ V222: LOG — układ jednokolumnowy, dwa pola główne ══ */
+#panel-bieganie .rn-planhead{display:flex;align-items:center;gap:12px;cursor:pointer;
+ padding:12px 16px;margin:-2px -2px 0;border-radius:12px;transition:background .15s;}
+#panel-bieganie .rn-planhead:hover{background:rgba(0,229,255,.04);}
+#panel-bieganie .rn-phn{font-family:'Orbitron',sans-serif;font-weight:700;font-size:11px;
+ letter-spacing:2px;color:var(--cyan);white-space:nowrap;}
+#panel-bieganie .rn-pht{flex:1;font-family:'Share Tech Mono',monospace;font-size:10px;
+ color:var(--dim);}
+#panel-bieganie .rn-pha{color:var(--dim2);font-size:12px;transition:transform .2s;}
+#panel-bieganie .rn-planbody{display:none;padding:14px 16px 16px;
+ border-bottom:1px solid var(--line);margin-bottom:16px;}
+#panel-bieganie .rn-planbody.rn-open{display:block;}
+
+#panel-bieganie .rn-reshead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+ margin-bottom:14px;}
+#panel-bieganie .rn-rhn{font-family:'Orbitron',sans-serif;font-weight:700;font-size:11px;
+ letter-spacing:2px;color:var(--gold2,#f0c674);white-space:nowrap;}
+#panel-bieganie .rn-rht{flex:1;font-family:'Share Tech Mono',monospace;font-size:9.5px;
+ color:var(--dim);}
+#panel-bieganie .rn-datechip{display:inline-flex;align-items:center;gap:6px;
+ padding:6px 12px;border-radius:20px;border:1px solid var(--line2);
+ background:rgba(0,0,0,.3);}
+#panel-bieganie .rn-datechip::before{content:'📅';font-size:11px;opacity:.55;}
+#panel-bieganie .rn-datechip input{background:none;border:none;outline:none;
+ color:var(--dim);font-family:'Share Tech Mono',monospace;font-size:11px;
+ padding:0;width:auto;min-width:104px;cursor:pointer;}
+#panel-bieganie .rn-datechip:hover{border-color:var(--dim2);}
+#panel-bieganie .rn-datechip:hover input{color:var(--txt);}
+
+#panel-bieganie .rn-hero{display:grid;grid-template-columns:1fr 1fr;gap:14px;
+ margin-bottom:12px;}
+#panel-bieganie .rn-hf{position:relative;border:1px solid var(--line2);border-radius:13px;
+ background:rgba(0,0,0,.3);padding:13px 16px 11px;transition:.16s;}
+#panel-bieganie .rn-hf:focus-within{border-color:var(--gold,#d4af37);
+ background:rgba(212,175,55,.05);}
+#panel-bieganie .rn-hf label{display:block;font-family:'Share Tech Mono',monospace;
+ font-size:9px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;
+ margin-bottom:6px;}
+#panel-bieganie .rn-hf input{width:100%;background:none;border:none;outline:none;
+ color:var(--txt);font-family:'IBM Plex Mono',monospace;font-size:34px;font-weight:600;
+ padding:0;line-height:1.1;}
+#panel-bieganie .rn-hf input::placeholder{color:var(--dim2);}
+#panel-bieganie .rn-hu{position:absolute;right:15px;bottom:14px;
+ font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim2);}
+
+#panel-bieganie .rn-lrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+ margin-bottom:12px;}
+#panel-bieganie .rn-lk{font-family:'Share Tech Mono',monospace;font-size:9px;
+ color:var(--dim);letter-spacing:1.4px;text-transform:uppercase;min-width:44px;}
+#panel-bieganie .rn-save{margin-top:14px;}
+
+@media(max-width:560px){
+ #panel-bieganie .rn-hero{grid-template-columns:1fr;}
+ #panel-bieganie .rn-hf input{font-size:30px;}
+}
 @media(max-width:820px){#panel-bieganie .rn-lgrid{grid-template-columns:1fr;}}
 #panel-bieganie .rn-lbox{border:1px solid rgba(118,158,205,.14);border-radius:13px;padding:14px 15px;
   background:linear-gradient(168deg,rgba(76,118,168,.05),rgba(0,0,0,.24) 60%);position:relative;overflow:hidden;}
@@ -16439,53 +16495,75 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
  <div class="rn-sh"><div class="rn-st">LOG TRENINGU</div><div class="rn-sn">PLAN → WYNIK</div></div>
  <div class="rn-sb">
 
-  <div class="rn-lgrid">
-   <!-- PLAN -->
-   <div class="rn-lbox rn-plan">
-    <div class="rn-lbh">1 · PLAN<span>PRZED WYJŚCIEM</span></div>
-    <div style="margin-bottom:9px">
-     <label style="font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim);letter-spacing:1.1px;text-transform:uppercase;">Typ</label>
-     <div class="rn-chips" id="rnTChips"></div>
-    </div>
-    <div class="rn-f3">
-     <div class="rn-fi"><label>Dystans</label><div class="rn-in"><input type="number" inputmode="decimal" step="0.01" id="rnPKm" placeholder="3.30"><span class="rn-u">km</span></div></div>
-     <div class="rn-fi"><label>Lub czas</label><div class="rn-in"><input type="number" inputmode="numeric" id="rnPMin" placeholder="—"><span class="rn-u">min</span></div></div>
-     <div class="rn-fi"><label>Kamizelka</label><div class="rn-in"><input type="number" inputmode="numeric" step="1" id="rnPW" placeholder="0"><span class="rn-u">kg</span></div></div>
-    </div>
-    <div id="rnPZone"></div>
-    <button class="rn-btn" style="margin-top:9px" onclick="rnPlan()">ZAPLANUJ SESJĘ</button>
+  <!-- ══ 1 · PLAN — zwijany, pełna szerokość ══ -->
+  <div class="rn-planhead" id="rnPlanHead" onclick="rnTogglePlan()">
+   <span class="rn-phn">1 · PLAN</span>
+   <span class="rn-pht" id="rnPlanHint">przed wyjściem — opcjonalnie</span>
+   <span class="rn-pha" id="rnPlanArrow">▾</span>
+  </div>
+  <div class="rn-planbody" id="rnPlanBody">
+   <div class="rn-lrow">
+    <span class="rn-lk">Typ</span>
+    <div class="rn-chips" id="rnTChips"></div>
    </div>
+   <div class="rn-f3">
+    <div class="rn-fi"><label>Dystans</label><div class="rn-in"><input type="number" inputmode="decimal" step="0.01" id="rnPKm" placeholder="3.30"><span class="rn-u">km</span></div></div>
+    <div class="rn-fi"><label>Lub czas</label><div class="rn-in"><input type="number" inputmode="numeric" id="rnPMin" placeholder="—"><span class="rn-u">min</span></div></div>
+    <div class="rn-fi"><label>Kamizelka</label><div class="rn-in"><input type="number" inputmode="numeric" step="1" id="rnPW" placeholder="0"><span class="rn-u">kg</span></div></div>
+   </div>
+   <div id="rnPZone"></div>
+   <button class="rn-btn" style="margin-top:10px" onclick="rnPlan()">ZAPLANUJ SESJĘ</button>
+  </div>
 
-   <!-- WYNIK -->
-   <div class="rn-lbox rn-res">
-    <div class="rn-lbh">2 · WYNIK<span id="rnResFor">WYBIERZ Z LISTY</span></div>
-    <div class="rn-f3">
-     <div class="rn-fi"><label>Data</label><input type="date" id="rnFD"></div>
-     <div class="rn-fi"><label>Dystans</label><div class="rn-in"><input type="number" inputmode="decimal" step="0.01" id="rnFKm" placeholder="3.30"><span class="rn-u">km</span></div></div>
-     <div class="rn-fi"><label>Czas</label><div class="rn-in"><input type="text" inputmode="numeric" id="rnFT" placeholder="24:00"><span class="rn-u">mm:ss</span></div></div>
-    </div>
-    <div class="rn-f3">
-     <div class="rn-fi"><label>Start biegu</label><input type="time" id="rnFFrom"></div>
-     <div class="rn-fi"><label>Tętno średnie</label><div class="rn-in"><input type="number" inputmode="numeric" id="rnFH" placeholder="—"><span class="rn-u">bpm</span></div></div>
-     <div class="rn-fi"><label>Kamizelka</label><div class="rn-in"><input type="number" inputmode="numeric" step="1" id="rnFW" placeholder="0"><span class="rn-u">kg</span></div></div>
-    </div>
-    <div class="rn-warmq" id="rnWarmQ">
-     <span class="rn-warmq-l">Rozgrzewka przed tym biegiem
-       <a class="rn-yt-mini" href="https://youtu.be/3WUtJxLv-wI" rel="noopener">▶ FILM</a></span>
-     <span class="rn-warmq-b">
-       <span class="rn-wq" id="rnWqYes" onclick="rnSetWarm(true)">✓ ZROBIONA</span>
-       <span class="rn-wq no" id="rnWqNo" onclick="rnSetWarm(false)">✕ POMINIĘTA</span>
-     </span>
-    </div>
-    <div>
-     <label style="font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim);letter-spacing:1.1px;text-transform:uppercase;">Tagi</label>
-     <div class="rn-chips" id="rnTagChips"></div>
-    </div>
-    <div class="rn-editbar" id="rnEditBar"></div>
-    <div class="rn-live" id="rnLiveBox"></div>
-    <button class="rn-btn" id="rnSaveBtn" style="margin-top:9px" onclick="rnSave()">ZAPISZ WYNIK</button>
+  <!-- ══ 2 · WYNIK — pełna szerokość ══ -->
+  <div class="rn-reshead">
+   <span class="rn-rhn">2 · WYNIK</span>
+   <span class="rn-rht" id="rnResFor">BEZ PLANU</span>
+   <span class="rn-datechip"><input type="date" id="rnFD"></span>
+  </div>
+
+  <div class="rn-lrow" style="margin-bottom:14px">
+   <span class="rn-lk">Typ</span>
+   <div class="rn-chips" id="rnRTypes"></div>
+  </div>
+
+  <div class="rn-hero">
+   <div class="rn-hf">
+    <label>Dystans</label>
+    <input type="number" inputmode="decimal" step="0.01" id="rnFKm" placeholder="0.00">
+    <span class="rn-hu">km</span>
+   </div>
+   <div class="rn-hf">
+    <label>Czas</label>
+    <input type="text" inputmode="numeric" id="rnFT" placeholder="00:00">
+    <span class="rn-hu">mm:ss</span>
    </div>
   </div>
+
+  <div class="rn-live" id="rnLiveBox"></div>
+  <div class="rn-editbar" id="rnEditBar"></div>
+
+  <div class="rn-f3" style="margin-top:12px">
+   <div class="rn-fi"><label>Start biegu</label><input type="time" id="rnFFrom"></div>
+   <div class="rn-fi"><label>Tętno średnie</label><div class="rn-in"><input type="number" inputmode="numeric" id="rnFH" placeholder="—"><span class="rn-u">bpm</span></div></div>
+   <div class="rn-fi"><label>Kamizelka</label><div class="rn-in"><input type="number" inputmode="numeric" step="1" id="rnFW" placeholder="0"><span class="rn-u">kg</span></div></div>
+  </div>
+
+  <div class="rn-warmq" id="rnWarmQ">
+   <span class="rn-warmq-l">Rozgrzewka przed tym biegiem
+     <a class="rn-yt-mini" href="https://youtu.be/3WUtJxLv-wI" rel="noopener">▶ FILM</a></span>
+   <span class="rn-warmq-b">
+     <span class="rn-wq" id="rnWqYes" onclick="rnSetWarm(true)">✓ ZROBIONA</span>
+     <span class="rn-wq no" id="rnWqNo" onclick="rnSetWarm(false)">✕ POMINIĘTA</span>
+   </span>
+  </div>
+
+  <div class="rn-lrow">
+   <span class="rn-lk">Tagi</span>
+   <div class="rn-chips" id="rnTagChips"></div>
+  </div>
+
+  <button class="rn-btn rn-save" id="rnSaveBtn" onclick="rnSave()">ZAPISZ WYNIK</button>
 
   <div id="rnPendList" style="margin-top:12px"></div>
   <div id="rnVWarn"></div>
@@ -30998,8 +31076,10 @@ function rnSyncChips() {
   const wy = document.getElementById('rnWqYes'), wn = document.getElementById('rnWqNo');
   if (wy) wy.classList.toggle('on', rnS.selWarm === true);
   if (wn) wn.classList.toggle('on', rnS.selWarm === false);
-  const c = document.getElementById('rnTChips');
-  if (c) [...c.children].forEach(x => x.classList.toggle('rn-on', x.dataset.k === rnS.selType));
+  ['rnTChips','rnRTypes'].forEach(id => {
+    const c = document.getElementById(id);
+    if (c) [...c.children].forEach(x => x.classList.toggle('rn-on', x.dataset.k === rnS.selType));
+  });
   const g = document.getElementById('rnTagChips');
   if (g) [...g.children].forEach(x => x.classList.toggle('rn-on', rnS.selTags.includes(x.dataset.k)));
 }
@@ -31016,6 +31096,20 @@ function rnVestWarn() {
   } else el.innerHTML = '';
 }
 
+// V222: PLAN zwijany — na iPadzie dwie kolumny ściskały formularz
+function rnTogglePlan() {
+  const b = document.getElementById('rnPlanBody');
+  const a = document.getElementById('rnPlanArrow');
+  const t = document.getElementById('rnPlanHint');
+  if (!b) return;
+  const open = !b.classList.contains('rn-open');
+  b.classList.toggle('rn-open', open);
+  if (a) a.style.transform = open ? 'rotate(180deg)' : '';
+  if (t) t.textContent = open ? 'zaplanuj sesję przed wyjściem' : 'przed wyjściem — opcjonalnie';
+  try { localStorage.setItem('dyzmcrypt_v34_rnPlanOpen', open ? '1' : '0'); } catch (e) {}
+  if (open) rnPlanZone();
+}
+
 // bootstrap chipów typu/tagów — jednorazowo, przy pierwszym wejściu w moduł
 let _rnBooted = false;
 function rnBoot() {
@@ -31024,12 +31118,16 @@ function rnBoot() {
   const g = document.getElementById('rnTagChips');
   if (!c || !g) return; // panel jeszcze nie w DOM
   _rnBooted = true;
-  RN_TYPES.forEach(t => {
-    const b = document.createElement('div');
-    b.className = 'rn-chip' + (t.c ? ' ' + t.c : '') + (t.k === rnS.selType ? ' rn-on' : '');
-    b.textContent = t.n; b.dataset.k = t.k;
-    b.onclick = () => { rnS.selType = t.k; rnSaveState(); rnSyncChips(); rnPlanZone(); rnLive(); rnVestWarn(); };
-    c.appendChild(b);
+  // V222: dwa rzędy chipów typu — w PLANIE i w WYNIKU. Wybór wspólny.
+  const c2 = document.getElementById('rnRTypes');
+  [c, c2].forEach(box => { if (!box) return;
+    RN_TYPES.forEach(t => {
+      const b = document.createElement('div');
+      b.className = 'rn-chip' + (t.c ? ' ' + t.c : '') + (t.k === rnS.selType ? ' rn-on' : '');
+      b.textContent = t.n; b.dataset.k = t.k;
+      b.onclick = () => { rnS.selType = t.k; rnSaveState(); rnSyncChips(); rnPlanZone(); rnLive(); rnVestWarn(); };
+      box.appendChild(b);
+    });
   });
   RN_TAGS.forEach(t => {
     const b = document.createElement('div');
@@ -31042,6 +31140,10 @@ function rnBoot() {
     };
     g.appendChild(b);
   });
+  // V222: przywróć stan zwinięcia PLANU
+  try {
+    if (localStorage.getItem('dyzmcrypt_v34_rnPlanOpen') === '1') rnTogglePlan();
+  } catch (e) {}
   // V216: wróć do zakładki, na której ostatnio byłeś
   try {
     const last = localStorage.getItem('dyzmcrypt_v34_rnTab');
