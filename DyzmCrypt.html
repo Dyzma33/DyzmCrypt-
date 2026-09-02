@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v226 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v227 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7114,7 +7114,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v226 · EXECUTION OS</div>
+    <div class="splash-ver">v227 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7374,7 +7374,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v226</div>
+      <div class="sb-logo-sub">EXECUTION OS · v227</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7985,7 +7985,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v226';
+window.DC_VERSION = 'v227';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -12853,8 +12853,9 @@ th.hl{color:var(--green) !important;}
   </div>
 
   <div class="cc" id="plan-d9">
-    <!-- SECTION 2: MISSION FLOW -->
-    
+    <!-- V227: WYBÓR TRENINGU — picker musi siedzieć w kontenerze D9,
+         wcześniej wylądował w plan-d6 i był ukryty razem z nim -->
+    <div class="d6-picker" id="d9Picker"></div>
     <!-- SECTION 3: SESSION TRACKER -->
     <div class="session-track-wrap">
       <div class="strack-header">
@@ -12870,7 +12871,6 @@ th.hl{color:var(--green) !important;}
   <div class="cc" id="plan-d6">
     <!-- OKNA WYBORU -->
     <div class="d6-picker" id="d6Picker"></div>
-    <div class="d6-picker" id="d9Picker"></div>
     <!-- SESSION TRACKER -->
     <div class="session-track-wrap">
       <div class="strack-header">
@@ -20177,11 +20177,9 @@ function buildPlanCockpit(mode){
   if(mode==='d13') window._blocks13 = blocks;
   else if(mode==='d6') window._blocks6 = blocks;
   else window._blocks9 = blocks;
+  // V227: każdy picker siedzi we własnym kontenerze zakładki — widocznością
+  // steruje klasa .cc.active, nie style.display. Renderujemy tylko treść.
   if(mode==='d6' && typeof d6RenderPicker==='function') d6RenderPicker();
-  const _d9p = document.getElementById('d9Picker');
-  if(_d9p) _d9p.style.display = (mode==='d9') ? '' : 'none';
-  const _d6p = document.getElementById('d6Picker');
-  if(_d6p) _d6p.style.display = (mode==='d6') ? '' : 'none';
   if(mode==='d9' && typeof d9RenderPicker==='function') d9RenderPicker();
   buildDayView(mode, blocks);
   buildMissionFlow(mode, blocks);
@@ -21246,11 +21244,8 @@ try {
     const btn = document.getElementById(_tabs[currentPlanMode]);
     if (btn && typeof switchPlanMode === 'function') switchPlanMode(currentPlanMode, btn);
   }
-  const _p9 = document.getElementById('d9Picker'), _p6 = document.getElementById('d6Picker');
-  if (_p9) _p9.style.display = (currentPlanMode==='d9') ? '' : 'none';
-  if (_p6) _p6.style.display = (currentPlanMode==='d6') ? '' : 'none';
-  if (currentPlanMode==='d9' && typeof d9RenderPicker==='function') d9RenderPicker();
-  if (currentPlanMode==='d6' && typeof d6RenderPicker==='function') d6RenderPicker();
+  if (typeof d9RenderPicker==='function') d9RenderPicker();
+  if (typeof d6RenderPicker==='function') d6RenderPicker();
 } catch(e){}
 setInterval(updateNowActive, 1000); // countdown updates every second
 </script>
