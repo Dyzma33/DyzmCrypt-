@@ -16229,6 +16229,7 @@ updateExposureBar();
 #panel-bieganie .rn-chip.rn-on.c-int{background:rgba(255,58,92,.14);border-color:var(--red);color:var(--red);}
 #panel-bieganie .rn-chip.rn-on.c-mw{background:rgba(0,200,240,.14);border-color:var(--cyan);color:var(--cyan);}
 #panel-bieganie .rn-chip.rn-on.c-czas{background:rgba(0,232,122,.14);border-color:var(--green);color:var(--green);}
+#panel-bieganie .rn-chip.rn-on.c-test{background:rgba(255,255,255,.13);border-color:#e8e8ef;color:#fff;font-weight:700;}
 
 /* ── LOG DWUETAPOWY ── */
 #panel-bieganie .rn-lgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -16283,6 +16284,10 @@ updateExposureBar();
 #panel-bieganie .rn-lk{font-family:'Share Tech Mono',monospace;font-size:9px;
  color:var(--dim);letter-spacing:1.4px;text-transform:uppercase;min-width:44px;}
 #panel-bieganie .rn-save{margin-top:14px;}
+#panel-bieganie .rn-typehint{font-family:'Share Tech Mono',monospace;font-size:10px;
+ color:var(--dim);margin:-4px 0 14px;padding-left:2px;}
+#panel-bieganie .rn-typehint b{color:var(--gold2);font-weight:400;}
+#panel-bieganie .rn-chip.rn-on.c-tempo{background:rgba(255,150,0,.14);border-color:var(--orange);color:var(--orange);}
 
 @media(max-width:560px){
  #panel-bieganie .rn-hero{grid-template-columns:1fr;}
@@ -16349,6 +16354,7 @@ updateExposureBar();
 #panel-bieganie .rn-tp.rn-tp-czas{background:rgba(0,232,122,.12);color:var(--green);border:1px solid rgba(0,232,122,.22);}
 #panel-bieganie .rn-tp.rn-tp-rec{background:rgba(255,255,255,.05);color:var(--dim);border:1px solid rgba(118,158,205,.14);}
 #panel-bieganie .rn-tp.rn-tp-tempo{background:rgba(255,150,0,.12);color:var(--orange);border:1px solid rgba(255,150,0,.22);}
+.rn-tp.rn-tp-test{background:rgba(255,255,255,.11);color:#fff;border:1px solid rgba(255,255,255,.3);font-weight:700;}
 #panel-bieganie .rn-kro{font-family:'Share Tech Mono',monospace;font-size:8px;padding:3px 9px;border-radius:8px;}
 #panel-bieganie .rn-kro.rn-t-n{background:rgba(0,232,122,.12);color:var(--green);}
 #panel-bieganie .rn-kro.rn-t-l{background:rgba(240,180,41,.14);color:var(--gold2);}
@@ -16526,6 +16532,7 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
    <span class="rn-lk">Typ</span>
    <div class="rn-chips" id="rnRTypes"></div>
   </div>
+  <div class="rn-typehint" id="rnTypeHint"></div>
 
   <div class="rn-hero">
    <div class="rn-hf">
@@ -30285,14 +30292,16 @@ const RN_GAP = 13;                  // dni bez biegu, ktore zeruja licznik pozio
 const RN_WARM_URL = 'https://youtu.be/3WUtJxLv-wI';
 const RN_WARM_MIN = 13;
 
-const RN_TYPES = [
-  { k:'easy', n:'Swobodny',   c:'' },
-  { k:'long', n:'Długi',      c:'c-long' },
-  { k:'int',  n:'Interwały',  c:'c-int' },
-  { k:'czas', n:'Czasowy',    c:'c-czas' },
-  { k:'mw',   n:'Marszobieg', c:'c-mw' },
-  { k:'tempo',n:'Tempo',      c:'' },
-  { k:'rec',  n:'Regeneracja',c:'' }
+const // V222: 'd' = jak rozpoznać intensywność bez zegarka (test rozmowy)
+RN_TYPES = [
+  { k:'test', n:'Test / max', c:'c-test', d:'najszybciej jak UTRZYMASZ' },
+  { k:'easy', n:'Bazowy',     c:'',       d:'pełne zdanie bez zadyszki' },
+  { k:'long', n:'Długi',      c:'c-long', d:'wolniej niż bazowy' },
+  { k:'int',  n:'Interwały',  c:'c-int',  d:'pojedyncze słowa' },
+  { k:'czas', n:'Czasowy',    c:'c-czas', d:'tempo bazowe, liczy się czas' },
+  { k:'mw',   n:'Marszobieg', c:'c-mw',   d:'bieg / marsz naprzemiennie' },
+  { k:'tempo',n:'Progowy',    c:'c-tempo',d:'3–4 słowa naraz' },
+  { k:'rec',  n:'Regeneracja',c:'',       d:'wydaje się absurdalnie wolno' }
 ];
 function rnTN(k) { const t = RN_TYPES.find(t => t.k === k); return t ? t.n : k; }
 const RN_TAGS = [
@@ -30303,11 +30312,13 @@ const RN_TAGS = [
   { k:'pogoda',     n:'Pogoda',     c:'' },
   { k:'brak_czasu', n:'Brak czasu', c:'' }
 ];
-const RN_ZMAP = { easy:'Swobodny', long:'Długi', tempo:'Tempo', int:'Interwały',
-                   rec:'Regeneracja', czas:'Swobodny', mw:'Regeneracja' };
+const RN_ZMAP = { easy:'Bazowy', long:'Długi', tempo:'Tempo', int:'Interwały',
+                   rec:'Regeneracja', czas:'Bazowy', mw:'Regeneracja' }
+// V222: 'test' celowo POZA mapą — bieg na maksa nie ma strefy docelowej,
+// bo sam ją wyznacza. rnZoneFor zwróci null → KRO milczy.;
 const RN_ZONES = [
   { n:'Regeneracja', lo:90,  hi:120, c:'#6a6a7a' },
-  { n:'Swobodny',    lo:60,  hi:90,  c:'#f0b429' },
+  { n:'Bazowy',      lo:60,  hi:90,  c:'#f0b429' },
   { n:'Długi',       lo:60,  hi:75,  c:'#9b6dff' },
   { n:'Tempo',       lo:20,  hi:40,  c:'#ff9600' },
   { n:'Interwały',   lo:-10, hi:10,  c:'#ff3a5c' }
@@ -30474,10 +30485,19 @@ function rnWeeks() {
   });
   return Object.keys(m).sort().map(k => ({ wk:k, ...m[k] }));
 }
+// ══ V222 FIX: ODNIESIENIE TYLKO Z BIEGU NA MAKSA ══
+// Wzór Riegela przelicza wysiłek MAKSYMALNY na 5 km. Podanie mu spokojnego
+// truchtu daje odniesienie zaniżone — a wtedy strefa swobodna wypada wolniej
+// niż realne tempo truchtu i KRO odpala się przy każdym biegu.
+//   trucht 3,3 km w 21:39  →  "5 km = 33:38"  →  swobodny 7:44–8:14
+//   ale biegłeś 6:34  →  KRO 4,66 HIGH  bez żadnego przewinienia.
+// Dlatego odniesienie liczy się WYŁĄCZNIE z sesji typu 'test'.
+// Brak testu → rnRef null → strefy i KRO milczą (return null).
 function rnRef() {
   let b = null;
   rnS.sesje.forEach(s => {
-    if ((s.w||0) > 0 || s.km < 3 || s.typ === 'int' || s.typ === 'mw') return;
+    if (s.typ !== 'test') return;
+    if ((s.w||0) > 0 || s.km < 3) return;
     const p = rnT2s(s.t) * Math.pow(5/s.km, 1.06);
     if (!b || p < b.sec) b = { sec:p, from:s.km, date:s.date };
   });
@@ -30831,7 +30851,7 @@ function rnZones(R) {
   const box = document.getElementById('rnZBox'); if (!box) return;
   const zn = document.getElementById('rnZN');
   if (!R) { if (zn) zn.textContent = 'BRAK ODNIESIENIA';
-    box.innerHTML = '<div class="rn-empty"><div class="rn-empty-i">🎯</div><b>BRAK PUNKTU ODNIESIENIA</b><span>Strefy liczą się z Twojego najlepszego biegu ≥3 km — bez kamizelki, typ swobodny lub długi. Jeden taki bieg odblokuje strefy, KRO i prognozę.</span></div>'; return; }
+    box.innerHTML = '<div class="rn-empty"><div class="rn-empty-i">🎯</div><b>WYKONAJ TEST WEJŚCIOWY</b><span>Strefy i KRO liczą się <b>wyłącznie</b> z biegu typu <b>TEST / MAX</b> — dystans ≥3 km, bez kamizelki, najszybciej jak potrafisz <b>utrzymać</b> (nie na zryw).<br><br>Spokojny trucht nie nadaje się na odniesienie: wzór przelicza wysiłek maksymalny, więc trucht dałby strefy zaniżone i KRO odpalałoby się bez powodu.<br><br>Do tego czasu strefy i KRO milczą.</span></div>'; return; }
   const p5 = R.sec/5;
   if (zn) zn.textContent = '5 KM ≈ ' + rnS2t(R.sec) + ' · ' + rnS2t(p5) + '/km';
   const w = parseFloat((document.getElementById('rnFW')||{}).value) || 0, sh = rnShift(w);
@@ -31076,6 +31096,7 @@ function rnSyncChips() {
   const wy = document.getElementById('rnWqYes'), wn = document.getElementById('rnWqNo');
   if (wy) wy.classList.toggle('on', rnS.selWarm === true);
   if (wn) wn.classList.toggle('on', rnS.selWarm === false);
+  rnTypeHint();
   ['rnTChips','rnRTypes'].forEach(id => {
     const c = document.getElementById(id);
     if (c) [...c.children].forEach(x => x.classList.toggle('rn-on', x.dataset.k === rnS.selType));
@@ -31094,6 +31115,13 @@ function rnVestWarn() {
   } else if (w > 0) {
     el.innerHTML = `<div class="rn-note">+${w} kg → km ekw. ×${(1+w/(rnS.mc||RN_MC)).toFixed(3)} · tempo +${rnShift(w)} s/km</div>`;
   } else el.innerHTML = '';
+}
+
+// V222: podpowiedź intensywności — test rozmowy zamiast zgadywania
+function rnTypeHint() {
+  const el = document.getElementById('rnTypeHint'); if (!el) return;
+  const t = RN_TYPES.find(x => x.k === rnS.selType);
+  el.innerHTML = (t && t.d) ? '<b>' + t.n + '</b> — ' + t.d : '';
 }
 
 // V222: PLAN zwijany — na iPadzie dwie kolumny ściskały formularz
@@ -31125,7 +31153,7 @@ function rnBoot() {
       const b = document.createElement('div');
       b.className = 'rn-chip' + (t.c ? ' ' + t.c : '') + (t.k === rnS.selType ? ' rn-on' : '');
       b.textContent = t.n; b.dataset.k = t.k;
-      b.onclick = () => { rnS.selType = t.k; rnSaveState(); rnSyncChips(); rnPlanZone(); rnLive(); rnVestWarn(); };
+      b.onclick = () => { rnS.selType = t.k; rnSaveState(); rnSyncChips(); rnPlanZone(); rnLive(); rnVestWarn(); rnTypeHint(); };
       box.appendChild(b);
     });
   });
