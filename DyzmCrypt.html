@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v222 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v224 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7114,7 +7114,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v222 · EXECUTION OS</div>
+    <div class="splash-ver">v224 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7374,7 +7374,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v222</div>
+      <div class="sb-logo-sub">EXECUTION OS · v224</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7961,7 +7961,7 @@ body.os-lockdown #workspace::before {
 const _SB_URL = 'https://kawkfhvijblbdnlwsese.supabase.co';
 const _SB_KEY = 'sb_publishable_0G0d3H6TuYNyEBdDcCo_QA_w2Mma09p';
 const _SB_SESS = 'dc_sb_session_v2';
-const _DC_KEYS = ['day','trades','sessions','krdCounters','krdLastTrigger','riskState','archive','activeState','levelState','positions','lastAutoArchive','pdbHistory','settings','medState','todayExec','todaySupp','dayReview','tradeShots','sessionlog','sessionShots','runState','d6Choice'];
+const _DC_KEYS = ['day','trades','sessions','krdCounters','krdLastTrigger','riskState','archive','activeState','levelState','positions','lastAutoArchive','pdbHistory','settings','medState','todayExec','todaySupp','dayReview','tradeShots','sessionlog','sessionShots','runState','d6Choice','d9Choice'];
 
 // ══ V128: KANONICZNA GRANICA DNIA ══
 // toISOString() zwraca datę UTC — Polska to UTC+1/UTC+2, więc między północą
@@ -7985,7 +7985,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v222';
+window.DC_VERSION = 'v224';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -12870,6 +12870,7 @@ th.hl{color:var(--green) !important;}
   <div class="cc" id="plan-d6">
     <!-- OKNA WYBORU -->
     <div class="d6-picker" id="d6Picker"></div>
+    <div class="d6-picker" id="d9Picker"></div>
     <!-- SESSION TRACKER -->
     <div class="session-track-wrap">
       <div class="strack-header">
@@ -17894,7 +17895,7 @@ function atSlots() {
   // V206: auto-start czyta też D6×33 (bloki generowane dynamicznie)
   let blocks = null;
   if (typeof currentPlanMode !== 'undefined' && currentPlanMode === 'd6' && typeof buildBlocksD6 === 'function') blocks = buildBlocksD6();
-  else if (typeof currentPlanMode !== 'undefined' && currentPlanMode === 'd9' && typeof blocksD9 !== 'undefined') blocks = blocksD9;
+  else if (typeof currentPlanMode !== 'undefined' && currentPlanMode === 'd9' && typeof blocksD9 !== 'undefined') blocks = (typeof buildBlocksD9==='function' ? buildBlocksD9() : blocksD9);
   else if (typeof blocksD13 !== 'undefined') blocks = blocksD13;
   if (!blocks) return [];
   const out = [];
@@ -20167,6 +20168,11 @@ function buildPlanCockpit(mode){
   else if(mode==='d6') window._blocks6 = blocks;
   else window._blocks9 = blocks;
   if(mode==='d6' && typeof d6RenderPicker==='function') d6RenderPicker();
+  const _d9p = document.getElementById('d9Picker');
+  if(_d9p) _d9p.style.display = (mode==='d9') ? '' : 'none';
+  const _d6p = document.getElementById('d6Picker');
+  if(_d6p) _d6p.style.display = (mode==='d6') ? '' : 'none';
+  if(mode==='d9' && typeof d9RenderPicker==='function') d9RenderPicker();
   buildDayView(mode, blocks);
   buildMissionFlow(mode, blocks);
   buildSessionTracker(mode, blocks);
@@ -20619,7 +20625,10 @@ function scrollToBlock(mode, blockId){
 
 // ─── NOW ACTIVE WIDGET (CZ1 — Central Command Panel) ───
 function updateNowActive(){
-  const blocks = currentPlanMode==='d13' ? blocksD13 : blocksD9;
+  // V223: D6 ma własny zestaw bloków — wcześniej dostawał D9
+  const blocks = currentPlanMode==='d13' ? blocksD13
+               : currentPlanMode==='d6' && typeof buildBlocksD6==='function' ? buildBlocksD6()
+               : (typeof buildBlocksD9==='function' ? buildBlocksD9() : blocksD9);
   const nm = nowMin(); const ns = nowSec();
   let active = null;
   blocks.forEach(b=>{
@@ -20681,7 +20690,7 @@ function updateNowActive(){
   // Left panel
   titleEl.textContent = active.title;
   if(phaseEl) phaseEl.textContent = cfg.label || '—';
-  if(modeEl)  modeEl.textContent  = active.sessions || (currentPlanMode==='d13'?'D13×33':'D9×33');
+  if(modeEl)  modeEl.textContent  = active.sessions || (currentPlanMode==='d13'?'D13×33':currentPlanMode==='d6'?'D6×33':'D9×33');
   if(timeEl)  timeEl.textContent  = active.time + ' – ' + active.end;
 
   badge.textContent = active.sessions || cfg.label;
@@ -20739,9 +20748,17 @@ function updateNowActive(){
 // ════════ V80 DASHBOARD ENGINE ════════
 
 function buildDashboard(){
-  const mode = currentPlanMode === 'd9' ? 'd9' : 'd13';
-  const blocks = mode === 'd13' ? (window._blocks13 || blocksD13) : (window._blocks9 || blocksD9);
-  document.getElementById('pdbGanttMode').textContent = mode === 'd13' ? 'D13×33' : 'D9×33';
+  // ══ V223 FIX: DASHBOARD IGNOROWAŁ D6 ══
+  // Rozwidlenie brzmiało `=== 'd9' ? 'd9' : 'd13'`, więc D6 wpadał w gałąź D13:
+  // dashboard liczył 14 bloków D13 i czytał ich stany pod kluczem 'd13_*',
+  // podczas gdy klikane były bloki D6 zapisane pod 'd6_*'. Efekt: 0/14, pusty
+  // wpis w archiwum i zerowy streak mimo przepracowanego dnia.
+  const mode = (currentPlanMode === 'd9' || currentPlanMode === 'd6') ? currentPlanMode : 'd13';
+  const blocks = mode === 'd13' ? (window._blocks13 || blocksD13)
+               : mode === 'd6'  ? (typeof buildBlocksD6 === 'function' ? buildBlocksD6() : blocksD9)
+               : (typeof buildBlocksD9 === 'function' ? buildBlocksD9() : (window._blocks9 || blocksD9));
+  document.getElementById('pdbGanttMode').textContent =
+    mode === 'd13' ? 'D13×33' : mode === 'd6' ? 'D6×33' : 'D9×33';
 
   // ── Compute block states ──
   const nm = nowMin();
@@ -21040,9 +21057,11 @@ function pdbRenderFullArchive(){
 
     return `
       <div class="pdb-arc-day" id="pdb-arc-day-${key}">
-        <div class="pdb-arc-day-top" onclick="pdbToggleDayDetail('${key}')" style="cursor:pointer;">
-          <span class="pdb-arc-day-date">${key} <span class="pdb-arc-day-arrow">▾</span></span>
-          <span class="pdb-arc-day-score">${entry.score}</span>
+        <div class="pdb-arc-day-top">
+          <span class="pdb-arc-day-date" onclick="pdbToggleDayDetail('${key}')" style="cursor:pointer;">${key} <span class="pdb-arc-day-arrow">▾</span></span>
+          <span class="pdb-arc-mode">${entry.mode==='d6'?'D6×33':entry.mode==='d9'?'D9×33':'D13×33'}</span>
+          <span class="pdb-arc-day-score" onclick="pdbToggleDayDetail('${key}')" style="cursor:pointer;">${entry.score}</span>
+          <span class="pdb-arc-del" title="Usuń dzień z archiwum" onclick="event.stopPropagation();pdbDeleteDay('${key}')">✕</span>
         </div>
         <div class="pdb-sc-bar" style="margin-bottom:0;cursor:pointer;" onclick="pdbToggleDayDetail('${key}')"><div class="pdb-sc-fill ${pctClass}" style="width:${entry.score}%"></div></div>
         <div class="pdb-arc-day-sub" onclick="pdbToggleDayDetail('${key}')" style="cursor:pointer;">${entry.done}/${entry.total} bloków · ${suppTxt}</div>
@@ -21054,6 +21073,36 @@ function pdbRenderFullArchive(){
         </div>
       </div>`;
   }).join('');
+}
+
+// ── V223: usuwanie dnia z archiwum ──
+// Dwustopniowe: pierwszy klik zbroi przycisk na 4 s, drugi kasuje.
+// Bez okienka confirm, bo na iPadzie potrafi nie wrócić focusu.
+let _pdbDelArm = null;
+function pdbDeleteDay(dateKey){
+  const btn = document.querySelector('#pdb-arc-day-' + dateKey + ' .pdb-arc-del');
+  if (_pdbDelArm !== dateKey) {
+    if (_pdbDelArm) { const p = document.querySelector('#pdb-arc-day-' + _pdbDelArm + ' .pdb-arc-del');
+                      if (p) { p.classList.remove('armed'); p.textContent = '✕'; } }
+    _pdbDelArm = dateKey;
+    if (btn) { btn.classList.add('armed'); btn.textContent = 'USUŃ?'; }
+    setTimeout(() => {
+      if (_pdbDelArm === dateKey) {
+        _pdbDelArm = null;
+        const b2 = document.querySelector('#pdb-arc-day-' + dateKey + ' .pdb-arc-del');
+        if (b2) { b2.classList.remove('armed'); b2.textContent = '✕'; }
+      }
+    }, 4000);
+    return;
+  }
+  _pdbDelArm = null;
+  const hist = pdbLoadHistory();
+  delete hist[dateKey];
+  dcSave('pdbHistory', hist);
+  if (typeof dcPushDirty === 'function') dcPushDirty();
+  pdbRenderFullArchive();
+  buildHistoryGrid();
+  if (typeof dcToast === 'function') dcToast('Usunięto ' + dateKey + ' z archiwum');
 }
 
 function pdbToggleDayDetail(dateKey){
@@ -21135,6 +21184,13 @@ buildPlanCockpit('d9');
 buildPlanCockpit('d6');
 updateNowActive();
 setInterval(()=>{ updateNowActive(); buildPlanCockpit(currentPlanMode); }, 30000);
+// V224: pierwszy render pickerów wg aktywnego trybu
+try {
+  const _p9 = document.getElementById('d9Picker'), _p6 = document.getElementById('d6Picker');
+  if (_p9) _p9.style.display = (currentPlanMode==='d9') ? '' : 'none';
+  if (_p6) _p6.style.display = (currentPlanMode==='d6') ? '' : 'none';
+  if (currentPlanMode==='d9' && typeof d9RenderPicker==='function') d9RenderPicker();
+} catch(e){}
 setInterval(updateNowActive, 1000); // countdown updates every second
 </script>
 
@@ -21158,6 +21214,61 @@ setInterval(updateNowActive, 1000); // countdown updates every second
 // od porannego wyboru, więc oś czasu musi być przeliczana przy każdym
 // renderze. Wybór żyje w kluczu 'd6Choice' (sync + reset dobowy).
 // ════════════════════════════════════════════════════════════════
+
+// ══ V224: D9 — TRENING DO WYBORU ══
+// Blok 16:56–18:09 był na sztywno "trening fizyczny". Teraz działa jak okna
+// w D6: wybierasz rano, czym go wypełnisz. Wybór resetuje się co dobę.
+const D9_TOPTS = [
+  { k:'bieg',    n:'BIEG',          d:'Trening biegowy — 73 min z obsługą',   ico:'🏃' },
+  { k:'silowy',  n:'SIŁOWY',        d:'Trening siłowy. Białko po kolacji',    ico:'🏋' },
+  { k:'wolne',   n:'CZAS WOLNY',    d:'Bez treningu. Regeneracja albo sprawy', ico:'○'  }
+];
+function d9Load() {
+  let c = (typeof dcLoad === 'function') ? dcLoad('d9Choice', null) : null;
+  const today = (typeof dcDayStr === 'function') ? dcDayStr() : new Date().toISOString().slice(0,10);
+  if (!c || c.date !== today) c = { date: today, tr: null };
+  return c;
+}
+function d9Save(c) {
+  if (typeof dcSave === 'function') dcSave('d9Choice', c);
+  if (typeof dcPushDirty === 'function') dcPushDirty();
+}
+function d9Pick(k) {
+  const c = d9Load();
+  c.tr = (c.tr === k) ? null : k;
+  d9Save(c);
+  if (typeof buildPlanCockpit === 'function') buildPlanCockpit('d9');
+  d9RenderPicker();
+  if (typeof updateNowActive === 'function') updateNowActive();
+  if (typeof dcToast === 'function' && c.tr) {
+    const o = D9_TOPTS.find(x => x.k === c.tr);
+    dcToast('Trening: ' + (o ? o.n : k), 'toast-green');
+  }
+}
+function d9RenderPicker() {
+  const el = document.getElementById('d9Picker');
+  if (!el) return;
+  const c = d9Load();
+  el.innerHTML =
+    '<div class="d6-head"><span class="d6-ht">BLOK TRENINGOWY</span>'
+    + '<span class="d6-hs">' + (c.tr ? 'droga wybrana' : 'wybierz, zanim wejdzie blok 16:56') + '</span></div>'
+    + '<div class="d6-row"><div class="d6-rh"><span class="d6-rl">TRENING</span>'
+    + '<span class="d6-rt">16:56 – 18:09 · 73 min</span></div>'
+    + '<div class="d6-opts">'
+    + D9_TOPTS.map(o =>
+        '<div class="d6-opt' + (c.tr === o.k ? ' d6-on d6-' + o.k : '') + '" onclick="d9Pick(\'' + o.k + '\')">'
+        + '<div class="d6-oi">' + o.ico + '</div>'
+        + '<div class="d6-on-t">' + o.n + '</div>'
+        + '<div class="d6-od">' + o.d + '</div></div>').join('')
+    + '</div></div>'
+    + '<div class="d6-note">' + (c.tr === 'bieg'
+        ? 'Bieg zalicza się do modułu <b>BIEGANIE</b> — wpisz wynik po powrocie. Rozgrzewka 13 min obowiązkowa.'
+        : c.tr === 'silowy'
+        ? 'Trening siłowy. Po nim kolacja 18:09 — białko obowiązkowe.'
+        : c.tr === 'wolne'
+        ? 'Bez treningu dziś. Blok liczy się jako zaliczony — to świadomy wybór, nie pominięcie.'
+        : 'Nie wybrano drogi. Kliknij powyżej — blok czeka od 16:56.') + '</div>';
+}
 
 const D6_OPTS = {
   win1: [
@@ -21198,6 +21309,37 @@ function d6SessionCount() { return d6Load().win1 === 'sesje' ? 9 : 6; }
 window.d6S10 = d6S10;
 
 // ── generator bloków ─────────────────────────────────────────────
+// V224: D9 z wybranym treningiem — podmienia tylko blok 'training'
+function buildBlocksD9() {
+  const src = (typeof blocksD9 !== 'undefined') ? blocksD9 : [];
+  const c = d9Load();
+  if (!c.tr) return src;
+  return src.map(b => {
+    if (b.id !== 'training') return b;
+    const t = JSON.parse(JSON.stringify(b));
+    if (c.tr === 'bieg') {
+      t.mfLabel = 'BIEG'; t.title = 'TRENING — BIEG [D9]';
+      t.focus = 'Trening biegowy. Wynik wpisz w module BIEGANIE.';
+      t.tasks = [
+        { time:'16:56–17:09', label:'ROZGRZEWKA — 13 min, obowiązkowa', note:'Przed każdym biegiem, bez wyjątku.' },
+        { time:'17:09–18:09', label:'Bieg — 60 min z obsługą', note:'Po biegu prysznic i wpis do modułu. Rozgrzewka nie wlicza się do dystansu.' }
+      ];
+      t.rules = ['Rozgrzewka przed biegiem','Wynik do modułu BIEGANIE'];
+    } else if (c.tr === 'silowy') {
+      t.mfLabel = 'SIŁOWY'; t.title = 'TRENING — SIŁOWY [D9]';
+      t.focus = 'Trening siłowy. Inwestycja w ciało = inwestycja w system.';
+      t.tasks = [{ time:'16:56–18:09', label:'Trening siłowy — 73 min', note:'Nawodnienie. Białko po kolacji.' }];
+      t.rules = ['Minimum 3× w tygodniu'];
+    } else {
+      t.type = TYPE.BREAK; t.mfLabel = 'WOLNE'; t.title = 'TRENING — CZAS WOLNY [D9]';
+      t.focus = 'Bez treningu. Świadomy wybór, nie pominięcie.';
+      t.tasks = [{ time:'16:56–18:09', label:'Czas wolny — 73 min', note:'Regeneracja albo sprawy poza systemem.' }];
+      t.rules = [];
+    }
+    return t;
+  });
+}
+
 function buildBlocksD6() {
   const c = d6Load();
   const B = [];
@@ -33666,6 +33808,16 @@ function insRender() {
 }
 .pdb-arc-day:hover { border-color: rgba(240,180,41,.3); }
 .pdb-arc-day-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.pdb-arc-day-top .pdb-arc-day-date { flex: 1; }
+.pdb-arc-mode { font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px;
+ padding:2px 8px; border-radius:9px; background:rgba(255,255,255,.05); color:var(--dim);
+ margin-right:10px; white-space:nowrap; }
+.pdb-arc-del { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--dim2);
+ padding:4px 9px; border-radius:8px; border:1px solid transparent; cursor:pointer;
+ margin-left:10px; transition:.15s; white-space:nowrap; }
+.pdb-arc-del:hover { color:var(--red); border-color:rgba(255,58,92,.3); }
+.pdb-arc-del.armed { color:#fff; background:rgba(255,58,92,.85); border-color:var(--red);
+ font-weight:700; letter-spacing:.5px; }
 .pdb-arc-day-date { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text2); letter-spacing: .5px; display:flex; align-items:center; gap:6px; }
 .pdb-arc-day-score { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 900; color: var(--gold); }
 .pdb-arc-day-sub { font-size: 9px; color: var(--dim2); letter-spacing: .5px; margin-top: 6px; font-family: 'Share Tech Mono', monospace; }
