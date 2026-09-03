@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v228 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v229 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -6206,6 +6206,47 @@ body.os-lockdown #workspace::before {
   font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:1px;
 }
 
+
+/* ══ V229: START DNIA ══ */
+.ds-box{border:1px solid rgba(212,175,55,.28);border-radius:14px;padding:16px 18px;
+ margin-bottom:14px;background:linear-gradient(160deg,rgba(212,175,55,.06),transparent 62%),
+ rgba(14,17,22,.9);position:relative;overflow:hidden}
+.ds-box::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+ background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.ds-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.ds-t{font-family:'Orbitron',sans-serif;font-weight:700;font-size:11px;letter-spacing:2.2px;
+ color:var(--gold2,#f0c674);white-space:nowrap}
+.ds-s{flex:1;font-family:'Share Tech Mono',monospace;font-size:9.5px;color:var(--dim)}
+.ds-undo{background:none;border:1px solid var(--line2);border-radius:8px;padding:6px 13px;
+ color:var(--dim);font-family:'Share Tech Mono',monospace;font-size:9.5px;cursor:pointer;
+ letter-spacing:1px;transition:.15s}
+.ds-undo:hover{border-color:var(--dim);color:var(--txt)}
+.ds-ctrl{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.ds-in{background:rgba(0,0,0,.4);border:1px solid var(--line2);border-radius:9px;
+ padding:10px 13px;color:var(--txt);font-family:'IBM Plex Mono',monospace;font-size:16px;
+ outline:none;width:124px}
+.ds-in:focus{border-color:var(--gold)}
+.ds-btn{background:var(--gold);color:#0a0a0c;border:none;border-radius:9px;padding:11px 26px;
+ font-family:'Orbitron',sans-serif;font-weight:700;font-size:11px;letter-spacing:1.6px;cursor:pointer}
+.ds-btn:hover{background:var(--gold2)}
+.ds-big{display:flex;align-items:baseline;gap:22px;flex-wrap:wrap;margin-bottom:12px}
+.ds-bt{font-family:'IBM Plex Mono',monospace;font-size:38px;font-weight:600;line-height:1;
+ color:var(--gold2,#f0c674)}
+.ds-bd{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600}
+.ds-bd.ok{color:var(--green)}.ds-bd.late{color:var(--orange,#ff9f43)}
+.ds-bl{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim2);
+ letter-spacing:1.2px;margin-top:4px}
+.ds-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);
+ border-radius:10px;overflow:hidden}
+.ds-c{background:rgba(11,14,18,.92);padding:11px 9px;text-align:center}
+.ds-cl{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--dim);letter-spacing:1.1px}
+.ds-cv{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;margin-top:4px}
+.ds-cv.gold{color:var(--gold2,#f0c674)}.ds-cv.cyan{color:var(--cyan)}
+.ds-cv.org{color:var(--orange,#ff9f43)}.ds-cv.green{color:var(--green)}
+.ds-note{font-family:'Share Tech Mono',monospace;font-size:9.5px;color:var(--dim2);
+ line-height:1.7;margin-top:11px}
+.ds-note b{color:var(--gold2,#f0c674);font-weight:400}
+@media(max-width:560px){.ds-grid{grid-template-columns:1fr}.ds-bt{font-size:32px}}
 </style>
 
 <!-- ════════════════════════════════════════════════════════
@@ -7114,7 +7155,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v228 · EXECUTION OS</div>
+    <div class="splash-ver">v229 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7374,7 +7415,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v228</div>
+      <div class="sb-logo-sub">EXECUTION OS · v229</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7961,7 +8002,7 @@ body.os-lockdown #workspace::before {
 const _SB_URL = 'https://kawkfhvijblbdnlwsese.supabase.co';
 const _SB_KEY = 'sb_publishable_0G0d3H6TuYNyEBdDcCo_QA_w2Mma09p';
 const _SB_SESS = 'dc_sb_session_v2';
-const _DC_KEYS = ['day','trades','sessions','krdCounters','krdLastTrigger','riskState','archive','activeState','levelState','positions','lastAutoArchive','pdbHistory','settings','medState','todayExec','todaySupp','dayReview','tradeShots','sessionlog','sessionShots','runState','d6Choice','d9Choice','planMode'];
+const _DC_KEYS = ['day','trades','sessions','krdCounters','krdLastTrigger','riskState','archive','activeState','levelState','positions','lastAutoArchive','pdbHistory','settings','medState','todayExec','todaySupp','dayReview','tradeShots','sessionlog','sessionShots','runState','d6Choice','d9Choice','planMode','dayStart'];
 
 // ══ V128: KANONICZNA GRANICA DNIA ══
 // toISOString() zwraca datę UTC — Polska to UTC+1/UTC+2, więc między północą
@@ -7985,7 +8026,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v228';
+window.DC_VERSION = 'v229';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -8784,6 +8825,10 @@ function dcArchiveDayIfMissing(dayStr) {
       riskState: dcLoad('riskState', 'STABLE'),
       activeState: dcLoad('activeState', {}),
       noTrades: (!t || !t.length),                       // V228
+      dayStart: (function(){ try { const c = dcLoad('dayStart', null);
+                  return (c && c.date === dayStr && c.start !== null) ? c.start : null; } catch(x){ return null; } })(),
+      dayShift: (function(){ try { const c = dcLoad('dayStart', null);
+                  return (c && c.date === dayStr && c.start !== null) ? (c.start - 393) : null; } catch(x){ return null; } })(),
       dayMode: (function(){ try { const e = dcLoad('todayExec', null);
                  return (e && e.date === dayStr) ? (e.dayMode || null) : null; } catch(x){ return null; } })(),
       stats: {
@@ -12852,6 +12897,9 @@ th.hl{color:var(--green) !important;}
     </div>
     <div class="day-view" id="dayView"></div>
   </div>
+
+  <!-- V229: START DNIA — wspólny dla wszystkich trybów -->
+  <div class="ds-box" id="dsBox"></div>
 
   <!-- MODE TABS -->
   <div class="ctabs">
@@ -20197,12 +20245,137 @@ const blocksD9 = [
 
 // ─── RENDER FUNCTIONS ───
 
+// ══════════════ V229: START DNIA ══════════════
+// Rytuał poranny robiony jest zawsze, ale nie zawsze o 6:33. Dotąd nie było
+// gdzie zaznaczyć, że wykonano go o 8:04 — blok istniał tylko w swoim oknie.
+// Teraz: klikasz START o dowolnej porze, rytuał przesuwa się za tobą, a bloki
+// handlowe zostają w swoich godzinach, bo są przypięte do rynku, nie do pobudki.
+// System sam liczy, od której sesji wchodzisz.
+const DS_PLAN = 6*60 + 33;
+
+function dsLoad(){
+  let c = (typeof dcLoad === 'function') ? dcLoad('dayStart', null) : null;
+  const today = (typeof dcDayStr === 'function') ? dcDayStr() : new Date().toISOString().slice(0,10);
+  if (!c || c.date !== today) c = { date: today, start: null };
+  return c;
+}
+function dsSave(c){
+  if (typeof dcSave === 'function') dcSave('dayStart', c);
+  if (typeof dcPushDirty === 'function') dcPushDirty();
+}
+function dsGet(){ return dsLoad().start; }                 // minuty od północy albo null
+function dsShift(){ const s = dsGet(); return s === null ? 0 : s - DS_PLAN; }
+function dsHm(m){ return Math.floor(m/60) + ':' + String(m%60).padStart(2,'0'); }
+
+function dsStart(){
+  const inp = document.getElementById('dsTime');
+  let m;
+  if (inp && inp.value) { const p = inp.value.split(':').map(Number); m = p[0]*60 + p[1]; }
+  else { const d = new Date(); m = d.getHours()*60 + d.getMinutes(); }
+  const c = dsLoad(); c.start = m; dsSave(c);
+  if (typeof dayModeClaim === 'function' && typeof currentPlanMode !== 'undefined') dayModeClaim(currentPlanMode);
+  if (typeof buildPlanCockpit === 'function') buildPlanCockpit(currentPlanMode);
+  if (typeof updateNowActive === 'function') updateNowActive();
+  if (typeof dcToast === 'function') {
+    const sh = m - DS_PLAN;
+    dcToast('Start dnia: ' + dsHm(m) + (sh ? ' · ' + (sh>0?'+':'') + sh + ' min' : ' · zgodnie z planem'), 'toast-green');
+  }
+}
+function dsReset(){
+  const c = dsLoad(); c.start = null; dsSave(c);
+  if (typeof buildPlanCockpit === 'function') buildPlanCockpit(currentPlanMode);
+  if (typeof updateNowActive === 'function') updateNowActive();
+}
+
+// przesuwa TYLKO blok poranny; reszta zostaje na swoich godzinach
+function dsApply(blocks){
+  const s = dsGet();
+  if (s === null || !Array.isArray(blocks)) return blocks;
+  const sh = s - DS_PLAN;
+  if (!sh) return blocks;
+  return blocks.map(b => {
+    if (!b || b.type !== TYPE.MORNING) return b;
+    const t = JSON.parse(JSON.stringify(b));
+    const shiftHm = (str) => {
+      const p = String(str).split(':').map(Number);
+      if (p.length < 2 || isNaN(p[0])) return str;
+      let v = p[0]*60 + p[1] + sh;
+      while (v < 0) v += 1440;
+      v = v % 1440;
+      return dsHm(v);
+    };
+    t.time = shiftHm(b.time);
+    t.end  = shiftHm(b.end);
+    t.planTime = b.time; t.planEnd = b.end;      // ślad po godzinie planowej
+    t.shifted = sh;
+    if (Array.isArray(b.tasks)) {
+      t.tasks = b.tasks.map(x => {
+        const y = Object.assign({}, x);
+        const m = String(x.time).match(/^(\d+:\d+)[–-](\d+:\d+)$/);
+        if (m) y.time = shiftHm(m[1]) + '–' + shiftHm(m[2]);
+        return y;
+      });
+    }
+    return t;
+  });
+}
+
+// pierwszy blok dostępny po zakończeniu rytuału (trwający też się liczy)
+function dsFirstBlock(blocks){
+  const s = dsGet(); if (s === null) return null;
+  const ready = s + 60;
+  const hm2m = (str) => { const p = String(str).split(':').map(Number); return p[0]*60 + p[1]; };
+  const cand = (blocks || []).filter(b => b && b.type !== TYPE.MORNING && b.id !== 'sleep');
+  const nxt = cand.find(b => hm2m(b.end) > ready);
+  const skipped = cand.filter(b => hm2m(b.end) <= ready);
+  return { ready, next: nxt || null, skipped: skipped.length, skippedIds: skipped.map(b=>b.id) };
+}
+
+function dsRender(blocks){
+  const el = document.getElementById('dsBox'); if (!el) return;
+  const s = dsGet();
+  if (s === null) {
+    const d = new Date();
+    const nowv = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    el.innerHTML =
+      '<div class="ds-head"><span class="ds-t">START DNIA</span>'
+      + '<span class="ds-s">nie wystartowano · plan zakłada 6:33</span></div>'
+      + '<div class="ds-ctrl"><input class="ds-in" type="time" id="dsTime" value="' + nowv + '">'
+      + '<button class="ds-btn" onclick="dsStart()">START</button></div>'
+      + '<div class="ds-note">Kliknij <b>START</b>, kiedy zaczynasz rytuał — o dowolnej porze. '
+      + 'Rytuał przesunie się za tobą, bloki handlowe zostaną w swoich godzinach, '
+      + 'a system pokaże, od której sesji wchodzisz.</div>';
+    return;
+  }
+  const sh = s - DS_PLAN;
+  const f = dsFirstBlock(blocks) || {};
+  const cls = Math.abs(sh) <= 15 ? 'ok' : 'late';
+  el.innerHTML =
+    '<div class="ds-head"><span class="ds-t">START DNIA</span>'
+    + '<span class="ds-s">rytuał przesuwa się za tobą · sesje zostają na miejscu</span>'
+    + '<button class="ds-undo" onclick="dsReset()">COFNIJ</button></div>'
+    + '<div class="ds-big"><div><div class="ds-bt">' + dsHm(s) + '</div>'
+    + '<div class="ds-bl">START RYTUAŁU</div></div>'
+    + '<div><div class="ds-bd ' + cls + '">' + (sh>0?'+':'') + sh + ' min</div>'
+    + '<div class="ds-bl">WZGLĘDEM 6:33</div></div></div>'
+    + '<div class="ds-grid">'
+    + '<div class="ds-c"><div class="ds-cl">RYTUAŁ</div><div class="ds-cv gold">' + dsHm(s) + ' – ' + dsHm(s+60) + '</div></div>'
+    + '<div class="ds-c"><div class="ds-cl">WCHODZISZ OD</div><div class="ds-cv cyan">' + (f.next ? f.next.mfLabel || f.next.id : '—') + '</div></div>'
+    + '<div class="ds-c"><div class="ds-cl">POMINIĘTE</div><div class="ds-cv ' + (f.skipped ? 'org' : 'green') + '">' + (f.skipped||0) + '</div></div>'
+    + '</div>'
+    + '<div class="ds-note">' + (f.next
+        ? 'Gotowy o <b>' + dsHm(f.ready) + '</b> — wchodzisz w <b>' + (f.next.title || f.next.id) + '</b> (' + f.next.time + ')'
+          + (f.skipped ? '. Pominięte bloki: <b>' + f.skipped + '</b> — nie liczą się jako zaniedbanie.' : '.')
+        : 'Rytuał kończy się po ostatnim bloku dnia.') + '</div>';
+}
+
 function buildPlanCockpit(mode){
   // V206: D6×33 generowany dynamicznie — jego kształt zależy od porannego
   // wyboru w oknach, więc oś czasu musi powstawać przy każdym renderze.
-  const blocks = mode==='d13' ? blocksD13
+  let blocks = mode==='d13' ? blocksD13
                : mode==='d6'  ? (typeof buildBlocksD6==='function' ? buildBlocksD6() : blocksD9)
-               : blocksD9;
+               : (typeof buildBlocksD9==='function' ? buildBlocksD9() : blocksD9);
+  blocks = (typeof dsApply === 'function') ? dsApply(blocks) : blocks;   // V229
   // Store globally so togglePbcDone can refresh session tracker
   if(mode==='d13') window._blocks13 = blocks;
   else if(mode==='d6') window._blocks6 = blocks;
@@ -20211,6 +20384,7 @@ function buildPlanCockpit(mode){
   // steruje klasa .cc.active, nie style.display. Renderujemy tylko treść.
   if(mode==='d6' && typeof d6RenderPicker==='function') d6RenderPicker();
   if(mode==='d9' && typeof d9RenderPicker==='function') d9RenderPicker();
+  if (typeof dsRender === 'function') dsRender(blocks);   // V229
   buildDayView(mode, blocks);
   buildMissionFlow(mode, blocks);
   buildSessionTracker(mode, blocks);
@@ -22682,6 +22856,12 @@ function archiveWriteDay(opts) {
     savedAt: now.toISOString(),
     review: _rev,
     noTrades: (liveTrades.length === 0),                 // V228
+    // V229: godzina faktycznego startu dnia — po 33 dniach detektor odpowie,
+    // czy późny start pogarsza wykonanie. Dziś to zgadywanie.
+    dayStart: (function(){ try { const c = dcLoad('dayStart', null);
+                return (c && c.date === today && c.start !== null) ? c.start : null; } catch(x){ return null; } })(),
+    dayShift: (function(){ try { const c = dcLoad('dayStart', null);
+                return (c && c.date === today && c.start !== null) ? (c.start - 393) : null; } catch(x){ return null; } })(),
     dayMode: (function(){ try { const e = dcLoad('todayExec', null);
                return (e && e.date === today) ? (e.dayMode || null) : null; } catch(x){ return null; } })(),
     trades: [...liveTrades],
