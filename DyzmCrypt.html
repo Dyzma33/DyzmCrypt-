@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v229 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v230 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -6247,6 +6247,29 @@ body.os-lockdown #workspace::before {
  line-height:1.7;margin-top:11px}
 .ds-note b{color:var(--gold2,#f0c674);font-weight:400}
 @media(max-width:560px){.ds-grid{grid-template-columns:1fr}.ds-bt{font-size:32px}}
+
+/* ══ V230: MODAL ZLECENIA — CIASNY NA TABLECIE ══
+   Modal miał na sztywno 520px szerokości i 320px wysokości obszaru, a pola
+   ryzyka i celu dodatkowe max-width 132/112px. Na iPadzie zostawało pół
+   ekranu pustego, a formularz był ściśnięty w kolumnę wąską jak na telefonie. */
+.sl-box.sl-box-wide{width:min(760px,96vw);}
+.sl-picker-body{max-height:min(72vh,620px);overflow-y:auto;}
+
+/* trzy pola w rzędzie, ale każde z sensowną szerokością minimalną */
+#slPickerBody .sl-frow{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:11px;}
+#slPickerBody .sl-f input{width:100%;font-size:16px;padding:11px 12px;}
+#slPickerBody .sl-f label{font-size:9.5px;letter-spacing:1.2px;margin-bottom:5px;}
+#slPickerBody .sl-chip{padding:8px 16px;font-size:12px;}
+#slPickerBody .sl-pend-prev{font-size:12.5px;padding:11px 13px;}
+
+@media(min-width:820px){
+  #slPickerBody .sl-f input{font-size:17px;padding:12px 14px;}
+  #slPickerBody .sl-chip{padding:9px 18px;font-size:12.5px;}
+}
+@media(max-width:640px){
+  #slPickerBody .sl-frow{grid-template-columns:1fr 1fr;}
+  #slPickerBody .sl-frow .sl-f:first-child{grid-column:1 / -1;}
+}
 </style>
 
 <!-- ════════════════════════════════════════════════════════
@@ -7155,7 +7178,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v229 · EXECUTION OS</div>
+    <div class="splash-ver">v230 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7415,7 +7438,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v229</div>
+      <div class="sb-logo-sub">EXECUTION OS · v230</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8026,7 +8049,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v229';
+window.DC_VERSION = 'v230';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -16134,9 +16157,9 @@ updateExposureBar();
 
   <!-- PICKER TRANSAKCJI -->
   <div class="sl-overlay" id="slPicker" style="z-index:9400;">
-    <div class="sl-box" style="width:min(520px,96vw);">
+    <div class="sl-box sl-box-wide">
       <div class="sl-mhead"><b id="slPickerTitle" style="font-size:11px;">WYBIERZ TRANSAKCJĘ</b><span class="sl-x" onclick="document.getElementById('slPicker').classList.remove('open')">✕</span></div>
-      <div id="slPickerBody" style="max-height:320px;overflow-y:auto;"></div>
+      <div id="slPickerBody" class="sl-picker-body"></div>
     </div>
   </div>
 </div>
@@ -29839,8 +29862,8 @@ function slPendRender() {
     + '</div></div>'
     + '<div class="sl-frow">'
     +   '<div class="sl-f"><label>Cena wejścia (limit)</label><input id="slPendPrice" type="number" inputmode="decimal" placeholder="np. 58200" value="' + slEsc(P.price) + '" oninput="slPendSync()"></div>'
-    +   '<div class="sl-f" style="max-width:132px;"><label>Ryzyko $ · auto</label><input id="slPendRisk" type="number" inputmode="decimal" value="' + slEsc(P.risk) + '" oninput="slPendSync()"></div>'
-    +   '<div class="sl-f" style="max-width:112px;"><label>Cel (RR)</label><input id="slPendRR" type="number" inputmode="decimal" step="0.5" value="' + slEsc(P.rr) + '" oninput="slPendSync()"></div>'
+    +   '<div class="sl-f"><label>Ryzyko $ · auto</label><input id="slPendRisk" type="number" inputmode="decimal" value="' + slEsc(P.risk) + '" oninput="slPendSync()"></div>'
+    +   '<div class="sl-f"><label>Cel (RR)</label><input id="slPendRR" type="number" inputmode="decimal" step="0.5" value="' + slEsc(P.rr) + '" oninput="slPendSync()"></div>'
     + '</div>'
     + '<div class="sl-pend-prev" id="slPendPrev">uzupelnij ryzyko i cel RRR</div>'
     + '<div class="sl-f"><label>Plan wyjscia - take profity</label>'
