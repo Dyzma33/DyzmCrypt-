@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v238 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v239 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7178,7 +7178,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v238 · EXECUTION OS</div>
+    <div class="splash-ver">v239 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7438,7 +7438,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v238</div>
+      <div class="sb-logo-sub">EXECUTION OS · v239</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7846,6 +7846,20 @@ body.os-lockdown #workspace::before {
     </div>
   </div>
   <div class="gh-corner-right" style="display:flex;align-items:center;gap:6px;">
+    <!-- V239: skrót do Session Logu. Ta sama ikona co w sidebarze — ma się czytać
+         jako "to samo, tylko bliżej", nie jako nowy element. Po lewej od ACTIVE,
+         oddzielony włoskiem, bo to AKCJA, a ACTIVE to STAN — i stan zostaje
+         zakotwiczony po prawej, tam gdzie był zawsze. -->
+    <button class="gh-quick" id="ghQuickSL" onclick="navTo('sessionlog', document.querySelector('.sb-item[onclick*=sessionlog]'))" aria-label="Session Log" title="Session Log">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <rect x="2.5" y="2" width="11" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+        <line x1="5" y1="5.5" x2="11" y2="5.5" stroke="currentColor" stroke-width="1.2"/>
+        <line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" stroke-width="1.2"/>
+        <line x1="5" y1="10.5" x2="8.5" y2="10.5" stroke="currentColor" stroke-width="1.2"/>
+      </svg>
+      <i class="gh-quick-dot" id="ghQuickSLDot"></i>
+    </button>
+    <span class="gh-corner-sep"></span>
     <div class="v8-cond-badge active" id="v8CondBadge">ACTIVE</div>
   </div>
 </div>
@@ -8049,7 +8063,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v238';
+window.DC_VERSION = 'v239';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -22075,6 +22089,29 @@ window.d6RenderPicker = d6RenderPicker;
 
 let _currentView = 'start'; // track active view
 
+// V239: stan skrotu w naglowku — zapalony, gdy jestes w Session Logu; kropka,
+// gdy wisza zlecenia oczekujace. Liczbe pokazuje juz plakietka w module, tu ma
+// byc sam sygnal "cos czeka", zeby naglowek zostal naglowkiem.
+function ghQuickSync() {
+  const b = document.getElementById('ghQuickSL');
+  if (!b) return;
+  b.classList.toggle('on', (typeof _currentView !== 'undefined') && _currentView === 'sessionlog');
+  let pend = 0;
+  try {
+    (typeof slAll === 'function' ? slAll() : []).forEach(function(e) {
+      (e && e.linkedTrades || []).forEach(function(l) {
+        if (l && l.role === 'pending' && !l.status) pend++;
+      });
+    });
+  } catch(err) {}
+  b.classList.toggle('has-pend', pend > 0);
+  b.title = 'Session Log' + (pend ? ' · ' + pend + ' ' + (pend === 1 ? 'zlecenie czeka' : 'zleceń czeka') : '');
+}
+window.ghQuickSync = ghQuickSync;
+// pierwszy stan po starcie (po zaladowaniu danych z chmury)
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(ghQuickSync, 400); });
+else setTimeout(ghQuickSync, 400);
+
 function navTo(panelId, btn) {
   const isDashboard = (panelId === 'start');
   const prevView = _currentView;
@@ -22088,6 +22125,7 @@ function navTo(panelId, btn) {
   if (panelId === 'sessionlog' && typeof slRender === 'function') {
     setTimeout(slRender, 50);
   }
+  setTimeout(ghQuickSync, 10);          // V239
   // V203: moduł BIEGANIE — chipy budowane raz, potem sam render
   if (panelId === 'bieganie') {
     if (typeof rnBoot === 'function') setTimeout(rnBoot, 30);
@@ -31120,6 +31158,7 @@ function slRender() {
       + '</div>';
   }).join('');
   if (typeof dcShotHydrate === 'function') dcShotHydrate(listEl);   // V236
+  if (typeof ghQuickSync === 'function') ghQuickSync();             // V239
 }
 </script>
 
@@ -35214,6 +35253,44 @@ function insRender() {
 #dyzmcrypt-global-header .v8-cond-badge.active{
   color:var(--green) !important;border-color:rgba(0,232,122,.4) !important;
   background:rgba(0,232,122,.07) !important;}
+
+/* ══ V239 · skrót do Session Logu w nagłówku ══
+   Geometria pigułki ACTIVE (16px, 1px obrys), ale kwadratowa i tylko z ikoną —
+   zeby od razu bylo widac, ze to przycisk, a nie druga etykieta stanu.
+   Kolor zloty: ten sam akcent, ktory Session Log ma w module. */
+#dyzmcrypt-global-header .gh-quick{
+  position:relative;display:flex;align-items:center;justify-content:center;
+  width:30px;height:30px;padding:0;
+  border-radius:16px;border:1px solid rgba(118,158,205,.22);
+  background:rgba(0,0,0,.3);color:rgba(200,220,240,.5);
+  cursor:pointer;flex-shrink:0;
+  transition:color .18s, border-color .18s, background .18s, transform .12s;
+  -webkit-tap-highlight-color:transparent;}
+#dyzmcrypt-global-header .gh-quick:hover{
+  color:var(--gold);border-color:rgba(255,196,0,.45);
+  background:rgba(255,196,0,.08);}
+#dyzmcrypt-global-header .gh-quick:active{transform:scale(.93);}
+/* panel otwarty — przycisk zapalony, zeby bylo wiadomo, gdzie jestes */
+#dyzmcrypt-global-header .gh-quick.on{
+  color:var(--gold);border-color:rgba(255,196,0,.55);
+  background:rgba(255,196,0,.12);}
+
+/* kropka tylko wtedy, gdy cos naprawde czeka — zlecenia oczekujace.
+   Zadnych liczb: w naglowku ma byc sygnal, nie raport. */
+#dyzmcrypt-global-header .gh-quick-dot{
+  position:absolute;top:4px;right:4px;width:5px;height:5px;border-radius:50%;
+  background:var(--orange);box-shadow:0 0 0 2px rgba(4,6,14,.95);
+  opacity:0;transform:scale(.4);transition:opacity .2s, transform .2s;}
+#dyzmcrypt-global-header .gh-quick.has-pend .gh-quick-dot{opacity:1;transform:scale(1);}
+
+/* wlosek rozdzielajacy AKCJE od STANU */
+#dyzmcrypt-global-header .gh-corner-sep{
+  width:1px;height:16px;background:rgba(118,158,205,.18);flex-shrink:0;}
+
+@media(max-width:760px){
+  #dyzmcrypt-global-header .gh-quick{width:34px;height:34px;}   /* palec, nie kursor */
+  #dyzmcrypt-global-header .gh-corner-sep{height:18px;}
+}
 
 /* ── pasek CMD pod nagłówkiem: bez smugi, spójny ── */
 #v14-cmdbar{
