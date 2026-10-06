@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v236 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v238 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7178,7 +7178,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v236 · EXECUTION OS</div>
+    <div class="splash-ver">v238 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7438,7 +7438,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v236</div>
+      <div class="sb-logo-sub">EXECUTION OS · v238</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8049,7 +8049,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v236';
+window.DC_VERSION = 'v238';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -30173,18 +30173,34 @@ function slFindPos(posId) {
   const arr = (typeof opzPositions !== 'undefined' && Array.isArray(opzPositions)) ? opzPositions : [];
   return arr.find(p => p && String(p.id) === pid) || null;
 }
-function slFindTradeByPos(posId) {
+// V237: numery pozycji bywaly powtarzane (naprawione w V235, ale stare dane juz
+// je maja), wiec jeden posId potrafi wskazywac KILKA transakcji. Zbieramy
+// wszystkie i dopiero slResolve wybiera wlasciwa — po stemplu tokenu albo po
+// bliskosci czasowej do wpisu, ktory ten link trzyma.
+function slPosMatches(posId) {
   const pid = String(posId);
   const today = (typeof dcDayStr === 'function') ? dcDayStr() : '';
+  const out = [];
   const live = (typeof trades !== 'undefined' && Array.isArray(trades)) ? trades : [];
-  let t = live.find(x => x && String(x.posId) === pid);
-  if (t) return { t, day: today, live: true };
-  const arch = (typeof dcLoad === 'function') ? dcLoad('archive', []) : [];
-  for (const d of (Array.isArray(arch) ? arch : [])) {
-    const f = (d && d.trades || []).find(x => x && String(x.posId) === pid);
-    if (f) return { t: f, day: d.date, live: false };
-  }
-  return null;
+  live.forEach(function(x){ if (x && String(x.posId) === pid) out.push({ t: x, day: today, live: true }); });
+  try {
+    const arch = (typeof dcLoad === 'function') ? dcLoad('archive', []) : [];
+    (Array.isArray(arch) ? arch : []).forEach(function(d) {
+      if (!d || d.date === today || !Array.isArray(d.trades)) return;
+      d.trades.forEach(function(x){ if (x && String(x.posId) === pid) out.push({ t: x, day: d.date, live: false }); });
+    });
+  } catch(e) {}
+  return out;
+}
+function slRecTs(day, time) {
+  const m = String(day || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const hm = String(time || '00:00').match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return 0;
+  return new Date(+m[1], +m[2] - 1, +m[3], hm ? +hm[1] : 0, hm ? +hm[2] : 0).getTime();
+}
+function slFindTradeByPos(posId) {
+  const all = slPosMatches(posId);
+  return all.length ? all[0] : null;
 }
 // jeden resolver dla linków: tradeId → trade; posId → zamknięty trade (po posId) albo żywa pozycja
 // V235: dwie zmiany po bledzie "karta LINK pokazuje JTO".
@@ -30198,7 +30214,11 @@ function slTokOk(l, tok) {
   if (!l || !l.token) return true;                    // stare linki bez stempla — przepuszczamy
   return String(tok || '').toUpperCase() === String(l.token).toUpperCase();
 }
-function slResolve(l) {
+// V237: drugi argument to WPIS, ktory trzyma ten link. Gdy jeden posId pasuje do
+// kilku transakcji (skutek dawnego powtarzania numerow), wygrywa ta ze stemplem
+// tokenu, a gdy stempla brak — ta najblizsza czasowo wpisowi. Wczesniej brano
+// pierwsza z brzegu, czyli zwykle NAJSTARSZA: karta LINK pokazywala JTO.
+function slResolve(l, e) {
   if (l.tradeId != null) {
     const f = slFindTrade(l.tradeId);
     return (f && slTokOk(l, f.t && f.t.token)) ? { kind: 'trade', f } : null;
@@ -30206,11 +30226,54 @@ function slResolve(l) {
   if (l.posId != null) {
     const p = slFindPos(l.posId);
     if (p && slTokOk(l, p.token)) return { kind: 'pos', p };
-    const ft = slFindTradeByPos(l.posId);
-    if (ft && slTokOk(l, ft.t && ft.t.token)) return { kind: 'trade', f: ft, matured: true };
+    let cand = slPosMatches(l.posId);
+    if (!cand.length) return null;
+    if (l.token) {
+      const byTok = cand.filter(function(x){ return slTokOk(l, x.t && x.t.token); });
+      if (!byTok.length) return null;                  // stempel sie nie zgadza — nie klamiemy
+      cand = byTok;
+    }
+    const ref = (e && e.ts) ? new Date(e.ts).getTime() : (e && e.date ? slRecTs(e.date, '23:59') : Date.now());
+    // V238: rola OTWARTA znaczy, ze pozycje otwarto Z TEGO wpisu — wiec nie moze
+    // wskazywac transakcji zamknietej, ZANIM wpis w ogole powstal. To wycina
+    // stary rekord o powtorzonym numerze (JTO z 15:23 przy wpisie z 17:26)
+    // nawet gdy link nie ma jeszcze stempla tokenu.
+    if (!l.token && l.role === 'opened' && ref) {
+      const after = cand.filter(function(x) { return slRecTs(x.day, x.t.time) >= ref - 300000; });
+      if (after.length) cand = after;
+      else if (cand.length === 1) return null;         // jedyny kandydat jest sprzed wpisu — nie klamiemy
+    }
+    if (cand.length > 1) {
+      cand.sort(function(a, b) {
+        return Math.abs(slRecTs(a.day, a.t.time) - ref) - Math.abs(slRecTs(b.day, b.t.time) - ref);
+      });
+    }
+    return { kind: 'trade', f: cand[0], matured: true };
   }
   return null;
 }
+
+// V237: jednorazowa naprawa starych linkow — dopisuje brakujacy stempel tokenu,
+// zeby raz rozstrzygnieta niejednoznacznosc zostala rozstrzygnieta na zawsze.
+function slRepairLinks() {
+  try {
+    const list = slAll();
+    let fixed = 0;
+    (Array.isArray(list) ? list : []).forEach(function(e) {
+      if (!e || !Array.isArray(e.linkedTrades)) return;
+      e.linkedTrades.forEach(function(l) {
+        if (!l || l.token || l.role === 'pending') return;
+        const R = slResolve(l, e);
+        if (!R) return;
+        const tok = (R.kind === 'pos') ? R.p.token : (R.f && R.f.t ? R.f.t.token : '');
+        if (tok) { l.token = tok; fixed++; }
+      });
+    });
+    if (fixed) { slSave(list); console.log('[DYZMCRYPT] V237: ostemplowano linkow: ' + fixed); }
+    return fixed;
+  } catch(err) { return 0; }
+}
+window.slRepairLinks = slRepairLinks;
 // V163: ZLECENIE OCZEKUJĄCE — analiza zrobiona, limit wystawiony, cena jeszcze
 // nie doszła do poziomu. To nie jest pozycja (nie ma jej w module Pozycje),
 // więc wpis żyje w samej sesji: {role:'pending', token, dir, price, note}.
@@ -30561,7 +30624,7 @@ function slRenderModal() {
     + '</div>'
     + (d.linkedTrades.length ? d.linkedTrades.map((l, i) => {
         const rc = roleCfg[l.role] || ['?', 'var(--dim2)'];
-        const R = (l.role === 'pending') ? null : ((typeof slResolve === 'function') ? slResolve(l) : null);
+        const R = (l.role === 'pending') ? null : ((typeof slResolve === 'function') ? slResolve(l, _slDraft) : null);
         let mid;
         if (l.role === 'pending') {
           mid = '<span style="color:var(--text)">' + slEsc(l.token || '—') + '</span>'
@@ -30791,6 +30854,8 @@ function slSetTab(t, btn) {
 function slRender() {
   const listEl = document.getElementById('slList');
   if (!listEl) return;
+  // V237: raz na sesje przestempluj stare linki, zanim cokolwiek narysujemy
+  if (!window._slLinksRepaired) { window._slLinksRepaired = true; try { slRepairLinks(); } catch(e) {} }
   const all = slAll();
   const today = (typeof dcDayStr === 'function') ? dcDayStr() : '';
 
@@ -30932,7 +30997,7 @@ function slRender() {
     const linksHtml = (e.linkedTrades && e.linkedTrades.length)
       ? '<div class="sl-links">' + e.linkedTrades.map(l => {
           const rc = roleCfg[l.role] || ['?', 'var(--dim2)'];
-          const R = (l.role === 'pending') ? null : ((typeof slResolve === 'function') ? slResolve(l) : null);
+          const R = (l.role === 'pending') ? null : ((typeof slResolve === 'function') ? slResolve(l, e) : null);
           let col = rc[1], mid;
           if (l.role === 'pending') {
             col = 'var(--orange)';
