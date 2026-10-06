@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v234 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v235 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7178,7 +7178,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v234 · EXECUTION OS</div>
+    <div class="splash-ver">v235 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7438,7 +7438,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v234</div>
+      <div class="sb-logo-sub">EXECUTION OS · v235</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8025,7 +8025,7 @@ body.os-lockdown #workspace::before {
 const _SB_URL = 'https://kawkfhvijblbdnlwsese.supabase.co';
 const _SB_KEY = 'sb_publishable_0G0d3H6TuYNyEBdDcCo_QA_w2Mma09p';
 const _SB_SESS = 'dc_sb_session_v2';
-const _DC_KEYS = ['day','trades','sessions','krdCounters','krdLastTrigger','riskState','archive','activeState','levelState','positions','lastAutoArchive','pdbHistory','settings','medState','todayExec','todaySupp','dayReview','tradeShots','sessionlog','sessionShots','runState','d6Choice','d9Choice','planMode','dayStart','slCustomMarks'];
+const _DC_KEYS = ['day','trades','sessions','krdCounters','krdLastTrigger','riskState','archive','activeState','levelState','positions','lastAutoArchive','pdbHistory','settings','medState','todayExec','todaySupp','dayReview','tradeShots','sessionlog','sessionShots','runState','d6Choice','d9Choice','planMode','dayStart','slCustomMarks','opzIdSeq'];
 
 // ══ V128: KANONICZNA GRANICA DNIA ══
 // toISOString() zwraca datę UTC — Polska to UTC+1/UTC+2, więc między północą
@@ -8049,7 +8049,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v234';
+window.DC_VERSION = 'v235';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17226,7 +17226,31 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
 // V93 · OTWARTE POZYCJE — OPEN POSITIONS ENGINE
 // ══════════════════════════════════════════════════════
 let opzPositions = dcLoad('positions', []);
-let opzNextId = (opzPositions.reduce((m,p) => Math.max(m, p.id||0), 0) || 0) + 1;
+// V235 FIX: licznik ID liczyl sie WYLACZNIE z pozycji otwartych. Zamknieta
+// pozycja znika z opzPositions (zostaje jako trade z polem posId), wiec max
+// spadal i po przeladowaniu ID zaczynaly sie od nowa. Efekt: nowy LINK dostawal
+// id juz zuzyte przez zamkniete JTO, a Session Log po tym id trafial na STARY
+// trade — karta LINK pokazywala "JTO LONG −4,95$ OTW.→ZAMKN.".
+// Teraz licznik bierze maksimum z: otwartych pozycji, posId zywych transakcji,
+// posId transakcji w archiwum oraz zapamietanego licznika — i nigdy nie cofa.
+function opzMaxUsedId() {
+  let m = 0;
+  const bump = function(v) { const n = parseInt(v, 10); if (!isNaN(n) && n > m) m = n; };
+  try { (opzPositions || []).forEach(function(p) { if (p) bump(p.id); }); } catch(e) {}
+  try { if (typeof trades !== 'undefined' && Array.isArray(trades)) trades.forEach(function(t) { if (t) bump(t.posId); }); } catch(e) {}
+  try {
+    const arch = (typeof dcLoad === 'function') ? dcLoad('archive', []) : [];
+    (Array.isArray(arch) ? arch : []).forEach(function(d) {
+      (d && Array.isArray(d.trades) ? d.trades : []).forEach(function(t) { if (t) bump(t.posId); });
+    });
+  } catch(e) {}
+  try { bump((typeof dcLoad === 'function') ? dcLoad('opzIdSeq', 0) : 0); } catch(e) {}
+  return m;
+}
+let opzNextId = opzMaxUsedId() + 1;
+function opzBumpIdSeq(id) {
+  try { if (typeof dcSave === 'function') dcSave('opzIdSeq', Math.max(id || 0, (dcLoad('opzIdSeq', 0) || 0))); } catch(e) {}
+}
 let opzClosingId = null;
 let opzEditOrigTime = null; // V107: oryginalna godzina otwarcia w trybie edycji
 let opzSelectedDir = 'LONG';
@@ -17757,7 +17781,9 @@ function opzConfirmAdd() {
   if (!opzValidateTime()) { document.getElementById('opzTime').focus(); return; }
   const _ots = opzTimeToTs(document.getElementById('opzTime').value);
   const openedAt = (_ots !== null && _ots <= Date.now() + 60000) ? _ots : Date.now();
-  opzPositions.push({ id: opzNextId++, token, dir: opzSelectedDir, entry, risk, rr, openedAt, note,
+  const _newId = opzNextId++;
+  opzBumpIdSeq(_newId);                               // V235: numer zuzyty na zawsze
+  opzPositions.push({ id: _newId, token, dir: opzSelectedDir, entry, risk, rr, openedAt, note,
     paper: opzSelectedMode === 'paper',                            // V207: flaga trybu
 
     // V194: plan wyjścia (nogi) + puste wypełnienia; SL→BE jako osobna decyzja
@@ -29911,13 +29937,27 @@ function slFindTradeByPos(posId) {
   return null;
 }
 // jeden resolver dla linków: tradeId → trade; posId → zamknięty trade (po posId) albo żywa pozycja
+// V235: dwie zmiany po bledzie "karta LINK pokazuje JTO".
+// 1) ZYWA pozycja ma pierwszenstwo przed szukaniem dojrzalego trade'u. Dopoki
+//    pozycja jest na rynku, to ona jest prawda — nie moze przegrac ze starym
+//    rekordem o tym samym numerze.
+// 2) Jesli link niesie stempel tokenu (od V235), rekord musi sie z nim zgadzac.
+//    Niezgodnosc = link wskazuje nie to, co powinien → zwracamy null, czyli
+//    "poza zasiegiem", zamiast pokazywac cudza pozycje jako swoja.
+function slTokOk(l, tok) {
+  if (!l || !l.token) return true;                    // stare linki bez stempla — przepuszczamy
+  return String(tok || '').toUpperCase() === String(l.token).toUpperCase();
+}
 function slResolve(l) {
-  if (l.tradeId != null) { const f = slFindTrade(l.tradeId); return f ? { kind: 'trade', f } : null; }
+  if (l.tradeId != null) {
+    const f = slFindTrade(l.tradeId);
+    return (f && slTokOk(l, f.t && f.t.token)) ? { kind: 'trade', f } : null;
+  }
   if (l.posId != null) {
-    const ft = slFindTradeByPos(l.posId);
-    if (ft) return { kind: 'trade', f: ft, matured: true };
     const p = slFindPos(l.posId);
-    if (p) return { kind: 'pos', p };
+    if (p && slTokOk(l, p.token)) return { kind: 'pos', p };
+    const ft = slFindTradeByPos(l.posId);
+    if (ft && slTokOk(l, ft.t && ft.t.token)) return { kind: 'trade', f: ft, matured: true };
   }
   return null;
 }
@@ -30151,8 +30191,14 @@ function slCloseFromPicker(posId) {
   if (typeof opzOpenCloseModal === 'function') opzOpenCloseModal(parseInt(posId, 10) || posId);
 }
 function slPickerAdd(id, role) {
-  if (role === 'observed') _slDraft.linkedTrades.push({ posId: id, role });
-  else _slDraft.linkedTrades.push({ tradeId: id, role });
+  // V235: stempel tokenu — resolver sprawdzi, czy numer wskazuje wlasciwy rekord
+  let tok = '';
+  try {
+    if (role === 'observed') { const p = slFindPos(id); tok = p ? (p.token || '') : ''; }
+    else { const f = slFindTrade(id); tok = (f && f.t) ? (f.t.token || '') : ''; }
+  } catch(e) {}
+  if (role === 'observed') _slDraft.linkedTrades.push({ posId: id, role, token: tok });
+  else _slDraft.linkedTrades.push({ tradeId: id, role, token: tok });
   document.getElementById('slPicker').classList.remove('open');
   slRenderModal();
 }
@@ -30352,7 +30398,10 @@ function slDelete(id) {
           // zamknięcie przeszło, jeśli pozycji nie ma już wśród otwartych
           const still = (typeof opzPositions !== 'undefined') && opzPositions.some(p => p && String(p.id) === pid);
           if (!still) {
-            _slDraft.linkedTrades.push({ posId: pid, role: 'closed' });
+            // V235: stempel tokenu z zamknietego trade'u
+            let _tok = '';
+            try { const ft = slFindTradeByPos(pid); _tok = (ft && ft.t) ? (ft.t.token || '') : ''; } catch(e) {}
+            _slDraft.linkedTrades.push({ posId: pid, role: 'closed', token: _tok });
             window._slPendingClose = null;
             slRenderModal();
             if (typeof dcToast === 'function') dcToast('🔗 Wynik pozycji dopięty do sesji (ZAMKNIĘTA)', 'toast-green');
@@ -30379,7 +30428,8 @@ function slDelete(id) {
         if (window._slPendingPos && _slDraft && typeof opzPositions !== 'undefined' && opzPositions.length) {
           const p = opzPositions[opzPositions.length - 1];
           if (p && p.id !== before) {
-            _slDraft.linkedTrades.push({ posId: p.id, role: 'opened' });
+            // V235: stempel tokenu i czasu — resolver weryfikuje, czy trafil w TEN rekord
+            _slDraft.linkedTrades.push({ posId: p.id, role: 'opened', token: p.token || '', openedAt: p.openedAt || Date.now() });
             window._slPendingPos = false;
             slRenderModal();
             if (typeof dcToast === 'function') dcToast('🔗 Pozycja ' + (p.token || '') + ' podpięta do sesji (OTWARTA)', 'toast-green');
