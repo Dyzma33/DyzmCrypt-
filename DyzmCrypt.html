@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v232 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v233 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7178,7 +7178,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v232 · EXECUTION OS</div>
+    <div class="splash-ver">v233 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7438,7 +7438,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v232</div>
+      <div class="sb-logo-sub">EXECUTION OS · v233</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8049,7 +8049,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v232';
+window.DC_VERSION = 'v233';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -29516,6 +29516,51 @@ function slMarksAll() {
   return out;
 }
 function slAll() { return (typeof dcLoad === 'function') ? (dcLoad('sessionlog', []) || []) : []; }
+
+// ══════════════════════════════════════════════════════════
+// V233: WĄTKI — jedna analiza ciagnieta przez kilka sesji
+//
+// Problem: analiza LINK 30m zrobiona w S8, kontynuowana w S13 (bo wybilo
+// pozycje) to byly dwa wpisy, ktore o sobie nie wiedzialy. Lista grupuje po
+// dniach, wiec nie bylo jak zobaczyc, ze to ta sama mysl rosla przez dzien.
+//
+// Model: wpis dostaje pole `thread` = id wpisu-KORZENIA. Korzen nosi WLASNE id.
+// Wpisy bez tego pola (wszystko sprzed V233) renderuja sie dokladnie jak dotad
+// — zero migracji, zero ryzyka dla archiwum.
+//
+// Dlaczego osobny wpis, a nie aktualizacja w srodku jednego: pasek statystyk
+// liczy "czas pracy dzis" jako liczba_wpisow x 33 min, a "Sesje dzis" jako
+// liczbe wpisow. Praca w S13 BYLA osobna praca — gdyby wpadla do srodka wpisu
+// z S8, system pokazalby, ze zrobiles mniej, niz zrobiles.
+// ══════════════════════════════════════════════════════════
+function slThreadId(e) { return (e && e.thread != null) ? e.thread : null; }
+// wszystkie wpisy watku, od najstarszego (korzen) do najnowszego
+function slThreadChain(tid, list) {
+  if (tid == null) return [];
+  return (list || slAll())
+    .filter(function(x) { return x && (x.thread === tid || x.id === tid); })
+    .sort(function(a, b) { return (a.id || 0) - (b.id || 0); });
+}
+// pozycja wpisu w watku: {n, total} albo null gdy wpis nie jest w watku
+function slThreadPos(e, list) {
+  const tid = slThreadId(e);
+  if (tid == null) return null;
+  const chain = slThreadChain(tid, list);
+  if (chain.length < 2) return null;           // samotny korzen to jeszcze nie watek
+  const i = chain.findIndex(function(x) { return x.id === e.id; });
+  return i === -1 ? null : { n: i + 1, total: chain.length, chain: chain };
+}
+// znaczniki ze WSZYSTKICH wczesniejszych wpisow watku — do oznaczania nowosci
+function slThreadMarksBefore(e, list) {
+  const tid = slThreadId(e);
+  if (tid == null) return {};
+  const out = {};
+  slThreadChain(tid, list).forEach(function(x) {
+    if (!x || (x.id || 0) >= (e.id || 0)) return;
+    slAssetsOf(x).forEach(function(a) { slAssetMarks(a).forEach(function(m) { out[m] = 1; }); });
+  });
+  return out;
+}
 function slSave(list) {
   try { dcSave('sessionlog', list); return true; }
   catch(e) {
@@ -29614,15 +29659,22 @@ let _slDraft = null;
 window._slPending = null;
 
 // V162: nagłówek + przycisk zależne od trybu (nowy wpis / edycja)
-function slModalChrome(editing, slid) {
+function slModalChrome(editing, slid, threadRoot) {
   const t = document.getElementById('slModalTitle');
   const b = document.getElementById('slSaveBtn');
+  // V233: trzeci tryb — kontynuacja watku
+  if (!editing && threadRoot != null) {
+    const chain = slThreadChain(threadRoot);
+    if (t) t.textContent = '↳ KONTYNUACJA WĄTKU · wpis ' + (chain.length + 1);
+    if (b) b.textContent = '✓ DOPISZ DO WĄTKU';
+    return;
+  }
   if (t) t.textContent = editing ? ('✎ EDYCJA WPISU #' + slid) : 'NOWA SESJA PRACY';
   if (b) b.textContent = editing ? '✓ ZAPISZ ZMIANY' : '✓ ZAPISZ SESJĘ';
 }
 function slOpenModal() {
   const done = (typeof sessions !== 'undefined') ? sessions.filter(Boolean).length : 0;
-  _slDraft = { _editId: null, slid: slAll().length + 1, sess: Math.min(done + 1, 13),
+  _slDraft = { _editId: null, _thread: null, slid: slAll().length + 1, sess: Math.min(done + 1, 13),
                assets: [{ instrument: 'BTC', mode: 'active', frames: [{ tf: '1h', marks: [] }] }],
                types: [], note: '', shot: null, linkedTrades: [], noTrades: false };
   window._slMarksExpand = {};
@@ -29638,6 +29690,7 @@ function slEditEntry(id) {
   const shots = slShots();
   _slDraft = {
     _editId: e.id,
+    _thread: (e.thread != null) ? e.thread : null,   // V233: edycja nie zrywa watku
     slid: (e.slid != null) ? e.slid : 1,
     sess: e.sess || 1,
     assets: slAssetsOf(e).map(a => ({
@@ -29657,6 +29710,35 @@ function slEditEntry(id) {
   document.getElementById('slModal').classList.add('open');
   if (typeof slFitModals === 'function') setTimeout(slFitModals, 20);
 }
+// V233: kontynuacja wpisu — NOWY wpis, dziedziczy instrument/interwaly/znaczniki,
+// ale dostaje swiezy slid, biezaca sesje i puste podpiecia (to nowa praca, nie kopia)
+function slContinueEntry(id) {
+  const list = slAll();
+  const e = list.find(function(x) { return x && x.id === id; });
+  if (!e) { if (typeof dcToast === 'function') dcToast('Nie znaleziono wpisu', 'toast-red'); return; }
+  const root = (e.thread != null) ? e.thread : e.id;
+  const done = (typeof sessions !== 'undefined') ? sessions.filter(Boolean).length : 0;
+  _slDraft = {
+    _editId: null,
+    _thread: root,
+    slid: list.length + 1,
+    sess: Math.min(done + 1, 13),
+    assets: slAssetsOf(e).map(function(a) {
+      return { instrument: a.instrument, mode: (a.mode === 'watch' ? 'watch' : 'active'),
+               frames: slFramesOf(a).map(function(f) { return { tf: f.tf, marks: (f.marks || []).slice() }; }) };
+    }),
+    types: (e.types || []).slice(),
+    note: '',                       // nowa notatka — co doszlo, nie co bylo
+    shot: null, linkedTrades: [], noTrades: false
+  };
+  if (!_slDraft.assets.length) _slDraft.assets = [{ instrument: 'BTC', frames: [{ tf: '1h', marks: [] }] }];
+  window._slMarksExpand = {};
+  slModalChrome(false, _slDraft.slid, root);
+  slRenderModal();
+  document.getElementById('slModal').classList.add('open');
+  if (typeof slFitModals === 'function') setTimeout(slFitModals, 20);
+}
+
 function slCloseModal() {
   const m = document.getElementById('slModal');
   if (m) m.classList.remove('open');
@@ -30135,7 +30217,25 @@ function slRenderModal() {
       + '</div>';
   };
 
-  el.innerHTML =
+  // V233: kontekst watku — co juz jest w poprzednich wpisach, zeby nie pisac dwa razy
+  let threadStrip = '';
+  const _tRoot = d._thread != null ? d._thread : (d._editId != null ? slThreadId(slAll().find(x => x && x.id === d._editId)) : null);
+  if (_tRoot != null) {
+    const chain = slThreadChain(_tRoot).filter(x => x.id !== d._editId);
+    if (chain.length) {
+      threadStrip = '<div class="sl-thread-strip"><div class="sl-ts-h">↳ WĄTEK · co było wcześniej</div>'
+        + chain.map(function(x) {
+            const mk = Array.from(new Set([].concat.apply([], slAssetsOf(x).map(slAssetMarks))));
+            return '<div class="sl-ts-row"><span class="sl-ts-s">S' + slEsc(x.sess || '?') + '</span>'
+              + '<span class="sl-ts-d">' + slEsc(x.date || '') + '</span>'
+              + '<span class="sl-ts-m">' + (mk.length ? mk.map(slEsc).join(' · ') : '—') + '</span>'
+              + (x.note ? '<div class="sl-ts-n">' + slEsc(x.note) + '</div>' : '') + '</div>';
+          }).join('')
+        + '<div class="sl-ts-f">Dopisz tylko to, co doszło w tej sesji</div></div>';
+    }
+  }
+
+  el.innerHTML = threadStrip +
     '<div class="sl-frow"><div class="sl-f" style="max-width:96px;"><label>ID wpisu</label><input id="slFId" type="number" min="1" value="' + d.slid + '" onchange="slSyncFields()"></div>'
     + '<div class="sl-f"><label>W czasie której sesji dnia</label><div class="sl-chips">'
     + Array.from({length: 13}, (_, k) => k + 1).map(v =>
@@ -30208,6 +30308,9 @@ function slSaveEntry() {
                   editedAt: editing ? new Date().toISOString() : null,
                   date: (_old && _old.date) ? _old.date : ((typeof dcDayStr === 'function') ? dcDayStr() : ''),
                   linkedTrades: d.linkedTrades.slice(), noTrades: !!d.noTrades };
+  // V233: korzen watku. Nowa kontynuacja -> d._thread; edycja -> zachowaj stary.
+  if (d._thread != null) entry.thread = d._thread;
+  else if (editing && _old && _old.thread != null) entry.thread = _old.thread;
   if (editing) {
     const ix = _list.findIndex(x => x && x.id === id);
     if (ix === -1) _list.unshift(entry); else _list[ix] = entry;
@@ -30222,7 +30325,9 @@ function slSaveEntry() {
   slRender();
   if (typeof dcToast === 'function') dcToast(editing
     ? '✓ Wpis #' + entry.slid + ' zaktualizowany'
-    : '✓ Sesja #' + entry.sess + ' zapisana w Session Log', 'toast-green');
+    : (entry.thread != null
+        ? '✓ Dopisane do wątku · ' + slThreadChain(entry.thread).length + ' wpisy'
+        : '✓ Sesja #' + entry.sess + ' zapisana w Session Log'), 'toast-green');
 }
 function slDelete(id) {
   if (!confirm('Usunąć ten wpis Session Log?')) return;
@@ -30320,6 +30425,20 @@ let slFilters = { instrument: [], tf: [], types: [], marks: [] };
 let slTab = 'entries';
 // V156: zakres czasu + zwijanie dni (13 sesji/dzień × dni = ściana wpisów bez tego)
 let slRange = 'today';
+// V233: podglad watku — swiadomie IGNORUJE filtr zakresu dni, tak samo jak
+// zakladka zlecen ("limit wisi poki wisi"). Watek ciagnie sie przez dni i ma
+// byc widoczny w calosci albo wcale.
+window._slThread = null;
+function slOpenThread(tid) {
+  window._slThread = tid;
+  slRender();
+  try {
+    const el = document.getElementById('slList');
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch(e) {}
+}
+function slCloseThread() { window._slThread = null; slRender(); }
+
 window._slOpenDays = window._slOpenDays || null;
 function slSetRange(r, btn) {
   slRange = r;
@@ -30488,6 +30607,8 @@ function slRender() {
     return;
   }
   const cardHtml = (e) => {
+    const tPos = slThreadPos(e, all);                 // V233: miejsce w watku
+    const tBefore = tPos ? slThreadMarksBefore(e, all) : {};
     const dt = e.ts ? new Date(e.ts) : null;
     const when = e.date + (dt ? ' · ' + String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0') : '')
       + (e.editedAt ? ' · edyt.' : '');
@@ -30523,12 +30644,20 @@ function slRender() {
           return '<div class="sl-link"><span class="sl-role" style="color:' + col + ';border-color:' + col + '">' + rc[0] + '</span>' + mid + '</div>';
         }).join('') + '</div>'
       : (e.noTrades ? '<div class="sl-nt">✗ bez pozycji — tylko analiza/obserwacja</div>' : '');
-    return '<div class="card sl-card">'
+    return '<div class="card sl-card' + (tPos ? ' in-thread' : '') + '">'
+      + (tPos
+          ? '<div class="sl-thread-b" onclick="slOpenThread(' + slThreadId(e) + ')" title="Pokaż cały wątek">'
+            + '<span class="sl-tb-i">' + (tPos.n === 1 ? '◆' : '↳') + '</span>'
+            + '<span class="sl-tb-t">WĄTEK · ' + tPos.n + ' / ' + tPos.total + '</span>'
+            + '<span class="sl-tb-g">' + tPos.chain.map(function(x){ return 'S' + (x.sess || '?'); }).join(' → ') + '</span>'
+            + '</div>'
+          : '')
       + '<div class="sl-head">'
       +   '<span class="sl-num">' + (e.slid != null ? '#' + slEsc(e.slid) : 'S' + slEsc(e.sess)) + '</span>' + (e.slid != null && e.sess ? '<span class="sl-dsess">S' + slEsc(e.sess) + '</span>' : '')
       +   '<span class="sl-instr">' + slEsc(slInstrOf(e).join(' · ')) + '</span>'
       +   (slIsWatchOnly(e) ? '<span class="sl-watch-b">👁 OBSERWACJA</span>' : '')
       +   '<span class="sl-when">' + when + '</span>'
+      +   '<span class="sl-cont" onclick="slContinueEntry(' + e.id + ')" title="Kontynuuj tę analizę w bieżącej sesji">↳ kontynuuj</span>'
       +   '<span class="sl-edit" onclick="slEditEntry(' + e.id + ')" title="Edytuj wpis">✎</span>' + '<span class="sl-del" onclick="slDelete(' + e.id + ')">✕</span>'
       + '</div>'
       + ((e.types || []).length
@@ -30536,13 +30665,43 @@ function slRender() {
       + [].concat.apply([], slAssetsOf(e).map(a => slFramesOf(a).map(f =>
           '<div class="sl-aline' + (slIsWatchOnly(e) ? ' watch' : '') + '"><span class="sl-ai">'
           + slEsc(a.instrument) + '</span><span class="sl-atf">' + slEsc(f.tf) + '</span>'
-          + (f.marks || []).map(m => '<span class="sl-tag m">' + slEsc(m) + '</span>').join('')
+          + (f.marks || []).map(m => (tPos && tPos.n > 1 && !tBefore[m])
+              ? '<span class="sl-tag m fresh">+ ' + slEsc(m) + '</span>'
+              : '<span class="sl-tag m">' + slEsc(m) + '</span>').join('')
           + '</div>'))).join('')
       + (e.note ? '<div class="sl-note">' + slEsc(e.note) + '</div>' : '')
       + (shot ? '<img class="sl-thumb" src="' + shot + '" loading="lazy" onclick="slLightbox(slShots()[\'' + e.shotId + '\'])">' : '')
       + linksHtml
       + '</div>';
   };
+
+  // V233: tryb watku — caly lancuch, w kolejnosci, bez wzgledu na zakres dni
+  if (window._slThread != null) {
+    const chain = slThreadChain(window._slThread, all);
+    if (!chain.length) { window._slThread = null; }
+    else {
+      const first = chain[0], last = chain[chain.length - 1];
+      const instr = Array.from(new Set([].concat.apply([], chain.map(slInstrOf)))).join(' · ');
+      const nTrades = chain.reduce(function(a, x){ return a + ((x.linkedTrades || []).length); }, 0);
+      const days = Array.from(new Set(chain.map(function(x){ return x.date; })));
+      if (cEl) cEl.textContent = chain.length + ' wpis' + (chain.length === 1 ? '' : (chain.length < 5 ? 'y' : 'ów')) + ' w wątku';
+      listEl.innerHTML =
+        '<div class="sl-thread-hd">'
+        + '<div class="sl-th-top"><span class="sl-th-i">↳</span>'
+        +   '<span class="sl-th-n">WĄTEK · ' + slEsc(instr || '—') + '</span>'
+        +   '<span class="sl-th-x" onclick="slCloseThread()">✕ wróć do listy</span></div>'
+        + '<div class="sl-th-m">'
+        +   '<span>' + chain.length + ' sesj' + (chain.length === 1 ? 'a' : (chain.length < 5 ? 'e' : 'i')) + ' pracy</span>'
+        +   '<span>' + days.length + (days.length === 1 ? ' dzień' : ' dni') + '</span>'
+        +   '<span>' + chain.map(function(x){ return 'S' + (x.sess || '?'); }).join(' → ') + '</span>'
+        +   '<span>' + (nTrades ? nTrades + ' podpiętych pozycji' : 'bez pozycji') + '</span>'
+        + '</div>'
+        + '<div class="sl-th-d">' + slEsc(first.date) + ' → ' + slEsc(last.date) + '</div>'
+        + '</div>'
+        + chain.map(cardHtml).join('');
+      return;
+    }
+  }
 
   // V156: grupowanie po dniach — DZIŚ zawsze rozwinięty, przeszłe zwijane
   if (!window._slOpenDays) { window._slOpenDays = {}; window._slOpenDays[today] = true; }
@@ -30555,12 +30714,18 @@ function slRender() {
     const open = isToday ? (window._slOpenDays[dstr] !== false) : !!window._slOpenDays[dstr];
     const shotsN = list.filter(e => e.shotId && shots[String(e.shotId)]).length;
     const sessTags = list.map(e => 'S' + (e.sess || '?')).slice(0, 8).join(' ');
+    // V233: ile roznych watkow dotknieto tego dnia
+    const thrN = Object.keys(list.reduce(function(acc, e) {
+      const t = slThreadId(e); if (t != null && slThreadPos(e, all)) acc[t] = 1; return acc;
+    }, {})).length;
     return '<div class="sl-day">'
       + '<div class="sl-day-h ' + (isToday ? 'today' : '') + '" onclick="slToggleDay(\'' + dstr + '\')">'
       +   '<span class="sl-day-ch">' + (open ? '▾' : '▸') + '</span>'
       +   '<span class="sl-day-d">' + (isToday ? 'DZIŚ · ' : '') + dstr + '</span>'
       +   '<span class="sl-day-i">' + list.length + ' sesj' + (list.length === 1 ? 'a' : (list.length < 5 ? 'e' : 'i'))
-      +     (shotsN ? ' · ' + shotsN + ' 🖼' : '') + ' · ' + sessTags + '</span>'
+      +     (shotsN ? ' · ' + shotsN + ' 🖼' : '')
+      +     (thrN ? ' · ' + thrN + (thrN === 1 ? ' wątek' : ' wątki') : '')
+      +     ' · ' + sessTags + '</span>'
       +   '<span class="sl-day-line"></span>'
       + '</div>'
       + (open ? list.map(cardHtml).join('') : '')
@@ -35250,6 +35415,69 @@ body.dc-phone .sl-dim{font-size:9.5px !important;}
   background:linear-gradient(160deg, rgba(0,232,122,.2), rgba(0,0,0,.28)) !important;}
 body.dc-phone .sl-chip.addbtn{font-size:12.5px !important;padding:13px 17px !important;}
 
+
+/* ══ V233 · WĄTKI — jedna analiza przez kilka sesji ══ */
+.sl-card.in-thread{
+  border-left:3px solid rgba(122,162,255,.55);
+  background:linear-gradient(100deg, rgba(122,162,255,.045), transparent 38%);}
+.sl-thread-b{
+  display:flex;align-items:center;gap:9px;flex-wrap:wrap;cursor:pointer;
+  margin:-2px 0 9px;padding:5px 10px;border-radius:0 10px 10px 0;
+  background:rgba(122,162,255,.08);border:1px solid rgba(122,162,255,.2);border-left:0;
+  transition:background .15s,border-color .15s;}
+.sl-thread-b:hover{background:rgba(122,162,255,.16);border-color:rgba(122,162,255,.45);}
+.sl-tb-i{color:#7aa2ff;font-size:11px;line-height:1;}
+.sl-tb-t{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:1.6px;color:#7aa2ff;}
+.sl-tb-g{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.2px;color:rgba(122,162,255,.55);}
+.sl-tag.m.fresh{
+  color:var(--green) !important;border-color:rgba(0,232,122,.45) !important;
+  background:rgba(0,232,122,.09) !important;}
+.sl-cont{
+  font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.3px;
+  color:var(--cyan);opacity:.6;cursor:pointer;padding:2px 7px;margin-left:auto;
+  border:1px solid rgba(0,200,240,.24);border-radius:11px;transition:opacity .15s,border-color .15s;}
+.sl-cont:hover{opacity:1;border-color:rgba(0,200,240,.6);}
+
+/* naglowek trybu watku */
+.sl-thread-hd{
+  background:linear-gradient(150deg, rgba(122,162,255,.11), rgba(10,16,26,.55) 65%);
+  border:1px solid rgba(122,162,255,.28);border-left:3px solid #7aa2ff;
+  border-radius:0 14px 14px 0;padding:13px 16px;margin-bottom:13px;}
+.sl-th-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.sl-th-i{color:#7aa2ff;font-size:15px;line-height:1;}
+.sl-th-n{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;letter-spacing:1.4px;color:#9ab8ff;}
+.sl-th-x{
+  margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:1.3px;
+  color:var(--dim2);cursor:pointer;padding:3px 9px;border:1px solid var(--border2);border-radius:11px;}
+.sl-th-x:hover{color:var(--red);border-color:rgba(255,90,90,.45);}
+.sl-th-m{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;}
+.sl-th-m span{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:1.2px;color:rgba(200,220,240,.62);}
+.sl-th-d{margin-top:6px;font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.4px;color:rgba(122,162,255,.5);}
+
+/* pasek "co bylo wczesniej" w modalu */
+.sl-thread-strip{
+  background:rgba(122,162,255,.06);border:1px solid rgba(122,162,255,.22);
+  border-left:3px solid #7aa2ff;border-radius:0 11px 11px 0;
+  padding:10px 13px;margin-bottom:13px;max-height:190px;overflow-y:auto;}
+.sl-ts-h{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:1.8px;color:#7aa2ff;margin-bottom:8px;}
+.sl-ts-row{padding:6px 0;border-top:1px solid rgba(122,162,255,.12);}
+.sl-ts-row:first-of-type{border-top:0;}
+.sl-ts-s{font-family:'Orbitron',monospace;font-size:9px;font-weight:700;color:var(--gold);margin-right:8px;}
+.sl-ts-d{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--dim2);margin-right:8px;}
+.sl-ts-m{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:rgba(200,220,240,.68);}
+.sl-ts-n{margin-top:3px;font-size:9px;line-height:1.5;color:rgba(200,220,240,.5);font-style:italic;}
+.sl-ts-f{margin-top:8px;padding-top:7px;border-top:1px dashed rgba(122,162,255,.2);
+  font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.2px;color:rgba(0,232,122,.6);}
+
+body.dc-phone .sl-cont{font-size:11px !important;padding:8px 13px !important;opacity:.85;}
+body.dc-phone .sl-tb-t{font-size:11px !important;}
+body.dc-phone .sl-tb-g{font-size:10px !important;}
+body.dc-phone .sl-th-n{font-size:14px !important;}
+body.dc-phone .sl-th-m span{font-size:10.5px !important;}
+body.dc-phone .sl-th-x{font-size:11px !important;padding:7px 13px !important;}
+body.dc-phone .sl-thread-strip{max-height:230px;}
+body.dc-phone .sl-ts-m{font-size:10.5px !important;}
+body.dc-phone .sl-ts-n{font-size:11px !important;}
 
 /* ══ V231 · własne znaczniki — chip z usuwaniem ══ */
 .sl-chip.gm.own{
