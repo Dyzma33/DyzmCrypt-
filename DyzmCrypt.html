@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v235 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v236 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7178,7 +7178,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v235 · EXECUTION OS</div>
+    <div class="splash-ver">v236 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7438,7 +7438,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v235</div>
+      <div class="sb-logo-sub">EXECUTION OS · v236</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8025,7 +8025,7 @@ body.os-lockdown #workspace::before {
 const _SB_URL = 'https://kawkfhvijblbdnlwsese.supabase.co';
 const _SB_KEY = 'sb_publishable_0G0d3H6TuYNyEBdDcCo_QA_w2Mma09p';
 const _SB_SESS = 'dc_sb_session_v2';
-const _DC_KEYS = ['day','trades','sessions','krdCounters','krdLastTrigger','riskState','archive','activeState','levelState','positions','lastAutoArchive','pdbHistory','settings','medState','todayExec','todaySupp','dayReview','tradeShots','sessionlog','sessionShots','runState','d6Choice','d9Choice','planMode','dayStart','slCustomMarks','opzIdSeq'];
+const _DC_KEYS = ['day','trades','sessions','krdCounters','krdLastTrigger','riskState','archive','activeState','levelState','positions','lastAutoArchive','pdbHistory','settings','medState','todayExec','todaySupp','dayReview','tradeShots','sessionlog','sessionShots','runState','d6Choice','d9Choice','planMode','dayStart','slCustomMarks','opzIdSeq','shotIndex'];
 
 // ══ V128: KANONICZNA GRANICA DNIA ══
 // toISOString() zwraca datę UTC — Polska to UTC+1/UTC+2, więc między północą
@@ -8049,7 +8049,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v235';
+window.DC_VERSION = 'v236';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -8334,6 +8334,216 @@ async function _sbFetch(path, opts) {
   return r;
 }
 
+// ══════════════════════════════════════════════════════════════
+// V236: SCREENY W SUPABASE STORAGE
+//
+// Dotad obrazy siedzialy jako base64 w kluczach 'sessionShots'/'tradeShots'.
+// Dwa problemy: (1) base64 puchnie o 1/3, wiec 30 screenow zjadalo 8-14 MB przy
+// limicie localStorage 5-10 MB; (2) kazdy push wysylal CALA zawartosc klucza,
+// czyli przy dodaniu jednego screena leciala do chmury komplet reszty.
+// Skutek uboczny byl grozny: gdy pamiec sie zapchala, zapis padal po cichu i
+// auto-zapis 22:00 wpisywal do archiwum zera (stad ratunkowe dcFreeSpace).
+//
+// Teraz: obraz idzie do kubelka Storage jako osobny plik, a lokalnie zostaje
+// tylko wpis w indeksie {id: {p: sciezka, k: rodzaj, t: czas}} — kilkadziesiat
+// bajtow. Screeny przestaja konkurowac z archiwum o miejsce.
+//
+// Offline: upload trafia do kolejki 'shotQueue' i leci przy nastepnej synchro.
+// Podglad: plik pobierany na zadanie i trzymany jako blob URL w PAMIECI sesji
+// (nie w localStorage), wiec po przeladowaniu laduje sie na nowo.
+// ══════════════════════════════════════════════════════════════
+const DC_BUCKET = 'dyzmshots';
+const DC_SHOT_MAX = 300;                 // na rodzaj: 300 sesyjnych + 300 transakcyjnych
+window._dcShotMem = {};                  // id -> objectURL (tylko pamiec sesji)
+window._dcShotBusy = {};                 // id -> true gdy trwa pobieranie
+
+function dcShotIndex() { try { return dcLoad('shotIndex', {}) || {}; } catch(e) { return {}; } }
+function dcShotIndexSave(ix) { try { dcSave('shotIndex', ix); } catch(e) {} }
+function dcShotQueue() { try { return dcLoad('shotQueue', {}) || {}; } catch(e) { return {}; } }
+function dcShotQueueSave(q) { try { dcSave('shotQueue', q); } catch(e) {} }
+function dcShotHas(id) { const ix = dcShotIndex(); return !!ix[String(id)] || !!dcShotQueue()[String(id)]; }
+function dcShotPath(id, kind) { return (_sbUid || 'local') + '/' + (kind || 'sl') + '/' + String(id) + '.jpg'; }
+
+function _dcDataUrlToBlob(u) {
+  const i = String(u || '').indexOf(',');
+  if (i < 0) return null;
+  const mime = (u.slice(0, i).match(/:(.*?);/) || [,'image/jpeg'])[1];
+  const bin = atob(u.slice(i + 1));
+  const arr = new Uint8Array(bin.length);
+  for (let k = 0; k < bin.length; k++) arr[k] = bin.charCodeAt(k);
+  return new Blob([arr], { type: mime });
+}
+
+// upload pojedynczego screena; true = w chmurze, false = zostal w kolejce
+async function dcShotUpload(id, kind, dataUrl) {
+  if (!_sbTok || !_sbUid) return false;
+  const blob = _dcDataUrlToBlob(dataUrl);
+  if (!blob) return false;
+  const path = dcShotPath(id, kind);
+  try {
+    const r = await _sbFetch('/storage/v1/object/' + DC_BUCKET + '/' + path, {
+      method: 'POST',
+      headers: { 'Content-Type': blob.type || 'image/jpeg', 'x-upsert': 'true' },
+      body: blob
+    });
+    if (!r.ok) {
+      const txt = await r.text().catch(function(){ return ''; });
+      console.error('[DYZMCRYPT] Upload screena nieudany:', r.status, txt);
+      if (r.status === 404 && typeof dcToast === 'function')
+        dcToast('❌ Brak kubełka "' + DC_BUCKET + '" w Supabase — screen czeka w kolejce', 'toast-red');
+      return false;
+    }
+    const ix = dcShotIndex();
+    ix[String(id)] = { p: path, k: kind, t: Date.now() };
+    dcShotIndexSave(ix);
+    const q = dcShotQueue();
+    if (q[String(id)]) { delete q[String(id)]; dcShotQueueSave(q); }
+    dcShotPrune(kind);
+    return true;
+  } catch(e) {
+    console.error('[DYZMCRYPT] Upload screena — blad sieci:', e);
+    return false;
+  }
+}
+
+// zapis screena: natychmiast widoczny z pamieci, upload w tle, offline do kolejki
+function dcShotPut(id, kind, dataUrl) {
+  try { window._dcShotMem[String(id)] = dataUrl; } catch(e) {}
+  const q = dcShotQueue();
+  q[String(id)] = { k: kind, d: dataUrl };
+  dcShotQueueSave(q);
+  dcShotUpload(id, kind, dataUrl).then(function(ok) {
+    if (ok && typeof dcToast === 'function') dcToast('☁ Screen zapisany w chmurze', 'toast-green');
+    if (!ok && typeof dcToast === 'function') dcToast('⏳ Screen w kolejce — wyślę przy synchronizacji', 'toast-gold');
+  });
+  return true;
+}
+
+// pobranie screena na zadanie -> objectURL (cache w pamieci sesji)
+async function dcShotFetch(id) {
+  const k = String(id);
+  if (window._dcShotMem[k]) return window._dcShotMem[k];
+  const q = dcShotQueue();
+  if (q[k] && q[k].d) { window._dcShotMem[k] = q[k].d; return q[k].d; }
+  const ix = dcShotIndex();
+  const rec = ix[k];
+  if (!rec || !rec.p || !_sbTok) return null;
+  if (window._dcShotBusy[k]) return null;
+  window._dcShotBusy[k] = true;
+  try {
+    const r = await _sbFetch('/storage/v1/object/' + DC_BUCKET + '/' + rec.p, { method: 'GET' });
+    if (!r.ok) return null;
+    const b = await r.blob();
+    const u = URL.createObjectURL(b);
+    window._dcShotMem[k] = u;
+    return u;
+  } catch(e) { return null; }
+  finally { window._dcShotBusy[k] = false; }
+}
+
+async function dcShotDelete(id) {
+  const k = String(id);
+  const ix = dcShotIndex();
+  const rec = ix[k];
+  try { if (window._dcShotMem[k] && String(window._dcShotMem[k]).indexOf('blob:') === 0) URL.revokeObjectURL(window._dcShotMem[k]); } catch(e) {}
+  delete window._dcShotMem[k];
+  const q = dcShotQueue();
+  if (q[k]) { delete q[k]; dcShotQueueSave(q); }
+  if (rec && rec.p && _sbTok) {
+    try { await _sbFetch('/storage/v1/object/' + DC_BUCKET + '/' + rec.p, { method: 'DELETE' }); } catch(e) {}
+  }
+  delete ix[k];
+  dcShotIndexSave(ix);
+  return true;
+}
+
+// limit 300 na rodzaj — najstarsze lecą i z indeksu, i z kubełka
+function dcShotPrune(kind) {
+  const ix = dcShotIndex();
+  const mine = Object.keys(ix).filter(function(k){ return ix[k] && ix[k].k === kind; });
+  if (mine.length <= DC_SHOT_MAX) return;
+  mine.sort(function(a, b){ return (ix[a].t || Number(a)) - (ix[b].t || Number(b)); });
+  mine.slice(0, mine.length - DC_SHOT_MAX).forEach(function(k){ dcShotDelete(k); });
+}
+
+// kolejka offline — wywoływana po zalogowaniu i przy synchronizacji
+let _dcShotFlushBusy = false;
+async function dcShotFlushQueue() {
+  if (_dcShotFlushBusy || !_sbTok || !_sbUid) return;
+  const q = dcShotQueue();
+  const keys = Object.keys(q);
+  if (!keys.length) return;
+  _dcShotFlushBusy = true;
+  let sent = 0;
+  try {
+    for (const k of keys) {
+      const rec = q[k];
+      if (!rec || !rec.d) { const qq = dcShotQueue(); delete qq[k]; dcShotQueueSave(qq); continue; }
+      const ok = await dcShotUpload(k, rec.k || 'sl', rec.d);
+      if (!ok) break;                       // sieć albo brak kubełka — reszta też padnie
+      sent++;
+    }
+  } finally { _dcShotFlushBusy = false; }
+  if (sent && typeof dcToast === 'function') dcToast('☁ Wysłano screenów: ' + sent, 'toast-green');
+  if (sent) { try { if (typeof slRender === 'function') slRender(); } catch(e) {} }
+}
+window.dcShotFlushQueue = dcShotFlushQueue;
+
+// jednorazowa migracja starych screenów base64 do kubełka
+async function dcShotMigrate() {
+  if (!_sbTok || !_sbUid) return;
+  let moved = 0;
+  for (const pair of [['sessionShots', 'sl'], ['tradeShots', 'j']]) {
+    const key = pair[0], kind = pair[1];
+    let m = {};
+    try { m = dcLoad(key, {}) || {}; } catch(e) {}
+    const ids = Object.keys(m);
+    if (!ids.length) continue;
+    if (typeof dcToast === 'function') dcToast('☁ Przenoszę ' + ids.length + ' screenów do chmury…', 'toast-gold');
+    for (const id of ids) {
+      const ok = await dcShotUpload(id, kind, m[id]);
+      if (!ok) return;                       // nie czyścimy lokalnych, spróbujemy później
+      moved++;
+      delete m[id];
+      try { dcSave(key, m); } catch(e) {}    // zwalniaj miejsce w trakcie, nie na końcu
+    }
+  }
+  if (moved) {
+    if (typeof dcToast === 'function') dcToast('✓ Przeniesiono screenów: ' + moved + ' — pamięć zwolniona', 'toast-green');
+    try { if (typeof slRender === 'function') slRender(); } catch(e) {}
+    try { if (typeof renderJournal === 'function') renderJournal(); } catch(e) {}
+  }
+}
+window.dcShotMigrate = dcShotMigrate;
+
+// uzupełnianie <img data-sid> po renderze — jedna funkcja dla całej aplikacji
+function dcShotHydrate(root) {
+  const scope = root || document;
+  const imgs = scope.querySelectorAll('img[data-sid]:not([data-sok])');
+  Array.prototype.forEach.call(imgs, function(im) {
+    const id = im.getAttribute('data-sid');
+    if (!id) return;
+    const cached = window._dcShotMem[String(id)];
+    if (cached) { im.src = cached; im.setAttribute('data-sok', '1'); return; }
+    dcShotFetch(id).then(function(u) {
+      if (u && im.isConnected) { im.src = u; im.setAttribute('data-sok', '1'); }
+      else if (im.isConnected) im.classList.add('shot-miss');
+    });
+  });
+}
+window.dcShotHydrate = dcShotHydrate;
+
+// otwarcie w lightboxie po id (pobiera, jeśli trzeba)
+function dcShotOpen(id) {
+  const cached = window._dcShotMem[String(id)];
+  if (cached) { if (typeof slLightbox === 'function') slLightbox(cached); return; }
+  dcShotFetch(id).then(function(u) {
+    if (u) { if (typeof slLightbox === 'function') slLightbox(u); }
+    else if (typeof dcToast === 'function') dcToast('Screen niedostępny — sprawdź połączenie', 'toast-red');
+  });
+}
+window.dcShotOpen = dcShotOpen;
+
 async function dcLogin() {
   const email = document.getElementById('dce').value.trim();
   const pw = document.getElementById('dcp').value;
@@ -8542,6 +8752,14 @@ async function dcPeriodicPull() {
   const res = await dcSyncFromCloud();
   if (!res.ok) return;
   window._dcCloudReady = true;
+  // V236: najpierw dosylka zaleglych screenow, potem jednorazowa migracja starych
+  try {
+    if (typeof dcShotFlushQueue === 'function') dcShotFlushQueue();
+    if (!window._dcShotMigrated && typeof dcShotMigrate === 'function') {
+      window._dcShotMigrated = true;
+      setTimeout(dcShotMigrate, 2500);        // po ustaniu ruchu startowego
+    }
+  } catch(e) {}
   if (!window._dcDayChecked && typeof window.dcCheckDayReset === 'function') {
     window._dcDayChecked = true;
     if (window.dcCheckDayReset()) {
@@ -18444,6 +18662,7 @@ function renderJournal() {
         + '<div class="jall-det">' + _det + '</div>';
     });
     body.innerHTML = _h;
+    if (typeof dcShotHydrate === 'function') dcShotHydrate(body);     // V236
     return;
   }
   var _infoT = document.getElementById('jScopeInfo');
@@ -18544,9 +18763,9 @@ function renderJournal() {
     }
 
     // V120: screen transakcji
-    const _shot = jShotGet(t.id);
+    const _shot = jShotHas(t.id);                       // V236: z indeksu, nie z zaladowanych danych
     const shotHtml = `<div class="tcard-shot">
-      ${_shot ? `<img src="${_shot}" alt="screen" onclick="event.stopPropagation();jShotOpen('${t.id}')">` : ''}
+      ${_shot ? `<img class="shot-lazy" data-sid="${t.id}" alt="screen" loading="lazy" onclick="event.stopPropagation();jShotOpen('${t.id}')">` : ''}
       <div class="tcard-shot-bar">
         <button class="tcard-sbtn" onclick="event.stopPropagation();jShotPick(${t.id})">${_shot ? '🖼 ZMIEŃ SCREEN' : '🖼 DODAJ SCREEN'}</button>
         ${_shot ? `<button class="tcard-sbtn del" onclick="event.stopPropagation();jShotDel(${t.id})">✕ USUŃ SCREEN</button>` : '<span class="tcard-sbtn" style="border-style:dashed;cursor:default;">lub wklej Ctrl+V przy otwartej karcie</span>'}
@@ -18587,6 +18806,7 @@ function renderJournal() {
       </div>
     </div>`;
   }).join('');
+  if (typeof dcShotHydrate === 'function') dcShotHydrate(body);       // V236
 }
 
 // V149: RR czytelnie — "1:3.90" → "1 : 3.9" (jedynka z oddechem, bez zbędnych zer)
@@ -18628,23 +18848,27 @@ function jSetScope(s, btn) {
 // kluczu 'tradeShots' — poza 'trades'/'archive', żeby archiwum nie puchło.
 // Limit 30 najnowszych; starsze wypadają automatycznie (sync ma limit 5 MB/klucz).
 const JSHOT_MAX = 30;
-function jShotsAll() { return (typeof dcLoad === 'function') ? (dcLoad('tradeShots', {}) || {}) : {}; }
-function jShotGet(id) { const s = jShotsAll(); return s[String(id)] || null; }
-function jShotSet(id, dataUrl) {
+// V236: screeny transakcji w Supabase Storage (jak w Session Logu)
+function jShotsAll() { try { return dcLoad('tradeShots', {}) || {}; } catch(e) { return {}; } }
+function jShotGet(id) {
+  const k = String(id);
+  try { if (window._dcShotMem && window._dcShotMem[k]) return window._dcShotMem[k]; } catch(e) {}
+  try { const q = dcShotQueue(); if (q[k] && q[k].d) return q[k].d; } catch(e) {}
   const s = jShotsAll();
-  s[String(id)] = dataUrl;
-  const keys = Object.keys(s);
-  if (keys.length > JSHOT_MAX) {
-    keys.sort(function(a, b){ return Number(a) - Number(b); })
-        .slice(0, keys.length - JSHOT_MAX)
-        .forEach(function(k){ delete s[k]; });
-  }
-  dcSave('tradeShots', s);
+  return s[k] || null;
+}
+function jShotHas(id) {
+  if (id == null) return false;
+  try { if (typeof dcShotHas === 'function' && dcShotHas(id)) return true; } catch(e) {}
+  return !!jShotsAll()[String(id)];
+}
+function jShotSet(id, dataUrl) {
+  try { dcShotPut(id, 'j', dataUrl); }
+  catch(e) { if (typeof dcToast === 'function') dcToast('❌ Nie udało się zapisać screena', 'toast-red'); }
 }
 function jShotDel(id) {
-  const s = jShotsAll();
-  delete s[String(id)];
-  dcSave('tradeShots', s);
+  try { if (typeof dcShotDelete === 'function') dcShotDelete(id); } catch(e) {}
+  try { const s = jShotsAll(); if (s[String(id)]) { delete s[String(id)]; dcSave('tradeShots', s); } } catch(e) {}
   renderJournal();
   if (typeof dcToast === 'function') dcToast('Screen usunięty', 'toast-gold');
 }
@@ -18693,10 +18917,14 @@ function jShotOpen(id) {
     lb.onclick = function(){ lb.classList.remove('open'); };
     document.body.appendChild(lb);
   }
+  const show = function(src) {
+    if (!src) { if (typeof dcToast === 'function') dcToast('Screen niedostępny — sprawdź połączenie', 'toast-red'); return; }
+    lb.innerHTML = '<img src="' + src + '" alt="screen">';
+    lb.classList.add('open');
+  };
   const s = jShotGet(id);
-  if (!s) return;
-  lb.innerHTML = '<img src="' + s + '" alt="screen">';
-  lb.classList.add('open');
+  if (s) { show(s); return; }
+  if (typeof dcShotFetch === 'function') dcShotFetch(id).then(show);   // V236: dociągnij z chmury
 }
 // wklejanie ze schowka do rozwiniętej karty
 document.addEventListener('paste', function(e) {
@@ -29595,19 +29823,40 @@ function slSave(list) {
     return false;
   }
 }
-function slShots() { return (typeof dcLoad === 'function') ? (dcLoad('sessionShots', {}) || {}) : {}; }
-function slShotSet(id, dataUrl) {
+// V236: screeny w chmurze. slShots() zostaje dla zgodnosci — zwraca to, co jest
+// pod reka (pamiec sesji + niewyslana kolejka + resztki starego klucza), a brakow
+// dopelnia dcShotHydrate po renderze. Liczenie "czy wpis ma screen" idzie przez
+// slHasShot(), ktore patrzy na INDEKS, nie na zaladowane obrazy.
+function slShots() {
+  let legacy = {};
+  try { legacy = dcLoad('sessionShots', {}) || {}; } catch(e) {}
+  const out = Object.assign({}, legacy);
   try {
-    const s = slShots();
-    s[String(id)] = dataUrl;
-    const keys = Object.keys(s);
-    if (keys.length > SL_SHOT_MAX) {
-      keys.sort((a, b) => Number(a) - Number(b)).slice(0, keys.length - SL_SHOT_MAX).forEach(k => delete s[k]);
-    }
-    dcSave('sessionShots', s);
-    return true;
-  } catch(e) {
-    if (typeof dcToast === 'function') dcToast('❌ Screen za duży dla pamięci — pominięto', 'toast-red');
+    const q = dcShotQueue();
+    Object.keys(q).forEach(function(k){ if (q[k] && q[k].d) out[k] = q[k].d; });
+    Object.keys(window._dcShotMem || {}).forEach(function(k){ out[k] = window._dcShotMem[k]; });
+  } catch(e) {}
+  return out;
+}
+function slHasShot(id) {
+  if (id == null) return false;
+  if (typeof dcShotHas === 'function' && dcShotHas(id)) return true;
+  try { const l = dcLoad('sessionShots', {}) || {}; return !!l[String(id)]; } catch(e) { return false; }
+}
+function slShotCount() {
+  try {
+    const ix = dcShotIndex();
+    const n = Object.keys(ix).filter(function(k){ return ix[k] && ix[k].k === 'sl'; }).length;
+    const q = dcShotQueue();
+    const nq = Object.keys(q).filter(function(k){ return q[k] && q[k].k === 'sl'; }).length;
+    const l = Object.keys(dcLoad('sessionShots', {}) || {}).length;
+    return n + nq + l;
+  } catch(e) { return 0; }
+}
+function slShotSet(id, dataUrl) {
+  try { return dcShotPut(id, 'sl', dataUrl); }
+  catch(e) {
+    if (typeof dcToast === 'function') dcToast('❌ Nie udało się zapisać screena', 'toast-red');
     return false;
   }
 }
@@ -29703,7 +29952,7 @@ function slOpenModal() {
   const done = (typeof sessions !== 'undefined') ? sessions.filter(Boolean).length : 0;
   _slDraft = { _editId: null, _thread: null, slid: slAll().length + 1, sess: Math.min(done + 1, 13),
                assets: [{ instrument: 'BTC', mode: 'active', frames: [{ tf: '1h', marks: [] }] }],
-               types: [], note: '', shot: null, linkedTrades: [], noTrades: false };
+               types: [], note: '', shot: null, _shotId: null, linkedTrades: [], noTrades: false };
   window._slMarksExpand = {};
   slModalChrome(false);
   slRenderModal();
@@ -29727,6 +29976,7 @@ function slEditEntry(id) {
     types: (e.types || []).slice(),
     note: e.note || '',
     shot: (e.shotId && shots[String(e.shotId)]) ? shots[String(e.shotId)] : null,
+    _shotId: slHasShot(e.shotId) ? e.shotId : null,     // V236: screen jest w chmurze, dociągnie się do podglądu
     linkedTrades: (e.linkedTrades || []).slice(),
     noTrades: !!e.noTrades
   };
@@ -29756,7 +30006,7 @@ function slContinueEntry(id) {
     }),
     types: (e.types || []).slice(),
     note: '',                       // nowa notatka — co doszlo, nie co bylo
-    shot: null, linkedTrades: [], noTrades: false
+    shot: null, _shotId: null, linkedTrades: [], noTrades: false
   };
   if (!_slDraft.assets.length) _slDraft.assets = [{ instrument: 'BTC', frames: [{ tf: '1h', marks: [] }] }];
   window._slMarksExpand = {};
@@ -30294,8 +30544,12 @@ function slRenderModal() {
     + '<button class="sl-btn add" onclick="slAddAsset()">＋ DODAJ KOLEJNY INSTRUMENT</button></div>'
     + '<div class="sl-f"><label>Notatka</label><textarea id="slFNote" rows="3" placeholder="Co zobaczyłem, wnioski, plan…" oninput="slSyncFields()">' + slEsc(d.note) + '</textarea></div>'
     + '<div class="sl-f"><label>Zrzut ekranu</label><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
-    + '<button class="sl-btn" onclick="slPickShot()">' + (d.shot ? '🖼 ZMIEŃ SCREEN' : '🖼 DODAJ SCREEN') + '</button>'
-    + (d.shot ? '<img src="' + d.shot + '" style="height:52px;border-radius:6px;border:1px solid var(--border2);cursor:zoom-in;" onclick="slLightbox(_slDraft.shot)"><button class="sl-btn danger" onclick="_slDraft.shot=null;slRenderModal();">✕</button>' : '<span class="sl-dim">auto-kompresja do 1400px</span>')
+    + '<button class="sl-btn" onclick="slPickShot()">' + ((d.shot || d._shotId) ? '🖼 ZMIEŃ SCREEN' : '🖼 DODAJ SCREEN') + '</button>'
+    + (d.shot
+        ? '<img src="' + d.shot + '" style="height:52px;border-radius:6px;border:1px solid var(--border2);cursor:zoom-in;" onclick="slLightbox(_slDraft.shot)"><button class="sl-btn danger" onclick="_slDraft.shot=null;_slDraft._shotId=null;slRenderModal();">✕</button>'
+        : (d._shotId
+            ? '<img class="shot-lazy" data-sid="' + slEsc(d._shotId) + '" style="height:52px;border-radius:6px;border:1px solid var(--border2);cursor:zoom-in;" onclick="dcShotOpen(\'' + slEsc(d._shotId) + '\')"><button class="sl-btn danger" onclick="_slDraft.shot=null;_slDraft._shotId=null;slRenderModal();">✕</button><span class="sl-dim">☁ z chmury</span>'
+            : '<span class="sl-dim">auto-kompresja do 1400px</span>'))
     + '</div></div>'
     + '<div class="sl-f"><label>Pozycje w tej sesji</label>'
     + '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px;">'
@@ -30326,6 +30580,7 @@ function slRenderModal() {
     + '</div>';
   if (_box) _box.scrollTop = _st;
   Array.prototype.forEach.call(el.querySelectorAll('.sl-marks'), (x, i) => { if (_mst[i] != null) x.scrollTop = _mst[i]; });
+  if (typeof dcShotHydrate === 'function') dcShotHydrate(el);        // V236
 }
 
 function slSaveEntry() {
@@ -30350,7 +30605,7 @@ function slSaveEntry() {
                   instruments: _instrAll, instrument: _instrAll[0], tf: assets[0].frames[0].tf,
                   marks: _marksAll,
                   types: d.types.slice(), note: d.note.trim(),
-                  shotId: d.shot ? id : null,
+                  shotId: (d.shot || d._shotId) ? id : null,
                   ts: (_old && _old.ts) ? _old.ts : new Date().toISOString(),
                   editedAt: editing ? new Date().toISOString() : null,
                   date: (_old && _old.date) ? _old.date : ((typeof dcDayStr === 'function') ? dcDayStr() : ''),
@@ -30364,9 +30619,10 @@ function slSaveEntry() {
   } else _list.unshift(entry);
   if (!slSave(_list)) return;
   if (d.shot) slShotSet(id, d.shot);
-  else if (editing) {
-    const s = slShots();
-    if (s[String(id)]) { delete s[String(id)]; try { dcSave('sessionShots', s); } catch(err) {} }
+  else if (editing && !d._shotId) {
+    // V236: zdjecie screena = usuniecie z chmury, indeksu i starego klucza
+    try { if (typeof dcShotDelete === 'function') dcShotDelete(id); } catch(err) {}
+    try { const s = dcLoad('sessionShots', {}) || {}; if (s[String(id)]) { delete s[String(id)]; dcSave('sessionShots', s); } } catch(err) {}
   }
   slCloseModal();
   slRender();
@@ -30555,12 +30811,12 @@ function slRender() {
     let top = '—', topN = 0;
     Object.keys(cnt).forEach(k => { if (cnt[k] > topN) { topN = cnt[k]; top = k; } });
     const mins = todayN * ((typeof window._sessionMins === 'number' && window._sessionMins) || 33);  // V234: z sesji, nie z wpisow
-    const shotsN = Object.keys(slShots()).length;
+    const shotsN = slShotCount();
     const cell = (v, l, c) => '<div class="sl-st" style="--acc:' + c + '"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>';
     stEl.innerHTML = cell(todayN, 'Sesje dziś' + (todayEntN !== todayN ? ' · ' + todayEntN + ' wpis' + (todayEntN === 1 ? '' : (todayEntN < 5 ? 'y' : 'ów')) : ''), 'var(--green)')
       + cell(top, 'Top instrument', 'var(--gold)')
       + cell(Math.floor(mins / 60) + 'h ' + String(mins % 60).padStart(2, '0') + 'm', '≈ czas pracy dziś', 'var(--cyan)')
-      + cell(shotsN, 'Screenów', '#7aa2ff');
+      + cell(shotsN + ' / ' + (typeof DC_SHOT_MAX === 'number' ? DC_SHOT_MAX : 300), 'Screenów w chmurze', shotsN > (DC_SHOT_MAX - 20) ? 'var(--gold)' : '#7aa2ff');
   }
 
   // pasek filtrów (chipy z danych + stałe)
@@ -30651,13 +30907,14 @@ function slRender() {
   }
 
   if (slTab === 'gallery') {
-    const withShots = filtered.filter(e => e.shotId && shots[String(e.shotId)]);
+    const withShots = filtered.filter(e => slHasShot(e.shotId));
     listEl.innerHTML = withShots.length
       ? '<div class="sl-gal">' + withShots.map(e =>
-          '<div class="sl-gitem" onclick="slLightbox(slShots()[\'' + e.shotId + '\'])">'
-          + '<img src="' + shots[String(e.shotId)] + '" loading="lazy">'
+          '<div class="sl-gitem" onclick="dcShotOpen(\'' + slEsc(e.shotId) + '\')">'
+          + '<img class="shot-lazy" data-sid="' + slEsc(e.shotId) + '" loading="lazy">'
           + '<div class="sl-gcap">' + slEsc(slInstrOf(e).join('·')) + ' · ' + slEsc(e.tf) + ' · ' + slEsc(e.date) + '</div></div>').join('') + '</div>'
       : '<div class="sl-empty">BRAK SCREENÓW W TYM WIDOKU' + (all.length ? ' — SPRAWDŹ FILTRY' : '') + '</div>';
+    if (typeof dcShotHydrate === 'function') dcShotHydrate(listEl);  // V236
     return;
   }
 
@@ -30671,7 +30928,7 @@ function slRender() {
     const dt = e.ts ? new Date(e.ts) : null;
     const when = e.date + (dt ? ' · ' + String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0') : '')
       + (e.editedAt ? ' · edyt.' : '');
-    const shot = e.shotId ? shots[String(e.shotId)] : null;
+    const hasShot = slHasShot(e.shotId);
     const linksHtml = (e.linkedTrades && e.linkedTrades.length)
       ? '<div class="sl-links">' + e.linkedTrades.map(l => {
           const rc = roleCfg[l.role] || ['?', 'var(--dim2)'];
@@ -30729,7 +30986,7 @@ function slRender() {
               : '<span class="sl-tag m">' + slEsc(m) + '</span>').join('')
           + '</div>'))).join('')
       + (e.note ? '<div class="sl-note">' + slEsc(e.note) + '</div>' : '')
-      + (shot ? '<img class="sl-thumb" src="' + shot + '" loading="lazy" onclick="slLightbox(slShots()[\'' + e.shotId + '\'])">' : '')
+      + (hasShot ? '<img class="sl-thumb shot-lazy" data-sid="' + slEsc(e.shotId) + '" loading="lazy" onclick="dcShotOpen(\'' + slEsc(e.shotId) + '\')">' : '')
       + linksHtml
       + '</div>';
   };
@@ -30760,6 +31017,7 @@ function slRender() {
         + '<div class="sl-th-d">' + slEsc(first.date) + ' → ' + slEsc(last.date) + '</div>'
         + '</div>'
         + chain.map(cardHtml).join('');
+      if (typeof dcShotHydrate === 'function') dcShotHydrate(listEl);  // V236
       return;
     }
   }
@@ -30773,7 +31031,7 @@ function slRender() {
     const list = byDay[dstr];
     const isToday = dstr === today;
     const open = isToday ? (window._slOpenDays[dstr] !== false) : !!window._slOpenDays[dstr];
-    const shotsN = list.filter(e => e.shotId && shots[String(e.shotId)]).length;
+    const shotsN = list.filter(e => slHasShot(e.shotId)).length;
     // V234: unikalne sesje, posortowane rosnaco — duplikaty S8 S8 to jedna sesja
     const uSess = Array.from(new Set(list.map(e => e.sess || 0).filter(Boolean))).sort((a, b) => a - b);
     const sessN = uSess.length;
@@ -30796,6 +31054,7 @@ function slRender() {
       + (open ? list.map(cardHtml).join('') : '')
       + '</div>';
   }).join('');
+  if (typeof dcShotHydrate === 'function') dcShotHydrate(listEl);   // V236
 }
 </script>
 
@@ -35480,6 +35739,19 @@ body.dc-phone .sl-dim{font-size:9.5px !important;}
   background:linear-gradient(160deg, rgba(0,232,122,.2), rgba(0,0,0,.28)) !important;}
 body.dc-phone .sl-chip.addbtn{font-size:12.5px !important;padding:13px 17px !important;}
 
+
+/* ══ V236 · screeny z chmury — stan ładowania i braku ══ */
+img.shot-lazy:not([data-sok]){
+  background:
+    linear-gradient(100deg, rgba(122,162,255,.05) 30%, rgba(122,162,255,.13) 50%, rgba(122,162,255,.05) 70%)
+    rgba(10,16,26,.5);
+  background-size:220% 100%;
+  animation:shotShimmer 1.3s linear infinite;
+  min-height:52px;}
+@keyframes shotShimmer{from{background-position:120% 0;}to{background-position:-120% 0;}}
+img.shot-lazy.shot-miss{
+  animation:none;background:rgba(255,90,90,.06);
+  border:1px dashed rgba(255,90,90,.3) !important;}
 
 /* ══ V233 · WĄTKI — jedna analiza przez kilka sesji ══ */
 .sl-card.in-thread{
