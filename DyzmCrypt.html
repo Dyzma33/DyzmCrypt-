@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v230 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v231 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7178,7 +7178,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v230 · EXECUTION OS</div>
+    <div class="splash-ver">v231 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7438,7 +7438,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v230</div>
+      <div class="sb-logo-sub">EXECUTION OS · v231</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8049,7 +8049,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v230';
+window.DC_VERSION = 'v231';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -19618,8 +19618,48 @@ updateActiveStateBars();
 // ── LEVEL DETAIL MODAL ──
 let lvlModalState = { cycle: 'c1', index: 0 };
 
+// V231 FIX: pozycje poziomu = ARCHIWUM + DZISIAJ, dokladnie ten sam zakres,
+// z ktorego liczy kafelek AKTYWNY POZIOM (tgcLevelStats). Wczesniej czytalo
+// wylacznie zywa tablice `trades`, czyli tylko biezacy dzien -> modal pokazywal
+// 2/13 i +15.22$, kafelek 7/13 i +40.34$ dla tego samego poziomu.
+// Dzisiejszy wpis w archiwum (auto-zapis 22:00) pomijany, zeby nie dublowac
+// zywych trades. Paper poza bramka awansu (dcLiveOnly), jak w tgcLevelStats.
 function getTradesForLevel(cycle, levelN) {
-  return trades.filter(t => t.cycle === cycle && t.level === levelN);
+  const match = function(t) { return t && t.cycle === cycle && t.level === levelN; };
+  const liveOnly = function(arr) { return (typeof dcLiveOnly === 'function' ? dcLiveOnly(arr) : arr); };
+  const today = (typeof dcDayStr === 'function') ? dcDayStr() : '';
+  const src = (typeof window.dcTodayTrades === 'function') ? window.dcTodayTrades()
+            : ((typeof trades !== 'undefined' && Array.isArray(trades)) ? trades : []);
+  const live = liveOnly(Array.isArray(src) ? src : []).filter(match)
+    .map(function(t) { return Object.assign({}, t, { _day: today, _today: true }); });
+  let past = [];
+  try {
+    const arch = (typeof dcLoad === 'function') ? dcLoad('archive', []) : [];
+    (Array.isArray(arch) ? arch : []).forEach(function(d) {
+      if (!d || d.date === today || !Array.isArray(d.trades)) return;
+      liveOnly(d.trades).filter(match).forEach(function(t) {
+        past.push(Object.assign({}, t, { _day: d.date, _today: false }));
+      });
+    });
+  } catch(e) {}
+  past.sort(function(a, b) {
+    return String(a._day).localeCompare(String(b._day))
+        || String(a.time || '').localeCompare(String(b.time || ''));
+  });
+  return past.concat(live);
+}
+
+// V231: DD.MM z daty archiwum (YYYY-MM-DD) — etykieta w liscie pozycji
+function dcDayShort(d) {
+  const m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? (m[3] + '.' + m[2]) : String(d || '');
+}
+
+// V231: ile DNI poziom zajal (unikalne daty w pozycjach) — jak st.days w kafelku
+function lvlDaysFromTrades(list) {
+  const seen = {};
+  (list || []).forEach(function(t) { if (t && t._day) seen[t._day] = 1; });
+  return Object.keys(seen).length;
 }
 
 function openLvlModal(cycle, i) {
@@ -19667,12 +19707,17 @@ function renderLvlModal() {
   const pnlPct = minProfit > 0 ? Math.min(100, Math.max(0, (pnlSum / minProfit) * 100)) : 0;
   const pnlMet = minProfit > 0 && pnlSum >= minProfit;
 
+  // V231: winrate liczony z rozstrzygnietych (wins vs losses), BE poza mianownikiem
+  // — identycznie jak tgcLevelStats w kafelku AKTYWNY POZIOM.
   const wins = lvlTrades.filter(t => (t.pnl || 0) > 1).length;
-  const winratePct = done > 0 ? (wins / done * 100) : 0;
+  const losses = lvlTrades.filter(t => (t.pnl || 0) < -1).length;
+  const decided = wins + losses;
+  const winratePct = decided > 0 ? (wins / decided * 100) : 0;
   const wrTargetRaw = (lvl.wr || '').replace(/[≥%\s]/g,'').replace(',','.');
   const wrTarget = parseFloat(wrTargetRaw) || 0;
-  const wrMet = done > 0 && winratePct >= wrTarget;
-  const winrateStr = done > 0 ? Math.round(winratePct) + '%' : '—';
+  const wrMet = decided > 0 && winratePct >= wrTarget;
+  const winrateStr = decided > 0 ? Math.round(winratePct) + '%' : '—';
+  const lvlDni = lvlDaysFromTrades(lvlTrades);
 
   const sessPct = Math.min(100, (done / lvl.pos) * 100);
   const sessMet = done >= lvl.pos;
@@ -19681,7 +19726,7 @@ function renderLvlModal() {
     <div class="lvl-progress-card">
       <div class="lvl-progress-head">
         <div class="lvl-progress-title">▸ Postęp do awansu</div>
-        <div class="lvl-progress-tag">${cycleLabel(cycle, lvl)}</div>
+        <div class="lvl-progress-tag">${cycleLabel(cycle, lvl)}${lvlDni ? ' · ' + lvlDni + (lvlDni === 1 ? ' dzień' : ' dni') : ''}</div>
       </div>
 
       <div class="lvl-prog-row">
@@ -19728,7 +19773,7 @@ function renderLvlModal() {
       <div class="ltr-pnl ${pnlCls}">${pnlStr}</div>
       <div>${t.rr ? 'RR ' + t.rr : '—'}</div>
       <div class="ltr-note">${t.setup ? t.setup + (t.note ? ' · ' + t.note : '') : (t.note || '—')}</div>
-      <div class="ltr-time">${t.time || ''}</div>
+      <div class="ltr-time">${(!t._today && t._day ? dcDayShort(t._day) + ' ' : '') + (t.time || '')}</div>
     </div>`;
   }).join('');
 }
