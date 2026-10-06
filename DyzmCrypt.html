@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v231 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v232 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7178,7 +7178,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v231 · EXECUTION OS</div>
+    <div class="splash-ver">v232 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7438,7 +7438,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v231</div>
+      <div class="sb-logo-sub">EXECUTION OS · v232</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8025,7 +8025,7 @@ body.os-lockdown #workspace::before {
 const _SB_URL = 'https://kawkfhvijblbdnlwsese.supabase.co';
 const _SB_KEY = 'sb_publishable_0G0d3H6TuYNyEBdDcCo_QA_w2Mma09p';
 const _SB_SESS = 'dc_sb_session_v2';
-const _DC_KEYS = ['day','trades','sessions','krdCounters','krdLastTrigger','riskState','archive','activeState','levelState','positions','lastAutoArchive','pdbHistory','settings','medState','todayExec','todaySupp','dayReview','tradeShots','sessionlog','sessionShots','runState','d6Choice','d9Choice','planMode','dayStart'];
+const _DC_KEYS = ['day','trades','sessions','krdCounters','krdLastTrigger','riskState','archive','activeState','levelState','positions','lastAutoArchive','pdbHistory','settings','medState','todayExec','todaySupp','dayReview','tradeShots','sessionlog','sessionShots','runState','d6Choice','d9Choice','planMode','dayStart','slCustomMarks'];
 
 // ══ V128: KANONICZNA GRANICA DNIA ══
 // toISOString() zwraca datę UTC — Polska to UTC+1/UTC+2, więc między północą
@@ -8049,7 +8049,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v231';
+window.DC_VERSION = 'v232';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -29463,8 +29463,42 @@ function slIsWatchOnly(e) {
 function slInstrActive(e) {
   return slIsWatchOnly(e) ? [] : slInstrOf(e);
 }
+// ══ V231: WŁASNE ZNACZNIKI — na stałe ══
+// Wcześniej "własny znacznik + dodaj" lądował tylko w marks[] tej jednej ramki
+// tego jednego wpisu. Nowa sesja = chip znikał, trzeba było wpisywać od nowa.
+// Teraz każdy własny znacznik ląduje w kluczu 'slCustomMarks' (w _DC_KEYS, więc
+// idzie do chmury) i wraca jako normalny chip na każdym interwale, w każdym wpisie.
+const SL_CM_MAX = 60;
+function slCustomMarks() {
+  try {
+    const v = (typeof dcLoad === 'function') ? dcLoad('slCustomMarks', []) : [];
+    return Array.isArray(v) ? v.filter(function(x){ return typeof x === 'string' && x.trim(); }) : [];
+  } catch(e) { return []; }
+}
+function slCustomSave(list) {
+  try { if (typeof dcSave === 'function') dcSave('slCustomMarks', list.slice(-SL_CM_MAX)); } catch(e) {}
+}
+function slCustomAdd(v) {
+  v = String(v || '').trim();
+  if (!v) return false;
+  const base = slMarksBase();
+  if (base.some(function(x){ return x.toLowerCase() === v.toLowerCase(); })) return false; // juz jest na liscie wbudowanej
+  const cm = slCustomMarks();
+  if (cm.some(function(x){ return x.toLowerCase() === v.toLowerCase(); })) return false;
+  cm.push(v);
+  slCustomSave(cm);
+  return true;
+}
+function slDelCustomMark(v) {
+  v = String(v || '');
+  if (!confirm('Usunąć znacznik „' + v + '" z listy na stałe?\n\nWpisy, które już go mają, zachowają go.')) return;
+  slCustomSave(slCustomMarks().filter(function(x){ return x !== v; }));
+  if (typeof dcToast === 'function') dcToast('🗑 Znacznik „' + v + '" usunięty z listy', 'toast-gold');
+  slRenderModal();
+}
+
 // V151: znaczniki importowane z modułu Narzędzia AT (chipy .at-i) — jedna prawda
-function slMarksAll() {
+function slMarksBase() {
   try {
     const els = document.querySelectorAll('#panel-analiza .at-i');
     if (els.length) {
@@ -29474,6 +29508,12 @@ function slMarksAll() {
     }
   } catch(e) {}
   return SL_MARKS;
+}
+// V231: baza (AT) + własne znaczniki użytkownika — własne na końcu listy
+function slMarksAll() {
+  const out = slMarksBase().slice();
+  slCustomMarks().forEach(function(v) { if (out.indexOf(v) === -1) out.push(v); });
+  return out;
 }
 function slAll() { return (typeof dcLoad === 'function') ? (dcLoad('sessionlog', []) || []) : []; }
 function slSave(list) {
@@ -29684,6 +29724,10 @@ function slAddMark(ai, fi) {
   var v = String(F._cm || '').trim();
   if (!v) return;
   if (F.marks.indexOf(v) === -1) F.marks.push(v);
+  // V231: ten sam znacznik ma byc dostepny w kazdym kolejnym wpisie
+  if (slCustomAdd(v) && typeof dcToast === 'function') {
+    dcToast('✓ „' + v + '" dodany do listy znaczników na stałe', 'toast-green');
+  }
   F._cm = '';
   slRenderModal();
 }
@@ -30042,6 +30086,7 @@ function slRenderModal() {
   const _mst = Array.prototype.map.call(el.querySelectorAll('.sl-marks'), x => x.scrollTop);
   const roleCfg = { opened: ['OTWARTA', 'var(--cyan)'], closed: ['ZAMKNIĘTA', 'var(--gold)'], observed: ['OBSERWOWANA', 'var(--dim2)'], pending: ['ZLECENIE', 'var(--orange)'] };
   const marksAll = slMarksAll();
+  const cmSet = {}; slCustomMarks().forEach(function(v){ cmSet[v] = 1; });  // V231: ktore chipy sa wlasne
 
   const assetBlock = (a, ai) => {
     const frames = slFramesOf(a);
@@ -30069,7 +30114,9 @@ function slRenderModal() {
       + '<div class="sl-frame-h"><span class="sl-frame-tf">' + slEsc(f.tf) + '</span>'
       + '<span class="sl-frame-n">' + (f.marks.length ? f.marks.length + ' znacznik' + (f.marks.length === 1 ? '' : (f.marks.length < 5 ? 'i' : 'ów')) : 'co zrobiłem na tym interwale?') + '</span></div>'
       + '<div class="sl-chips sl-marks">'
-      + visible.map(v => '<span class="sl-chip gm ' + (f.marks.indexOf(v) !== -1 ? 'on' : '') + '" onclick="slFChip(' + ai + ',' + fi + ',\'' + slEsc(v) + '\')">' + slEsc(v) + '</span>').join('')
+      + visible.map(v => '<span class="sl-chip gm ' + (f.marks.indexOf(v) !== -1 ? 'on' : '') + (cmSet[v] ? ' own' : '') + '" onclick="slFChip(' + ai + ',' + fi + ',\'' + slEsc(v) + '\')">' + slEsc(v)
+          + (cmSet[v] ? '<i class="sl-chip-x" title="usuń z listy na stałe" onclick="event.stopPropagation();slDelCustomMark(\'' + slEsc(v) + '\')">✕</i>' : '')
+          + '</span>').join('')
       + moreBtn
       + '<input id="slFMark_' + ai + '_' + fi + '" placeholder="własny znacznik" enterkeyhint="done" value="' + slEsc(f._cm || '') + '" oninput="slSyncFields()" onkeydown="if(event.key===\'Enter\'){event.preventDefault();slAddMark(' + ai + ',' + fi + ');" onblur="slAddMark(' + ai + ',' + fi + ')" style="width:128px;">'
       + '<span class="sl-chip addbtn" onclick="slAddMark(' + ai + ',' + fi + ')">＋ dodaj</span>'
@@ -35203,6 +35250,18 @@ body.dc-phone .sl-dim{font-size:9.5px !important;}
   background:linear-gradient(160deg, rgba(0,232,122,.2), rgba(0,0,0,.28)) !important;}
 body.dc-phone .sl-chip.addbtn{font-size:12.5px !important;padding:13px 17px !important;}
 
+
+/* ══ V231 · własne znaczniki — chip z usuwaniem ══ */
+.sl-chip.gm.own{
+  border-color:rgba(255,196,0,.34);
+  background:linear-gradient(160deg, rgba(255,196,0,.07), rgba(0,0,0,.26));}
+.sl-chip.gm.own.on{
+  border-color:rgba(255,196,0,.8);}
+.sl-chip-x{
+  font-style:normal;margin-left:7px;opacity:.45;font-size:9px;
+  padding:0 2px;border-radius:50%;transition:opacity .15s,color .15s;}
+.sl-chip-x:hover{opacity:1;color:var(--red);}
+body.dc-phone .sl-chip-x{font-size:12px !important;margin-left:10px !important;padding:0 5px !important;opacity:.6;}
 
 /* ══ V192 · WORECZKI NIKOTYNOWE — licznik z limitem dnia ══ */
 .pouch-card{
