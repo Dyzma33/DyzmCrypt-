@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v233 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v234 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7178,7 +7178,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v233 · EXECUTION OS</div>
+    <div class="splash-ver">v234 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7438,7 +7438,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v233</div>
+      <div class="sb-logo-sub">EXECUTION OS · v234</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8049,7 +8049,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v233';
+window.DC_VERSION = 'v234';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -29528,10 +29528,11 @@ function slAll() { return (typeof dcLoad === 'function') ? (dcLoad('sessionlog',
 // Wpisy bez tego pola (wszystko sprzed V233) renderuja sie dokladnie jak dotad
 // — zero migracji, zero ryzyka dla archiwum.
 //
-// Dlaczego osobny wpis, a nie aktualizacja w srodku jednego: pasek statystyk
-// liczy "czas pracy dzis" jako liczba_wpisow x 33 min, a "Sesje dzis" jako
-// liczbe wpisow. Praca w S13 BYLA osobna praca — gdyby wpadla do srodka wpisu
-// z S8, system pokazalby, ze zrobiles mniej, niz zrobiles.
+// Dlaczego osobny wpis, a nie aktualizacja w srodku jednego: praca w S13 BYLA
+// osobna praca w osobnej sesji. Gdyby wpadla do srodka wpisu z S8, w statystyce
+// dnia zostalaby tylko sesja S8 i system pokazalby, ze zrobiles mniej, niz
+// zrobiles. Przy liczeniu po unikalnych sesjach (V234) kontynuacja w TEJ SAMEJ
+// sesji slusznie nie podbija licznika — to wciaz jedno okno czasowe.
 // ══════════════════════════════════════════════════════════
 function slThreadId(e) { return (e && e.thread != null) ? e.thread : null; }
 // wszystkie wpisy watku, od najstarszego (korzen) do najnowszego
@@ -30490,15 +30491,23 @@ function slRender() {
   // pasek statystyk
   const stEl = document.getElementById('slStats');
   if (stEl) {
-    const todayN = all.filter(e => e.date === today).length;
+    // V234 FIX: SESJA to okno czasowe dnia (S1–S13), nie wpis. Jedna sesja moze
+    // miec kilka wpisow — osobny wpis na JTO i osobny na LINK to wciaz ta SAMA
+    // sesja S8, tylko inny aktyw. Wczesniej liczylo wpisy: 6 wpisow z S7/S8/S9
+    // pokazywalo "6 sesji dzis" i 3h18m pracy zamiast 3 sesji i 1h39m.
+    const todayEntries = all.filter(e => e.date === today);
+    const todaySess = {};
+    todayEntries.forEach(e => { const s = e.sess || 0; if (s) todaySess[s] = 1; });
+    const todayN = Object.keys(todaySess).length;
+    const todayEntN = todayEntries.length;
     const cnt = {};
     all.forEach(e => slInstrActive(e).forEach(k => { cnt[k] = (cnt[k] || 0) + 1; }));
     let top = '—', topN = 0;
     Object.keys(cnt).forEach(k => { if (cnt[k] > topN) { topN = cnt[k]; top = k; } });
-    const mins = todayN * ((typeof window._sessionMins === 'number' && window._sessionMins) || 33);
+    const mins = todayN * ((typeof window._sessionMins === 'number' && window._sessionMins) || 33);  // V234: z sesji, nie z wpisow
     const shotsN = Object.keys(slShots()).length;
     const cell = (v, l, c) => '<div class="sl-st" style="--acc:' + c + '"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>';
-    stEl.innerHTML = cell(todayN, 'Sesje dziś', 'var(--green)')
+    stEl.innerHTML = cell(todayN, 'Sesje dziś' + (todayEntN !== todayN ? ' · ' + todayEntN + ' wpis' + (todayEntN === 1 ? '' : (todayEntN < 5 ? 'y' : 'ów')) : ''), 'var(--green)')
       + cell(top, 'Top instrument', 'var(--gold)')
       + cell(Math.floor(mins / 60) + 'h ' + String(mins % 60).padStart(2, '0') + 'm', '≈ czas pracy dziś', 'var(--cyan)')
       + cell(shotsN, 'Screenów', '#7aa2ff');
@@ -30684,6 +30693,7 @@ function slRender() {
       const instr = Array.from(new Set([].concat.apply([], chain.map(slInstrOf)))).join(' · ');
       const nTrades = chain.reduce(function(a, x){ return a + ((x.linkedTrades || []).length); }, 0);
       const days = Array.from(new Set(chain.map(function(x){ return x.date; })));
+      const thrSess = Array.from(new Set(chain.map(function(x){ return x.sess || 0; }).filter(Boolean)));
       if (cEl) cEl.textContent = chain.length + ' wpis' + (chain.length === 1 ? '' : (chain.length < 5 ? 'y' : 'ów')) + ' w wątku';
       listEl.innerHTML =
         '<div class="sl-thread-hd">'
@@ -30691,7 +30701,8 @@ function slRender() {
         +   '<span class="sl-th-n">WĄTEK · ' + slEsc(instr || '—') + '</span>'
         +   '<span class="sl-th-x" onclick="slCloseThread()">✕ wróć do listy</span></div>'
         + '<div class="sl-th-m">'
-        +   '<span>' + chain.length + ' sesj' + (chain.length === 1 ? 'a' : (chain.length < 5 ? 'e' : 'i')) + ' pracy</span>'
+        +   '<span>' + chain.length + ' wpis' + (chain.length === 1 ? '' : (chain.length < 5 ? 'y' : 'ów')) + '</span>'
+        +   '<span>' + thrSess.length + ' sesj' + (thrSess.length === 1 ? 'a' : (thrSess.length < 5 ? 'e' : 'i')) + '</span>'
         +   '<span>' + days.length + (days.length === 1 ? ' dzień' : ' dni') + '</span>'
         +   '<span>' + chain.map(function(x){ return 'S' + (x.sess || '?'); }).join(' → ') + '</span>'
         +   '<span>' + (nTrades ? nTrades + ' podpiętych pozycji' : 'bez pozycji') + '</span>'
@@ -30713,7 +30724,10 @@ function slRender() {
     const isToday = dstr === today;
     const open = isToday ? (window._slOpenDays[dstr] !== false) : !!window._slOpenDays[dstr];
     const shotsN = list.filter(e => e.shotId && shots[String(e.shotId)]).length;
-    const sessTags = list.map(e => 'S' + (e.sess || '?')).slice(0, 8).join(' ');
+    // V234: unikalne sesje, posortowane rosnaco — duplikaty S8 S8 to jedna sesja
+    const uSess = Array.from(new Set(list.map(e => e.sess || 0).filter(Boolean))).sort((a, b) => a - b);
+    const sessN = uSess.length;
+    const sessTags = uSess.slice(0, 10).map(s => 'S' + s).join(' ');
     // V233: ile roznych watkow dotknieto tego dnia
     const thrN = Object.keys(list.reduce(function(acc, e) {
       const t = slThreadId(e); if (t != null && slThreadPos(e, all)) acc[t] = 1; return acc;
@@ -30722,7 +30736,8 @@ function slRender() {
       + '<div class="sl-day-h ' + (isToday ? 'today' : '') + '" onclick="slToggleDay(\'' + dstr + '\')">'
       +   '<span class="sl-day-ch">' + (open ? '▾' : '▸') + '</span>'
       +   '<span class="sl-day-d">' + (isToday ? 'DZIŚ · ' : '') + dstr + '</span>'
-      +   '<span class="sl-day-i">' + list.length + ' sesj' + (list.length === 1 ? 'a' : (list.length < 5 ? 'e' : 'i'))
+      +   '<span class="sl-day-i">' + sessN + ' sesj' + (sessN === 1 ? 'a' : (sessN < 5 ? 'e' : 'i'))
+      +     ' · ' + list.length + ' wpis' + (list.length === 1 ? '' : (list.length < 5 ? 'y' : 'ów'))
       +     (shotsN ? ' · ' + shotsN + ' 🖼' : '')
       +     (thrN ? ' · ' + thrN + (thrN === 1 ? ' wątek' : ' wątki') : '')
       +     ' · ' + sessTags + '</span>'
