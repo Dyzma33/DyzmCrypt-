@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v239 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v240 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -6199,6 +6199,7 @@ body.os-lockdown #workspace::before {
 .lvl-trade-row .ltr-pnl.be{ color:var(--dim2); }
 .lvl-trade-row .ltr-dir.long{ color:var(--green); }
 .lvl-trade-row .ltr-dir.short{ color:var(--red); }
+.lvl-trade-row .ltr-dir.none{ color:var(--dim2); }   /* V240: brak kierunku ≠ SHORT */
 .lvl-trade-row .ltr-note{ color:var(--dim2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9px; }
 .lvl-trade-row .ltr-time{ color:var(--dim2); text-align:right; font-size:9px; }
 .lvl-trade-empty{
@@ -7178,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v239 · EXECUTION OS</div>
+    <div class="splash-ver">v240 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7438,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v239</div>
+      <div class="sb-logo-sub">EXECUTION OS · v240</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8063,7 +8064,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v239';
+window.DC_VERSION = 'v240';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -20033,8 +20034,15 @@ function renderLvlModal() {
   container.innerHTML = lvlTrades.map(t => {
     const pnlCls = t.pnl > 1 ? 'win' : (t.pnl < -1 ? 'loss' : 'be');
     const pnlStr = (t.pnl > 0 ? '+' : '') + t.pnl.toFixed(2) + '$';
-    const dirCls = t.dir === 'long' ? 'long' : 'short';
-    const dirLabel = t.dir === 'long' ? 'LONG' : 'SHORT';
+    // V240 FIX: kierunek zapisuje sie w CALEJ aplikacji jako 'LONG'/'SHORT'
+    // (opzSelectedDir, setDirection, pola pozycji). Tu jako jedyne miejsce
+    // porownywalo sie z 'long' malymi literami, wiec warunek NIGDY nie byl
+    // prawdziwy i kazda transakcja dostawala etykiete SHORT — rowniez longi.
+    // Teraz bez wzgledu na wielkosc liter, jak reszta modulow.
+    const dirUp = String(t.dir || '').trim().toUpperCase();
+    const isLong = dirUp === 'LONG';
+    const dirCls = isLong ? 'long' : (dirUp === 'SHORT' ? 'short' : 'none');
+    const dirLabel = dirUp || '—';
     return `<div class="lvl-trade-row">
       <div>${t.token}</div>
       <div class="ltr-dir ${dirCls}">${dirLabel}</div>
