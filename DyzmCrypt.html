@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v245 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v247 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v245 · EXECUTION OS</div>
+    <div class="splash-ver">v247 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v245</div>
+      <div class="sb-logo-sub">EXECUTION OS · v247</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8064,7 +8064,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v245';
+window.DC_VERSION = 'v247';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17225,6 +17225,57 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
 .orm-row b{font-family:'Orbitron',monospace;font-size:15px;font-weight:800;letter-spacing:1px;}
 .orm-row b i{font-family:'Share Tech Mono',monospace;font-size:9px;font-style:normal;color:var(--dim2);}
 .orm-row.orm-diff b{font-size:18px;}
+/* V247 · karta pozycji z giełdy — surowe fakty */
+.ocd{margin-top:16px;padding-top:14px;border-top:1px solid rgba(118,158,205,.14);}
+.ocd-h{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2.2px;
+  color:var(--cyan);opacity:.75;margin-bottom:10px;}
+.ocd-h i{font-style:normal;color:var(--dim2);letter-spacing:1.2px;}
+.ocd-g{padding:7px 0;border-bottom:1px solid rgba(118,158,205,.07);}
+.ocd-g:last-child{border-bottom:0;padding-bottom:0;}
+.ocd-r{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:3px 0;}
+.ocd-r span{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:1.1px;
+  color:var(--dim2);white-space:nowrap;}
+.ocd-r b{font-family:'Share Tech Mono',monospace;font-size:10px;font-weight:400;
+  color:rgba(238,244,248,.92);font-variant-numeric:tabular-nums;text-align:right;word-break:break-all;}
+.ocd-r.sum{margin-top:4px;padding-top:6px;border-top:1px dashed rgba(118,158,205,.16);}
+.ocd-r.sum b{color:var(--gold);}
+body.dc-phone .ocd-r span{font-size:10.5px !important;}
+body.dc-phone .ocd-r b{font-size:11.5px !important;}
+body.dc-phone .ocd-h{font-size:10px !important;}
+
+/* V246 · plan kontra wynik, z rozbiciem roznicy */
+.orm-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0 2px;}
+.orm-cell{background:rgba(0,0,0,.26);border:1px solid rgba(118,158,205,.14);border-radius:9px;padding:10px 12px;}
+.orm-cell .l{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.8px;color:var(--dim2);}
+.orm-cell .v{font-family:'Orbitron',monospace;font-size:19px;font-weight:800;letter-spacing:.5px;margin-top:4px;}
+.orm-cell .s{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim2);margin-top:2px;}
+.orm-bar-wrap{margin:14px 0 2px;}
+.orm-bar{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;background:rgba(0,0,0,.4);}
+.orm-seg{display:block;height:100%;}
+.orm-seg.net{background:var(--green);}
+.orm-seg.fee{background:rgba(200,220,240,.3);}
+.orm-seg.rest{background:rgba(118,158,205,.12);}
+.orm-bar-legend{display:flex;gap:13px;flex-wrap:wrap;margin-top:8px;
+  font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:.8px;color:var(--dim2);}
+.orm-bar-legend .k{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:5px;vertical-align:middle;}
+.orm-bar-legend .k.net{background:var(--green);}
+.orm-bar-legend .k.fee{background:rgba(200,220,240,.3);}
+.orm-bar-legend .k.rest{background:rgba(118,158,205,.22);}
+.orm-split{margin-top:14px;padding:10px 12px;border-radius:9px;
+  background:rgba(0,0,0,.26);border:1px solid rgba(118,158,205,.14);}
+.orm-split-h{display:flex;justify-content:space-between;align-items:baseline;
+  font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.8px;color:var(--dim2);
+  padding-bottom:7px;border-bottom:1px solid rgba(118,158,205,.12);}
+.orm-split-h b{font-family:'Orbitron',monospace;font-size:14px;font-weight:800;}
+.orm-split-r{display:flex;justify-content:space-between;align-items:baseline;padding-top:7px;
+  font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;color:rgba(200,220,240,.68);}
+.orm-split-r b{font-family:'Share Tech Mono',monospace;font-size:10px;color:rgba(242,246,242,.9);}
+.orm-split-r b i{font-style:normal;color:var(--dim2);font-size:9px;}
+body.dc-phone .orm-cell .v{font-size:22px !important;}
+body.dc-phone .orm-bar{height:12px;}
+body.dc-phone .orm-bar-legend,body.dc-phone .orm-split-r{font-size:11px !important;}
+body.dc-phone .orm-split-r b{font-size:12px !important;}
+
 .orm-verdict{margin-top:14px;text-align:center;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1.5px;border:1px solid;border-radius:7px;padding:9px 10px;}
 
 .opz-add-btn{width:100%;padding:13px;background:var(--gold-bg);border:1px dashed rgba(240,180,41,0.18);border-radius:6px;color:rgba(240,180,41,0.55);font-family:'Orbitron',monospace;font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;margin-top:4px;margin-bottom:24px;transition:all .2s;}
@@ -17524,6 +17575,13 @@ function byParse(labTxt, rawTxt) {
   if (notion > 0) fees = fees.filter(v => Math.abs(v) < notion * 0.01);
   d.fees = fees.length >= 2 ? +fees.reduce((a, b) => a + b, 0).toFixed(8) : null;
   d.feeParts = fees;
+  // V247: trzy prowizje osobno — karta Bybita pokazuje je rozdzielnie
+  d.feeOpen  = byLabel(lab, 'opening fee');
+  d.feeClose = byLabel(lab, 'closing fee');
+  d.feeFund  = byLabel(lab, 'funding fee');
+  if (!Number.isFinite(d.feeOpen))  d.feeOpen  = null;
+  if (!Number.isFinite(d.feeClose)) d.feeClose = null;
+  if (!Number.isFinite(d.feeFund))  d.feeFund  = null;
 
   const ts = (lab.join('\n').match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/g) || []);
   d.openTime = ts[0] || null;
@@ -17953,16 +18011,65 @@ function opzShowRealization(id) {
   const risk = parseFloat(t.riskUsd) || null;
   const pnl = parseFloat(t.pnl) || 0;
 
+  // V246: prowizje rozdzielaja plan od wyniku. PLAN liczy sie przed nimi,
+  // WYNIK po nich — wiec dotychczasowa "roznica" sklejala dwie rozne przyczyny
+  // w jedna liczbe: ile zamknales przed celem i ile zabrala gielda.
+  const fees  = (t.fees != null && !isNaN(parseFloat(t.fees))) ? parseFloat(t.fees) : null;
+  const feeR  = (fees !== null && risk) ? fees / risk : null;
+  const grossR = (feeR !== null && ach !== null) ? ach + feeR : null;
+
+  // pasek: ile z planu zostalo w kieszeni, ile zjadly prowizje, ile nie doszlo
+  let bar = '';
+  if (plan !== null && plan > 0 && ach !== null && ach > 0) {
+    const pct = v => Math.max(0, Math.min(100, (v / plan) * 100));
+    const wNet  = pct(ach);
+    const wFee  = feeR !== null ? Math.max(0, pct(grossR) - wNet) : 0;
+    const wRest = Math.max(0, 100 - wNet - wFee);
+    bar = '<div class="orm-bar-wrap">'
+        + '<div class="orm-bar">'
+        +   '<i class="orm-seg net"  style="width:' + wNet.toFixed(1)  + '%"></i>'
+        + (wFee > 0 ? '<i class="orm-seg fee"  style="width:' + wFee.toFixed(1) + '%"></i>' : '')
+        +   '<i class="orm-seg rest" style="width:' + wRest.toFixed(1) + '%"></i>'
+        + '</div>'
+        + '<div class="orm-bar-legend">'
+        +   '<span><i class="k net"></i>w kieszeni ' + ach.toFixed(2) + 'R</span>'
+        + (feeR !== null ? '<span><i class="k fee"></i>prowizje ' + feeR.toFixed(2) + 'R</span>' : '')
+        +   '<span><i class="k rest"></i>do celu ' + Math.max(0, plan - (grossR !== null ? grossR : ach)).toFixed(2) + 'R</span>'
+        + '</div></div>';
+  }
+
   let rows = '';
-  rows += '<div class="orm-row"><span>PLANOWANE RRR</span><b style="color:var(--cyan)">' + (plan !== null ? plan.toFixed(2) + 'R' + (risk ? ' <i>(+' + (plan * risk).toFixed(2) + '$)</i>' : '') : 'brak danych') + '</b></div>';
-  rows += '<div class="orm-row"><span>OSIĄGNIĘTE RRR</span><b style="color:' + (ach !== null && ach >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (ach !== null ? (ach >= 0 ? '+' : '') + ach.toFixed(2) + 'R' : '—') + ' <i>(' + (pnl >= 0 ? '+' : '') + pnl.toFixed(2) + '$)</i></b></div>';
+  rows += '<div class="orm-pair">'
+      + '<div class="orm-cell"><div class="l">PLAN</div><div class="v" style="color:var(--cyan)">'
+      +   (plan !== null ? plan.toFixed(2) + 'R' : '—') + '</div>'
+      +   '<div class="s">' + (plan !== null && risk ? '+' + (plan * risk).toFixed(2) + '$' : '') + '</div></div>'
+      + '<div class="orm-cell"><div class="l">OSIĄGNIĘTE</div><div class="v" style="color:'
+      +   (ach !== null && ach >= 0 ? 'var(--green)' : 'var(--red)') + '">'
+      +   (ach !== null ? (ach >= 0 ? '+' : '') + ach.toFixed(2) + 'R' : '—') + '</div>'
+      +   '<div class="s">' + (pnl >= 0 ? '+' : '') + pnl.toFixed(2) + '$</div></div>'
+      + '</div>' + bar;
 
   let verdict = '', vColor = 'var(--dim2)';
   if (plan !== null && ach !== null) {
     const diff = ach - plan;
-    rows += '<div class="orm-row orm-diff"><span>RÓŻNICA</span><b style="color:' + (diff >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (diff >= 0 ? '+' : '') + diff.toFixed(2) + 'R</b></div>';
+    // rozbicie roznicy na skladniki — informacyjnie, bez oceniania
+    if (diff < -0.01 && feeR !== null && grossR !== null) {
+      const early = plan - grossR;
+      rows += '<div class="orm-split"><div class="orm-split-h"><span>GDZIE POSZŁA RÓŻNICA</span>'
+            +   '<b style="color:var(--red)">' + diff.toFixed(2) + 'R</b></div>'
+            + (early > 0.01 ? '<div class="orm-split-r"><span>zamknięte przed celem</span><b>−' + early.toFixed(2) + 'R</b></div>' : '')
+            +   '<div class="orm-split-r"><span>prowizje</span><b>−' + feeR.toFixed(2) + 'R <i>(−' + fees.toFixed(2) + '$)</i></b></div>'
+            + '</div>';
+    } else {
+      rows += '<div class="orm-row orm-diff"><span>RÓŻNICA</span><b style="color:' + (diff >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (diff >= 0 ? '+' : '') + diff.toFixed(2) + 'R</b></div>';
+    }
     if (ach >= plan - 0.02) { verdict = '✓ PLAN WYKONANY' + (diff > 0.05 ? ' Z NAWIĄZKĄ' : ''); vColor = 'var(--green)'; }
-    else if (ach > 0) { verdict = 'ZYSK ZAMKNIĘTY PRZED CELEM · zrealizowano ' + Math.round(ach / plan * 100) + '% planu'; vColor = 'var(--gold)'; }
+    else if (ach > 0) {
+      // procent z BRUTTO — plan tez jest brutto, wiec porownanie jest uczciwe
+      const base = (grossR !== null ? grossR : ach);
+      verdict = 'ZYSK ZAMKNIĘTY PRZED CELEM · zrealizowano ' + Math.round(base / plan * 100) + '% planu';
+      vColor = 'var(--gold)';
+    }
     else if (ach <= -0.9 && !dcIsSlip(ach)) { verdict = (ach >= -1.08) ? 'STOP WYKONANY ZGODNIE Z PLANEM (−1R)' : 'STOP WG PLANU + KOSZTY (prowizje/funding) — w normie'; vColor = 'var(--cyan)'; }
     else if (dcIsSlip(ach)) { verdict = '⚠ PRZEKROCZONY STOP · KRD ' + dcSlipName(dcSlipTier(ach)) + ' · ' + ach.toFixed(2) + 'R'; vColor = 'var(--red)'; }
     else { verdict = 'STRATA UCIĘTA PRZED PEŁNYM STOPEM'; vColor = 'var(--text2)'; }
@@ -17970,11 +18077,52 @@ function opzShowRealization(id) {
     verdict = 'transakcja sprzed v111 — plan RRR nie był jeszcze zapisywany';
   }
 
+  // V247: KARTA POZYCJI — te same fakty, ktore pokazuje Bybit, w naszym stylu.
+  // Surowe liczby, zero interpretacji: co, ile, po jakiej cenie, kiedy i za ile.
+  let card = '';
+  const B = t.by;
+  if (B) {
+    const n = (v, dp) => (v == null || isNaN(v)) ? '—'
+      : Number(v).toLocaleString('pl-PL', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+    const tm = s => String(s || '').replace('T', ' ');
+    const row = (l, v, cls) => '<div class="ocd-r' + (cls ? ' ' + cls : '') + '"><span>' + l + '</span><b>' + v + '</b></div>';
+    let dur = '';
+    if (B.openTime && B.closeTime) {
+      const a = new Date(B.openTime.replace(' ', 'T')), b2 = new Date(B.closeTime.replace(' ', 'T'));
+      const m = Math.round((b2 - a) / 60000);
+      if (isFinite(m) && m >= 0) dur = m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm';
+    }
+    card = '<div class="ocd">'
+      + '<div class="ocd-h">KARTA POZYCJI <i>· z giełdy</i></div>'
+      + '<div class="ocd-g">'
+      +   row('Ilość', n(B.qty, B.qty != null && B.qty >= 1000 ? 1 : 3))
+      +   row('Cena wejścia', n(B.entry, B.entry != null && B.entry >= 100 ? 1 : 4))
+      +   row('Cena wyjścia', n(B.exit, B.exit != null && B.exit >= 100 ? 1 : 4))
+      + '</div>'
+      + '<div class="ocd-g">'
+      +   row('Wolumen otwarcia', n(B.volOpen, 2) + ' $')
+      +   row('Wolumen zamknięcia', n(B.volClose, 2) + ' $')
+      + '</div>'
+      + '<div class="ocd-g">'
+      +   row('Prowizja otwarcia', n(B.feeOpen, 8) + ' $')
+      +   row('Prowizja zamknięcia', n(B.feeClose, 8) + ' $')
+      +   row('Funding', n(B.feeFund, 8) + ' $')
+      +   (fees !== null ? row('Razem', '−' + n(fees, 4) + ' $', 'sum') : '')
+      + '</div>'
+      + '<div class="ocd-g">'
+      +   row('Otwarcie', tm(B.openTime))
+      +   row('Zamknięcie', tm(B.closeTime))
+      +   (dur ? row('Czas w rynku', dur) : '')
+      + '</div>'
+      + '</div>';
+  }
+
   modal.innerHTML = '<div class="orm-box">'
     + '<div class="orm-head"><span>' + opzEsc(t.token) + ' · ' + opzEsc(t.dir) + '</span><span class="orm-x" onclick="document.getElementById(\'opzRealModal\').classList.remove(\'open\')">✕</span></div>'
     + '<div class="orm-meta">' + opzEsc(t.time || '') + (t.opzDuration != null ? ' · ' + opzFormatTimer(t.opzDuration * 60000) + ' na rynku' : '') + (t.label ? ' · ' + opzEsc(t.label) : '') + '</div>'
     + rows
     + '<div class="orm-verdict" style="color:' + vColor + ';border-color:' + vColor + '">' + verdict + '</div>'
+    + card
     + '</div>';
   modal.classList.add('open');
 }
@@ -18441,6 +18589,17 @@ function opzConfirmClose() {
             return +Number(_byLast.fees).toFixed(4);
         } catch(e) {}
         return null;
+      })(),
+      // V247: pełna karta z Bybita — surowe fakty, przepisane raz i na zawsze
+      by: (function(){
+        try {
+          const B = (typeof _byLast !== 'undefined') ? _byLast : null;
+          if (!B || !B.ok || String(B.token || '').toUpperCase() !== String(pos.token || '').toUpperCase()) return null;
+          return { qty: B.qty, entry: B.entry, exit: B.exit,
+                   volOpen: B.volOpen, volClose: B.volClose,
+                   feeOpen: B.feeOpen, feeClose: B.feeClose, feeFund: B.feeFund,
+                   openTime: B.openTime, closeTime: B.closeTime };
+        } catch(e) { return null; }
       })(),
       // V194: pełna anatomia wyjścia — plan i realizacja
       legs: (typeof tpLegs === 'function') ? tpLegs(pos).map(l => ({ size: l.size, r: l.r, tag: l.tag })) : null,
