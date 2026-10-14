@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v252 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v253 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v252 · EXECUTION OS</div>
+    <div class="splash-ver">v253 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v252</div>
+      <div class="sb-logo-sub">EXECUTION OS · v253</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v252';
+window.DC_VERSION = 'v253';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17324,6 +17324,15 @@ body.dc-phone .sbd-g{grid-template-columns:repeat(auto-fill,minmax(136px,1fr));}
    kolejnym elementem siatki i laduje w nowym wierszu, rozdymajac pasek.
    Wyglad zostaje taki, jaki byl — klikalnosc niesie kursor i hover. */
 .tcard.jrow .tcard-head{padding:11px 14px;}
+/* cialo rozwija sie POD paskiem — zadnego okna, lista zostaje lista */
+.tcard.jrow > .tcard-body{display:none;padding:0 14px 14px;}
+.tcard.jrow.expanded > .tcard-body{display:block;}
+.tcard.jrow.expanded{border-color:rgba(118,158,205,.34);}
+/* os w oknie miala 400px — rozciagnieta na cala szerokosc karty
+   klamie proporcjami odcinkow, wiec dostaje ten sam sufit */
+.tcard.jrow > .tcard-body > .orm-axis{max-width:430px;margin:6px auto 2px;}
+.tcard.jrow > .tcard-body > .orm-verdict,
+.tcard.jrow > .tcard-body > .orm-flow{max-width:560px;margin-left:auto;margin-right:auto;}
 @media(max-width:520px){
   .tcard.jrow .tcard-head{grid-template-columns:auto 1fr auto auto;gap:8px;}
   .tcard.jrow .tcard-dir{display:none;}
@@ -18066,7 +18075,10 @@ function opzRealR(t) {
   return m ? (m[1] === '-' ? -1 : 1) * parseFloat(m[2]) : null;
 }
 
-function opzShowRealization(id) {
+// ══ V253 · JEDNA TRESC, DWA MIEJSCA ════════════════════════
+// Dziennik rozwija ja pod paskiem, panel Pozycji pokazuje w oknie.
+// Gdyby kazde miejsce liczylo po swojemu, znow by sie rozjechaly.
+function opzFindTrade(id) {
   let t = (typeof trades !== 'undefined' ? trades : []).find(x => x.id === id);
   if (!t && typeof dcLoad === 'function') {
     const arch = dcLoad('archive', []);
@@ -18075,17 +18087,14 @@ function opzShowRealization(id) {
       if (f) { t = f; break; }
     }
   }
-  if (!t) return;
+  return t || null;
+}
+window.opzFindTrade = opzFindTrade;
 
-  let modal = document.getElementById('opzRealModal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'opzRealModal';
-    modal.className = 'orm-overlay';
-    modal.onclick = function(e) { if (e.target === modal) modal.classList.remove('open'); };
-    document.body.appendChild(modal);
-  }
-
+// Zwraca sama tresc realizacji: os, werdykt, pieniadze, odczyt, ogon.
+// Bez naglowka — w dzienniku naglowkiem jest pasek, w oknie wlasny.
+function opzRealInner(t) {
+  if (!t) return '';
   const ach  = opzRealR(t);
   const plan = (t.plannedRR != null && !isNaN(parseFloat(t.plannedRR))) ? parseFloat(t.plannedRR) : null;
   const risk = parseFloat(t.riskUsd) || null;
@@ -18278,20 +18287,37 @@ function opzShowRealization(id) {
     tail = ladder + flags + note + shot + bar;
   }
 
+  return axis
+    + '<div class="orm-verdict" style="color:' + vColor + ';border-color:' + vColor + '">' + verdict + '</div>'
+    + flow
+    + facts
+    + tail;
+}
+window.opzRealInner = opzRealInner;
+
+// Panel Pozycji: ta sama tresc, tylko w oknie i z wlasnym naglowkiem.
+function opzShowRealization(id) {
+  const t = opzFindTrade(id);
+  if (!t) return;
+  let modal = document.getElementById('opzRealModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'opzRealModal';
+    modal.className = 'orm-overlay';
+    modal.onclick = function (e) { if (e.target === modal) modal.classList.remove('open'); };
+    document.body.appendChild(modal);
+  }
+  const risk = parseFloat(t.riskUsd) || null;
   modal.innerHTML = '<div class="orm-box">'
     + '<div class="orm-head"><span>' + opzEsc(t.token) + '</span>'
     +   '<em class="orm-dir ' + (String(t.dir).toUpperCase() === 'LONG' ? 'l' : 's') + '">' + opzEsc(t.dir) + '</em>'
     +   '<span class="orm-x" onclick="document.getElementById(\'opzRealModal\').classList.remove(\'open\')">✕</span></div>'
     + '<div class="orm-meta">' + opzEsc(t.time || '') + (t.label ? ' · ' + opzEsc(t.label) : '')
     +   (risk ? ' · ryzyko ' + risk.toFixed(2) + '$' : '') + '</div>'
-    + axis
-    + '<div class="orm-verdict" style="color:' + vColor + ';border-color:' + vColor + '">' + verdict + '</div>'
-    + flow
-    + facts
-    + tail
+    + opzRealInner(t)
     + '</div>';
   modal.classList.add('open');
-  modal.setAttribute('data-tid', t.id);          // V252: dla wklejania i odswiezania
+  modal.setAttribute('data-tid', t.id);
   if (typeof dcShotHydrate === 'function') dcShotHydrate(modal);
 }
 window.opzShowRealization = opzShowRealization;
@@ -19553,8 +19579,8 @@ function renderJournal() {
     const dirUp = String(t.dir || '').trim().toUpperCase();
 
     return '<div class="tcard ' + tcClass + ' jrow' + (t.paper ? ' is-paper' : '') + '"'
-      + ' id="tcard-' + t.id + '" onclick="jOpenTrade(' + t.id + ')">'
-      + '<div class="tcard-head">'
+      + ' id="tcard-' + t.id + '">'
+      + '<div class="tcard-head" onclick="jToggleTrade(' + t.id + ')">'
       +   '<div class="tcard-num">' + String(i + 1).padStart(2, '0') + '</div>'
       +   '<div>'
       +     '<div class="tcard-token">' + t.token + ' ' + cycleLabel + '</div>'
@@ -19567,7 +19593,9 @@ function renderJournal() {
       +     ';padding:2px 6px;background:var(--bg3);border-radius:3px;">' + execGrade + '</div>'
       +   '<div class="tcard-pnl ' + pnlClass + '">' + pnlSign + t.pnl.toFixed(2) + '$' + beBadge + '</div>'
       +   '<div class="tcard-del" onclick="event.stopPropagation();deleteTrade(' + t.id + ')">✕</div>'
-      + '</div></div>';
+      + '</div>'
+      + '<div class="tcard-body" id="jbody-' + t.id + '"></div>'
+      + '</div>';
   }).join('');
   return;
 }
@@ -19699,9 +19727,49 @@ function _jRenderCardsLegacy(body, trades) {
   if (typeof dcShotHydrate === 'function') dcShotHydrate(body);       // V236
 }
 
-// ══ V252 · wejscie z dziennika do okna realizacji ══
-// Dziennik nie ma juz wlasnego widoku szczegolow — otwiera to samo okno,
-// co panel Pozycji, zeby jedna zmiana wygladu dzialala w obu miejscach.
+// ══ V253 · pasek rozwija tresc POD SOBA ══
+// Nie okno: dziennik ma zostac jedna lista, po ktorej sie scrolluje.
+// Tresc jest ta sama, co w oknie Pozycji — opzRealInner — zeby nie
+// utrzymywac dwoch wygladow tego samego.
+let _jOpenId = null;   // V253: przetrwanie przerysowania listy
+function jToggleTrade(id) {
+  const card = document.getElementById('tcard-' + id);
+  const box  = document.getElementById('jbody-' + id);
+  if (!card || !box) return;
+
+  if (card.classList.contains('expanded')) {
+    card.classList.remove('expanded');
+    box.innerHTML = '';
+    _jOpenId = null;
+    return;
+  }
+  // tylko jedna rozwinieta naraz — inaczej lista znow robi sie sciana
+  document.querySelectorAll('.tcard.jrow.expanded').forEach(function (c) {
+    c.classList.remove('expanded');
+    const b = c.querySelector('.tcard-body');
+    if (b) b.innerHTML = '';
+  });
+
+  const t = (typeof opzFindTrade === 'function') ? opzFindTrade(id) : null;
+  if (!t) return;
+  box.innerHTML = (typeof opzRealInner === 'function') ? opzRealInner(t) : '';
+  card.classList.add('expanded');
+  _jOpenId = id;
+  if (typeof dcShotHydrate === 'function') dcShotHydrate(box);
+}
+window.jToggleTrade = jToggleTrade;
+
+// V253: po przerysowaniu listy rozwin z powrotem to, co bylo otwarte —
+// inaczej dodanie screena zamyka karte pod palcem.
+function jRestoreOpen() {
+  const id = _jOpenId;
+  if (id == null) return;
+  _jOpenId = null;
+  jToggleTrade(id);
+}
+window.jRestoreOpen = jRestoreOpen;
+
+// zostaje dla starych wywolan — otwiera okno, jak dotad
 function jOpenTrade(id) {
   if (typeof opzShowRealization === 'function') opzShowRealization(id);
 }
@@ -19714,6 +19782,17 @@ function ormDelTrade(id) {
   if (m) { m.classList.remove('open'); m.removeAttribute('data-tid'); }
   if (typeof deleteTrade === 'function') deleteTrade(id);
 }
+// V253: odswiezenie dziala i dla rozwinietego paska, i dla okna
+function _jRefreshOpen(id) {
+  const card = document.getElementById('tcard-' + id);
+  const box  = document.getElementById('jbody-' + id);
+  if (!card || !box || !card.classList.contains('expanded')) return;
+  const t = (typeof opzFindTrade === 'function') ? opzFindTrade(id) : null;
+  if (!t) return;
+  box.innerHTML = (typeof opzRealInner === 'function') ? opzRealInner(t) : '';
+  if (typeof dcShotHydrate === 'function') dcShotHydrate(box);
+}
+window._jRefreshOpen = _jRefreshOpen;
 window.ormDelTrade = ormDelTrade;
 
 // screen dodany/usuniety w otwartym oknie => przerysuj okno, nie tylko liste
@@ -19786,6 +19865,7 @@ function jShotDel(id) {
   try { if (typeof dcShotDelete === 'function') dcShotDelete(id); } catch(e) {}
   try { const s = jShotsAll(); if (s[String(id)]) { delete s[String(id)]; dcSave('tradeShots', s); } } catch(e) {}
   renderJournal();
+  if (typeof jRestoreOpen === 'function') jRestoreOpen();
   if (typeof _ormRefresh === 'function') _ormRefresh(id);
   if (typeof dcToast === 'function') dcToast('Screen usunięty', 'toast-gold');
 }
@@ -19818,6 +19898,7 @@ function jShotPick(id) {
     jShotCompress(f, function(dataUrl) {
       jShotSet(id, dataUrl);
       renderJournal();
+      if (typeof jRestoreOpen === 'function') jRestoreOpen();
       if (typeof _ormRefresh === 'function') _ormRefresh(id);
       if (typeof dcToast === 'function') dcToast('🖼 Screen dodany (' + Math.round(dataUrl.length / 1400) + ' KB)', 'toast-green');
     });
@@ -19844,9 +19925,14 @@ function jShotOpen(id) {
 }
 // wklejanie ze schowka do rozwiniętej karty
 document.addEventListener('paste', function(e) {
-  // V252: celem jest otwarte okno realizacji — rozwijanych kart juz nie ma
-  const m = document.getElementById('opzRealModal');
-  const id = (m && m.classList.contains('open')) ? m.getAttribute('data-tid') : null;
+  // V253: najpierw rozwiniety pasek w dzienniku, potem otwarte okno Pozycji
+  let id = null;
+  const card = document.querySelector('.tcard.jrow.expanded');
+  if (card) id = card.id.replace('tcard-', '');
+  if (!id) {
+    const m = document.getElementById('opzRealModal');
+    if (m && m.classList.contains('open')) id = m.getAttribute('data-tid');
+  }
   if (!id) return;
   const items = (e.clipboardData || {}).items || [];
   for (let i = 0; i < items.length; i++) {
@@ -19856,6 +19942,7 @@ document.addEventListener('paste', function(e) {
       jShotCompress(f, function(dataUrl) {
         jShotSet(id, dataUrl);
         renderJournal();
+        if (typeof jRestoreOpen === 'function') jRestoreOpen();
         if (typeof _ormRefresh === 'function') _ormRefresh(id);
         if (typeof dcToast === 'function') dcToast('🖼 Screen wklejony', 'toast-green');
       });
