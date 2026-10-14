@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v241 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v242 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v241 · EXECUTION OS</div>
+    <div class="splash-ver">v242 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v241</div>
+      <div class="sb-logo-sub">EXECUTION OS · v242</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8064,7 +8064,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v241';
+window.DC_VERSION = 'v242';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17476,7 +17476,7 @@ function byBoost(img) {
 function byParse(labTxt, rawTxt) {
   const lab = labTxt.split('\n').filter(l => l.trim());
   const raw = rawTxt.split('\n').filter(l => l.trim());
-  const d = { notes: [] };
+  const d = { notes: [], _lab: lab, _raw: raw };
   const head = lab.slice(0, 2).join(' ');
 
   const tk = head.match(/([A-Z]{2,10})USDT/i);
@@ -17510,6 +17510,13 @@ function byParse(labTxt, rawTxt) {
     if (d.exit  == null && d.volClose != null) { d.exit  = +(d.volClose / d.qty).toFixed(6); d.notes.push('cena wyjścia'); }
   }
 
+  // V242: po kazdym odczycie i odtworzeniu — przepuszczamy TYLKO liczby skonczone.
+  // Wczesniej NaN przechodzil przez test '!= null' i wchodzil do rachunku,
+  // przez co komunikat mowil "wynik z rachunku (NaN)" zamiast nazwac braki.
+  ['qty','entry','exit','volOpen','volClose','fees'].forEach(function(k){
+    if (!Number.isFinite(d[k])) d[k] = null;
+  });
+
   // brutto z wolumenów (dokładne), awaryjnie z cen (zaokrąglone)
   if (d.volOpen != null && d.volClose != null) {
     const g = d.volClose - d.volOpen;
@@ -17528,7 +17535,7 @@ function byParse(labTxt, rawTxt) {
   }
 
   // wynik: liczony, potem szukany w odczycie
-  if (d.gross != null && d.fees != null) {
+  if (Number.isFinite(d.gross) && Number.isFinite(d.fees)) {
     const exp = d.gross - d.fees, tol = Math.max(0.02, Math.abs(exp) * 0.01);
     let best = null;
     (lab.concat(raw)).forEach(l => {
@@ -17557,6 +17564,16 @@ window.byParse = byParse;
 // ── obsługa: wybór pliku, wklejanie, odczyt, wypełnienie pól ──
 function byPick() { const f = document.getElementById('byFile'); if (f) { f.value = ''; f.click(); } }
 
+// V242: podglad tego, co silnik naprawde zobaczyl — bez tego bledy sie zgaduje
+function byPeek() {
+  const el = document.getElementById('byDump');
+  if (!el || !_byLast) return;
+  if (!el.hidden) { el.hidden = true; return; }
+  el.textContent = '── ETYKIETY ──\n' + (_byLast._lab || []).join('\n')
+                 + '\n\n── CYFRY ──\n' + (_byLast._raw || []).join('\n');
+  el.hidden = false;
+}
+
 function bySay(html, cls) {
   const r = document.getElementById('byResult');
   if (!r) return;
@@ -17581,14 +17598,23 @@ async function byFromFile(file) {
     const plain = document.createElement('canvas');
     plain.width = img.width; plain.height = img.height;
     plain.getContext('2d').drawImage(img, 0, 0);
-    bySay('Odczyt 1 z 2 — cyfry…');
-    const raw = (await Tesseract.recognize(plain, 'eng')).data.text;
-    bySay('Odczyt 2 z 2 — etykiety…');
-    const lab = (await Tesseract.recognize(byBoost(img), 'eng')).data.text;
 
-    const d = byParse(lab, raw);
-    _byLast = d;
-    byApply(d);
+    // V242: JEDEN BLOK TEKSTU, nie automatyczna analiza układu.
+    // Domyślnie Tesseract dzieli stronę na bloki i czyta kolumny osobno —
+    // wtedy „0.033  81 716,7  81 915,8" rozpada się na trzy kawałki i parser
+    // nie ma skąd wziąć ilości ani cen. Tryb SINGLE_BLOCK trzyma wiersz razem.
+    const worker = await Tesseract.createWorker('eng');
+    try {
+      await worker.setParameters({ tessedit_pageseg_mode: '6' });
+      bySay('Odczyt 1 z 2 — cyfry…');
+      const raw = (await worker.recognize(plain)).data.text;
+      bySay('Odczyt 2 z 2 — etykiety…');
+      const lab = (await worker.recognize(byBoost(img))).data.text;
+      const d = byParse(lab, raw);
+      _byLast = d;
+      byApply(d);
+      return;
+    } finally { try { await worker.terminate(); } catch (_) {} }
   } catch (e) {
     console.error('[DYZMCRYPT] Odczyt screena nieudany:', e);
     bySay('✗ Odczyt nieudany — wpisz dane ręcznie', 'bad');
@@ -17600,13 +17626,24 @@ async function byFromFile(file) {
 
 function byApply(d) {
   if (!d.ok) {
-    let why = 'nie udało się potwierdzić odczytu';
-    if (d.pnl == null && d.expect != null) why = 'wynik z rachunku (' + byFmt(d.expect, 4) + ') nie zgadza się z żadną liczbą na obrazku';
-    else if (d.fees == null) why = 'nie odczytano prowizji';
-    else if (d.qty == null) why = 'nie odczytano ilości i cen';
+    // V242: nazwij KONKRETNY brak, zamiast ogolnego "nie udalo sie"
+    const miss = [];
+    if (d.token == null) miss.push('instrument');
+    if (d.dir == null) miss.push('kierunek');
+    if (d.qty == null) miss.push('ilość');
+    if (d.entry == null) miss.push('cena wejścia');
+    if (d.exit == null) miss.push('cena wyjścia');
+    if (d.fees == null) miss.push('prowizje');
+    let why;
+    if (miss.length) why = 'nie odczytano: ' + miss.join(', ');
     else if (d.priceOk === false) why = 'ceny nie zgadzają się z wolumenem';
+    else if (d.pnl == null && Number.isFinite(d.expect))
+      why = 'wynik z rachunku (' + byFmt(d.expect, 4) + ') nie zgadza się z żadną liczbą na obrazku';
+    else why = 'rachunek się nie domyka';
     bySay('<b>✗ ODCZYT NIEPEWNY</b> — ' + why + '<br>'
-        + '<span class="by-note">Nic nie zostało wpisane. Wpisz dane ręcznie albo zrób screena pojedynczej karty zamiast listy.</span>', 'bad');
+        + '<span class="by-note">Nic nie zostało wpisane. Wpisz dane ręcznie albo zrób screena pojedynczej karty zamiast listy.</span>'
+        + '<div style="margin-top:7px;"><span class="by-peek" onclick="byPeek()">▸ pokaż, co odczytał silnik</span></div>'
+        + '<pre class="by-dump" id="byDump" hidden></pre>', 'bad');
     return;
   }
   // ostrzeżenie, gdy instrument nie pasuje do zamykanej pozycji
@@ -36183,6 +36220,15 @@ body.dc-phone .sl-chip.addbtn{font-size:12.5px !important;padding:13px 17px !imp
 .opz-field-input.by-fill{
   border-color:rgba(255,196,0,.6) !important;
   background:rgba(255,196,0,.07) !important;}
+.by-peek{color:var(--cyan);cursor:pointer;font-size:8.5px;letter-spacing:1px;
+  border-bottom:1px dotted rgba(0,200,240,.4);}
+.by-dump{
+  margin-top:7px;padding:9px 11px;max-height:260px;overflow:auto;
+  background:rgba(0,0,0,.4);border:1px solid rgba(118,158,205,.18);border-radius:7px;
+  font-family:'Share Tech Mono',monospace;font-size:8.5px;line-height:1.6;
+  color:rgba(200,220,240,.75);white-space:pre-wrap;word-break:break-word;}
+body.dc-phone .by-peek{font-size:11px !important;}
+body.dc-phone .by-dump{font-size:10.5px !important;max-height:320px;}
 body.dc-phone .by-btn{font-size:12px !important;padding:13px 16px !important;}
 body.dc-phone .by-hint,body.dc-phone .by-result{font-size:11px !important;}
 
