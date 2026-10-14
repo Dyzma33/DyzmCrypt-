@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v253 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v254 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v253 · EXECUTION OS</div>
+    <div class="splash-ver">v254 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v253</div>
+      <div class="sb-logo-sub">EXECUTION OS · v254</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v253';
+window.DC_VERSION = 'v254';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -19580,7 +19580,7 @@ function renderJournal() {
 
     return '<div class="tcard ' + tcClass + ' jrow' + (t.paper ? ' is-paper' : '') + '"'
       + ' id="tcard-' + t.id + '">'
-      + '<div class="tcard-head" onclick="jToggleTrade(' + t.id + ')">'
+      + '<div class="tcard-head">'
       +   '<div class="tcard-num">' + String(i + 1).padStart(2, '0') + '</div>'
       +   '<div>'
       +     '<div class="tcard-token">' + t.token + ' ' + cycleLabel + '</div>'
@@ -19750,11 +19750,14 @@ function jToggleTrade(id) {
     if (b) b.innerHTML = '';
   });
 
-  const t = (typeof opzFindTrade === 'function') ? opzFindTrade(id) : null;
+  // id z atrybutu DOM przychodzi jako tekst, a transakcje maja id liczbowe —
+  // opzFindTrade porownuje scisle, wiec bez tej konwersji nie znajduje nic
+  const nid = (typeof id === 'string' && id !== '' && !isNaN(id)) ? Number(id) : id;
+  const t = (typeof opzFindTrade === 'function') ? opzFindTrade(nid) : null;
   if (!t) return;
   box.innerHTML = (typeof opzRealInner === 'function') ? opzRealInner(t) : '';
   card.classList.add('expanded');
-  _jOpenId = id;
+  _jOpenId = nid;
   if (typeof dcShotHydrate === 'function') dcShotHydrate(box);
 }
 window.jToggleTrade = jToggleTrade;
@@ -20040,11 +20043,20 @@ function toggleCard(id) {
 // V147: klik w DOWOLNE miejsce karty rozwija szczegóły (wcześniej tylko wąski
 // nagłówek reagował — na tablecie łatwo było trafić obok). Delegacja pomija
 // przyciski/inputy/screeny, żeby akcje działały bez przypadkowego zwijania.
+// V253: to JEDYNE miejsce, ktore przelacza karte. Wczesniej pasek miał wlasny
+// onclick i ta delegacja zdejmowala jego klase w tym samym klikniecu —
+// karta rozwijala sie i natychmiast zwijala, czyli "nic sie nie dzialo".
 document.addEventListener('click', function(e) {
   if (!e.target || !e.target.closest) return;
-  if (e.target.closest('button, input, textarea, select, a, img, .tcard-sbtn')) return;
+  if (e.target.closest('button, input, textarea, select, a, img, .tcard-sbtn, .tcard-del, .ormt-del')) return;
+  // klik w rozwinietej tresci nie zwija karty — inaczej nie da sie
+  // zaznaczyc liczby ani trafic w screen bez zamkniecia wszystkiego
+  if (e.target.closest('#journalBody .tcard-body')) return;
   const card = e.target.closest('#journalBody .tcard');
-  if (card) card.classList.toggle('expanded');
+  if (!card) return;
+  const id = card.id.replace('tcard-', '');
+  if (typeof jToggleTrade === 'function') jToggleTrade(id);
+  else card.classList.toggle('expanded');
 });
 
 // ── JOURNAL TAB SWITCH ──
