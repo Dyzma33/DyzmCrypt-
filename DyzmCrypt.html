@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v243 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v244 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v243 · EXECUTION OS</div>
+    <div class="splash-ver">v244 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v243</div>
+      <div class="sb-logo-sub">EXECUTION OS · v244</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8064,7 +8064,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v243';
+window.DC_VERSION = 'v244';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17585,12 +17585,23 @@ window.byParse = byParse;
 // ── obsługa: wybór pliku, wklejanie, odczyt, wypełnienie pól ──
 function byPick() { const f = document.getElementById('byFile'); if (f) { f.value = ''; f.click(); } }
 
+// V244: numer wersji wprost w pasku. Bez tego nie da sie odroznic bledu kodu
+// od starego pliku w pamieci przegladarki — a to drugie wyglada identycznie.
+(function(){
+  function stamp() {
+    const el = document.getElementById('byVer');
+    if (el) el.textContent = 'silnik ' + (typeof DC_VERSION !== 'undefined' ? DC_VERSION : '?');
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', stamp);
+  else stamp();
+})();
+
 // V242: podglad tego, co silnik naprawde zobaczyl — bez tego bledy sie zgaduje
 function byPeek() {
   const el = document.getElementById('byDump');
   if (!el || !_byLast) return;
   if (!el.hidden) { el.hidden = true; return; }
-  el.textContent = '── ETYKIETY ──\n' + (_byLast._lab || []).join('\n')
+  el.textContent = '── SILNIK ' + (typeof DC_VERSION !== 'undefined' ? DC_VERSION : '?') + ' ──\n\n── ETYKIETY ──\n' + (_byLast._lab || []).join('\n')
                  + '\n\n── CYFRY ──\n' + (_byLast._raw || []).join('\n');
   el.hidden = false;
 }
@@ -17727,7 +17738,7 @@ document.addEventListener('paste', function(e) {
     <div class="by-strip" id="byStrip">
       <div class="by-row">
         <button class="by-btn" id="byPickBtn" onclick="byPick()" type="button">📷 ODCZYTAJ ZE SCREENA BYBITA</button>
-        <span class="by-hint">karta pojedynczej pozycji · nie lista</span>
+        <span class="by-hint">karta pojedynczej pozycji · nie lista · <b id="byVer">silnik —</b></span>
       </div>
       <input type="file" id="byFile" accept="image/*" hidden onchange="byFromFile(this.files&&this.files[0])">
       <div class="by-result" id="byResult" hidden></div>
@@ -36241,6 +36252,7 @@ body.dc-phone .sl-chip.addbtn{font-size:12.5px !important;padding:13px 17px !imp
 .by-btn:hover{border-color:rgba(0,200,240,.7);background:rgba(0,200,240,.14);}
 .by-btn:disabled{opacity:.5;cursor:wait;}
 .by-hint{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--dim2);}
+.by-hint b{color:var(--cyan);font-weight:400;opacity:.75;}
 .by-result{margin-top:10px;font-family:'Share Tech Mono',monospace;font-size:9px;line-height:1.75;}
 .by-result.ok{color:var(--green);}
 .by-result.bad{color:var(--red);}
