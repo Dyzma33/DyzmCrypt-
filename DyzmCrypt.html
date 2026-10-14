@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v247 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v248 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v247 · EXECUTION OS</div>
+    <div class="splash-ver">v248 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v247</div>
+      <div class="sb-logo-sub">EXECUTION OS · v248</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8064,7 +8064,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v247';
+window.DC_VERSION = 'v248';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17239,6 +17239,14 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
   color:rgba(238,244,248,.92);font-variant-numeric:tabular-nums;text-align:right;word-break:break-all;}
 .ocd-r.sum{margin-top:4px;padding-top:6px;border-top:1px dashed rgba(118,158,205,.16);}
 .ocd-r.sum b{color:var(--gold);}
+.ocd-miss{font-family:'Share Tech Mono',monospace;font-size:8.5px;line-height:1.7;
+  color:var(--dim2);margin-bottom:10px;}
+.ocd-add{width:100%;}
+.ocd-stat{margin-top:9px;font-family:'Share Tech Mono',monospace;font-size:8.5px;
+  letter-spacing:1px;color:var(--dim2);}
+.ocd-stat.ok{color:var(--green);}
+.ocd-stat.bad{color:var(--red);}
+body.dc-phone .ocd-miss,body.dc-phone .ocd-stat{font-size:11px !important;}
 body.dc-phone .ocd-r span{font-size:10.5px !important;}
 body.dc-phone .ocd-r b{font-size:11.5px !important;}
 body.dc-phone .ocd-h{font-size:10px !important;}
@@ -18081,6 +18089,16 @@ function opzShowRealization(id) {
   // Surowe liczby, zero interpretacji: co, ile, po jakiej cenie, kiedy i za ile.
   let card = '';
   const B = t.by;
+  if (!B) {
+    // V248: karta zapisuje sie przy zamykaniu od v248. Starsze transakcje jej
+    // nie maja — wiec pozwalamy dopiac ja pozniej, z tego samego screena.
+    card = '<div class="ocd"><div class="ocd-h">KARTA POZYCJI <i>· brak</i></div>'
+         + '<div class="ocd-miss">Ta pozycja była zamykana, zanim karta trafiała do zapisu.</div>'
+         + '<button class="by-btn ocd-add" onclick="byAttach(' + t.id + ')" type="button">📷 DOPNIJ KARTĘ ZE SCREENA</button>'
+         + '<input type="file" id="ocdFile_' + t.id + '" accept="image/*" hidden onchange="byAttachFile(' + t.id + ', this.files&&this.files[0])">'
+         + '<div class="ocd-stat" id="ocdStat_' + t.id + '" hidden></div>'
+         + '</div>';
+  }
   if (B) {
     const n = (v, dp) => (v == null || isNaN(v)) ? '—'
       : Number(v).toLocaleString('pl-PL', { minimumFractionDigits: dp, maximumFractionDigits: dp });
@@ -18127,6 +18145,82 @@ function opzShowRealization(id) {
   modal.classList.add('open');
 }
 window.opzShowRealization = opzShowRealization;
+
+// V248: dopiecie karty Bybita do JUZ zamknietej transakcji.
+// Ten sam odczyt co przy zamykaniu — tylko zamiast wypelniac formularz,
+// dopisuje fakty do istniejacego wpisu, w zywych danych albo w archiwum.
+function byAttach(id) { const f = document.getElementById('ocdFile_' + id); if (f) { f.value = ''; f.click(); } }
+window.byAttach = byAttach;
+
+function _ocdSay(id, html, cls) {
+  const el = document.getElementById('ocdStat_' + id);
+  if (!el) return;
+  el.hidden = false;
+  el.className = 'ocd-stat' + (cls ? ' ' + cls : '');
+  el.innerHTML = html;
+}
+
+async function byAttachFile(id, file) {
+  if (!file) return;
+  if (typeof Tesseract === 'undefined') { _ocdSay(id, '✗ Silnik odczytu niedostępny', 'bad'); return; }
+  _ocdSay(id, 'Czytam kartę…');
+  try {
+    const img = await new Promise((res, rej) => {
+      const i = new Image(), u = URL.createObjectURL(file);
+      i.onload = () => { URL.revokeObjectURL(u); res(i); };
+      i.onerror = () => { URL.revokeObjectURL(u); rej(new Error('obraz')); };
+      i.src = u;
+    });
+    const plain = document.createElement('canvas');
+    plain.width = img.width; plain.height = img.height;
+    plain.getContext('2d').drawImage(img, 0, 0);
+    const w = await Tesseract.createWorker('eng');
+    let d;
+    try {
+      await w.setParameters({ tessedit_pageseg_mode: '6' });
+      const raw = (await w.recognize(plain)).data.text;
+      const lab = (await w.recognize(byBoost(img))).data.text;
+      d = byParse(lab, raw);
+    } finally { try { await w.terminate(); } catch (_) {} }
+
+    if (!d.ok) { _ocdSay(id, '✗ Odczyt niepewny — nic nie dopisano', 'bad'); return; }
+
+    // znajdz transakcje: najpierw dzisiejsze, potem archiwum
+    let tgt = null, inArch = null, arch = null;
+    if (typeof trades !== 'undefined' && Array.isArray(trades)) tgt = trades.find(x => x && x.id === id) || null;
+    if (!tgt && typeof dcLoad === 'function') {
+      arch = dcLoad('archive', []);
+      (Array.isArray(arch) ? arch : []).forEach(function(day) {
+        if (tgt) return;
+        const f2 = (day.trades || []).find(x => x && x.id === id);
+        if (f2) { tgt = f2; inArch = day; }
+      });
+    }
+    if (!tgt) { _ocdSay(id, '✗ Nie znaleziono transakcji', 'bad'); return; }
+
+    if (d.token && String(tgt.token || '').toUpperCase() !== d.token) {
+      _ocdSay(id, '✗ Screen dotyczy ' + d.token + ', a ta pozycja to ' + tgt.token + ' — nic nie dopisano', 'bad');
+      return;
+    }
+
+    tgt.by = { qty: d.qty, entry: d.entry, exit: d.exit,
+               volOpen: d.volOpen, volClose: d.volClose,
+               feeOpen: d.feeOpen, feeClose: d.feeClose, feeFund: d.feeFund,
+               openTime: d.openTime, closeTime: d.closeTime };
+    if (d.fees != null) tgt.fees = +Number(d.fees).toFixed(4);
+
+    if (inArch) dcSave('archive', arch);
+    else if (typeof dcSave === 'function') dcSave('trades', trades);
+
+    _ocdSay(id, '✓ Karta dopięta', 'ok');
+    if (typeof renderJournal === 'function') renderJournal();
+    setTimeout(function(){ opzShowRealization(id); }, 400);
+  } catch (e) {
+    console.error('[DYZMCRYPT] Dopięcie karty nieudane:', e);
+    _ocdSay(id, '✗ Odczyt nieudany', 'bad');
+  }
+}
+window.byAttachFile = byAttachFile;
 
 // ── RENDER OTWARTYCH POZYCJI (V105) ──
 function opzRenderPositions() {
