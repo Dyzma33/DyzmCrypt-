@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v244 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v245 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v244 · EXECUTION OS</div>
+    <div class="splash-ver">v245 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v244</div>
+      <div class="sb-logo-sub">EXECUTION OS · v245</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8064,7 +8064,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v244';
+window.DC_VERSION = 'v245';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17445,7 +17445,12 @@ function byNums(s) {
     .forEach(x => { const v = parseFloat(x.replace(/,/g, '')); if (!isNaN(v)) out.push(v); });
   return out;
 }
-function byPick(lines, key, idx) {
+// V245: nazwa zmieniona z byPick na byLabel. Nizej w tym samym bloku stala
+// druga funkcja o nazwie byPick — ta od przycisku wyboru pliku — i nadpisywala
+// te. Parser wolal wiec picker, dostawal undefined, a undefined przechodzil
+// przez test '!== null'. Stad najpierw NaN w rachunku, potem "nie odczytano
+// prowizji". Jeden bug, dwa objawy, cztery wersje.
+function byLabel(lines, key, idx) {
   for (const l of lines) {
     if (l.toLowerCase().indexOf(key) !== -1) {
       const n = byNums(l);
@@ -17492,8 +17497,8 @@ function byParse(labTxt, rawTxt) {
       break;
     }
   }
-  d.volOpen  = byPick(lab, 'open trade volume');
-  d.volClose = byPick(lab, 'closed trade volume');
+  d.volOpen  = byLabel(lab, 'open trade volume');
+  d.volClose = byLabel(lab, 'closed trade volume');
 
   // V243: PROWIZJE — trzy drogi, od najdokładniejszej do najbardziej odpornej.
   // Pojedyncza nazwa etykiety nie wystarcza: OCR robi z „Opening Fee" raz
@@ -17501,7 +17506,7 @@ function byParse(labTxt, rawTxt) {
   // Dlatego: najpierw po nazwach, potem po samym słowie „fee", a na końcu
   // po jednostce w przebiegu surowym, gdzie prowizje i tak stoją osobno.
   let fees = ['opening fee', 'closing fee', 'funding fee']
-    .map(k => byPick(lab, k)).filter(v => v !== null);
+    .map(k => byLabel(lab, k)).filter(v => Number.isFinite(v));
 
   if (fees.length < 2) {                       // droga 2: samo „fee" w etykietach
     const f2 = [];
@@ -17515,6 +17520,7 @@ function byParse(labTxt, rawTxt) {
   }
   // prowizja od strony to ułamek nominału — odsiej liczby, które nią nie są
   const notion = Math.max(d.volOpen || 0, d.volClose || 0);
+  fees = fees.filter(v => Number.isFinite(v));
   if (notion > 0) fees = fees.filter(v => Math.abs(v) < notion * 0.01);
   d.fees = fees.length >= 2 ? +fees.reduce((a, b) => a + b, 0).toFixed(8) : null;
   d.feeParts = fees;
