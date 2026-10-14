@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v240 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v241 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v240 · EXECUTION OS</div>
+    <div class="splash-ver">v241 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v240</div>
+      <div class="sb-logo-sub">EXECUTION OS · v241</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8064,7 +8064,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v240';
+window.DC_VERSION = 'v241';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17408,11 +17408,272 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════
+// V241: ODCZYT KARTY ZAMKNIĘCIA Z BYBITA
+//
+// Robisz screena karty pozycji w Bybicie, wrzucasz go tutaj, a system
+// wyciąga cenę wyjścia, wynik i godzinę. NIC nie wchodzi do dziennika
+// automatycznie — pola wypełniają się jako PROPOZYCJA, którą zatwierdzasz.
+//
+// Trzy rzeczy wyszły podczas testów na prawdziwych screenach i one tu
+// decydują o wszystkim:
+//
+// 1. CENY NA EKRANIE SĄ ZAOKRĄGLONE. Przy ATOM-ie (1,8114−1,806)×393
+//    daje 2,12, a prawdziwe brutto to 2,15 — różnica brała się z samego
+//    zaokrąglenia. Dlatego rachunek idzie z WOLUMENÓW, które Bybit
+//    podaje dokładnie, a nie z cen.
+//
+// 2. JEDNA ZGUBIONA LICZBA DA SIĘ ODTWORZYĆ. Pięć powiązanych wartości
+//    (ilość, dwie ceny, dwa wolumeny) i zależność wolumen = ilość × cena.
+//
+// 3. WYNIK NIE JEST CZYTANY Z ETYKIETY. OCR potrafi skleić ikonkę z
+//    tekstem i zrobić z „3,5733" liczbę 7. Więc system LICZY, ile wynik
+//    powinien wynieść, i szuka tej liczby w odczycie. Nie ma jej —
+//    odczyt jest niepewny i pola zostają puste.
+//
+// Osobno sprawdzane są ceny: wolumen ÷ ilość musi dać cenę z ekranu.
+// Bez tego błąd w cenie przechodził, bo wynik liczy się z wolumenów.
+// ══════════════════════════════════════════════════════════════
+const BY_CDN_OK = () => typeof Tesseract !== 'undefined';
+let _byBusy = false, _byLast = null;
+
+function byNums(s) {
+  const out = [];
+  (String(s).replace(/\//g, '7').match(/-?\d[\d,]*\.?\d*/g) || [])
+    .forEach(x => { const v = parseFloat(x.replace(/,/g, '')); if (!isNaN(v)) out.push(v); });
+  return out;
+}
+function byPick(lines, key, idx) {
+  for (const l of lines) {
+    if (l.toLowerCase().indexOf(key) !== -1) {
+      const n = byNums(l);
+      if (n.length) return n[idx == null ? n.length - 1 : idx];
+    }
+  }
+  return null;
+}
+
+// podbicie średnich szarości — odzyskuje etykiety, które na ciemnym tle giną
+function byBoost(img) {
+  const sc = img.width < 1100 ? 1100 / img.width : 1;
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.width * sc * 2); c.height = Math.round(img.height * sc * 2);
+  const x = c.getContext('2d');
+  x.imageSmoothingQuality = 'high';
+  x.drawImage(img, 0, 0, c.width, c.height);
+  const d = x.getImageData(0, 0, c.width, c.height), a = d.data;
+  for (let i = 0; i < a.length; i += 4) {
+    const g = (a[i] * 0.299 + a[i+1] * 0.587 + a[i+2] * 0.114);
+    const v = g > 55 ? Math.min(255, g * 2.6) : 0;
+    a[i] = a[i+1] = a[i+2] = v;
+  }
+  x.putImageData(d, 0, 0);
+  return c;
+}
+
+function byParse(labTxt, rawTxt) {
+  const lab = labTxt.split('\n').filter(l => l.trim());
+  const raw = rawTxt.split('\n').filter(l => l.trim());
+  const d = { notes: [] };
+  const head = lab.slice(0, 2).join(' ');
+
+  const tk = head.match(/([A-Z]{2,10})USDT/i);
+  d.token = tk ? tk[1].toUpperCase().replace('BIC', 'BTC') : null;
+  d.dir = /long/i.test(head) ? 'LONG' : (/short/i.test(head) ? 'SHORT' : null);
+
+  for (let i = 0; i < lab.length; i++) {
+    if (/avg.*entry/i.test(lab[i])) {
+      for (let j = i + 1; j < Math.min(i + 3, lab.length); j++) {
+        const n = byNums(lab[j]);
+        if (n.length >= 3) { d.qty = n[0]; d.entry = n[1]; d.exit = n[2]; break; }
+      }
+      break;
+    }
+  }
+  d.volOpen  = byPick(lab, 'open trade volume');
+  d.volClose = byPick(lab, 'closed trade volume');
+  const fees = ['opening fee', 'closing fee', 'funding fee']
+    .map(k => byPick(lab, k)).filter(v => v !== null);
+  d.fees = fees.length >= 2 ? fees.reduce((a, b) => a + b, 0) : null;
+
+  const ts = (lab.join('\n').match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/g) || []);
+  d.openTime = ts[0] || null;
+  d.closeTime = ts[1] || null;
+
+  // odtwarzanie brakującej wartości z pozostałych
+  if (d.qty) {
+    if (d.volOpen  == null && d.entry != null) { d.volOpen  = +(d.qty * d.entry).toFixed(2); d.notes.push('wolumen otwarcia'); }
+    if (d.volClose == null && d.exit  != null) { d.volClose = +(d.qty * d.exit ).toFixed(2); d.notes.push('wolumen zamknięcia'); }
+    if (d.entry == null && d.volOpen  != null) { d.entry = +(d.volOpen  / d.qty).toFixed(6); d.notes.push('cena wejścia'); }
+    if (d.exit  == null && d.volClose != null) { d.exit  = +(d.volClose / d.qty).toFixed(6); d.notes.push('cena wyjścia'); }
+  }
+
+  // brutto z wolumenów (dokładne), awaryjnie z cen (zaokrąglone)
+  if (d.volOpen != null && d.volClose != null) {
+    const g = d.volClose - d.volOpen;
+    d.gross = d.dir === 'SHORT' ? -g : g; d.src = 'wolumeny';
+  } else if (d.entry != null && d.exit != null && d.qty != null) {
+    const g = (d.exit - d.entry) * d.qty;
+    d.gross = d.dir === 'SHORT' ? -g : g; d.src = 'ceny';
+  }
+
+  // niezależna kontrola cen
+  if (d.qty && d.entry != null && d.exit != null && d.volOpen != null && d.volClose != null) {
+    const e2 = d.volOpen / d.qty, x2 = d.volClose / d.qty;
+    d.priceOk = Math.abs(e2 - d.entry) / Math.max(e2, 1e-9) < 0.005 &&
+                Math.abs(x2 - d.exit)  / Math.max(x2, 1e-9) < 0.005;
+    d.priceCalc = [+e2.toFixed(5), +x2.toFixed(5)];
+  }
+
+  // wynik: liczony, potem szukany w odczycie
+  if (d.gross != null && d.fees != null) {
+    const exp = d.gross - d.fees, tol = Math.max(0.02, Math.abs(exp) * 0.01);
+    let best = null;
+    (lab.concat(raw)).forEach(l => {
+      if (l.toLowerCase().indexOf('usdt') !== -1) return;
+      byNums(l).forEach(v => {
+        if (Math.abs(v - exp) <= tol && (best === null || Math.abs(v - exp) < Math.abs(best - exp))) best = v;
+      });
+    });
+    d.pnl = best; d.expect = +exp.toFixed(4);
+  }
+
+  // wynik potwierdzony => wolumeny dobre => to cena była źle odczytana
+  if (d.pnl != null && d.priceOk === false) {
+    // zaokrąglij do sensownej dokładności — cena z wolumenu ma więcej miejsc niż ekran
+    const rnd = v => +v.toFixed(v >= 100 ? 2 : (v >= 1 ? 4 : 6));
+    d.entry = rnd(d.priceCalc[0]); d.exit = rnd(d.priceCalc[1]);
+    d.priceOk = true; d.notes.push('ceny odtworzone z wolumenu');
+  }
+
+  d.ok = d.pnl != null && d.token && d.dir && d.qty != null &&
+         d.entry != null && d.exit != null && d.fees != null && d.priceOk !== false;
+  return d;
+}
+window.byParse = byParse;
+
+// ── obsługa: wybór pliku, wklejanie, odczyt, wypełnienie pól ──
+function byPick() { const f = document.getElementById('byFile'); if (f) { f.value = ''; f.click(); } }
+
+function bySay(html, cls) {
+  const r = document.getElementById('byResult');
+  if (!r) return;
+  r.hidden = false; r.className = 'by-result' + (cls ? ' ' + cls : ''); r.innerHTML = html;
+}
+function byFmt(v, dp) { return v == null ? '—' : Number(v).toFixed(dp == null ? 4 : dp); }
+
+async function byFromFile(file) {
+  if (!file || _byBusy) return;
+  if (!BY_CDN_OK()) { bySay('✗ Nie udało się wczytać silnika odczytu — sprawdź połączenie', 'bad'); return; }
+  const btn = document.getElementById('byPickBtn');
+  _byBusy = true; if (btn) { btn.disabled = true; btn.textContent = '⏳ CZYTAM…'; }
+  bySay('Wczytywanie silnika (pierwszy raz trwa dłużej)…');
+  try {
+    const img = await new Promise((res, rej) => {
+      const i = new Image(); const u = URL.createObjectURL(file);
+      i.onload = () => { URL.revokeObjectURL(u); res(i); };
+      i.onerror = () => { URL.revokeObjectURL(u); rej(new Error('obraz')); };
+      i.src = u;
+    });
+    // przebieg 1: surowy (dokładne cyfry) · przebieg 2: podbity (etykiety)
+    const plain = document.createElement('canvas');
+    plain.width = img.width; plain.height = img.height;
+    plain.getContext('2d').drawImage(img, 0, 0);
+    bySay('Odczyt 1 z 2 — cyfry…');
+    const raw = (await Tesseract.recognize(plain, 'eng')).data.text;
+    bySay('Odczyt 2 z 2 — etykiety…');
+    const lab = (await Tesseract.recognize(byBoost(img), 'eng')).data.text;
+
+    const d = byParse(lab, raw);
+    _byLast = d;
+    byApply(d);
+  } catch (e) {
+    console.error('[DYZMCRYPT] Odczyt screena nieudany:', e);
+    bySay('✗ Odczyt nieudany — wpisz dane ręcznie', 'bad');
+  } finally {
+    _byBusy = false;
+    if (btn) { btn.disabled = false; btn.textContent = '📷 ODCZYTAJ ZE SCREENA BYBITA'; }
+  }
+}
+
+function byApply(d) {
+  if (!d.ok) {
+    let why = 'nie udało się potwierdzić odczytu';
+    if (d.pnl == null && d.expect != null) why = 'wynik z rachunku (' + byFmt(d.expect, 4) + ') nie zgadza się z żadną liczbą na obrazku';
+    else if (d.fees == null) why = 'nie odczytano prowizji';
+    else if (d.qty == null) why = 'nie odczytano ilości i cen';
+    else if (d.priceOk === false) why = 'ceny nie zgadzają się z wolumenem';
+    bySay('<b>✗ ODCZYT NIEPEWNY</b> — ' + why + '<br>'
+        + '<span class="by-note">Nic nie zostało wpisane. Wpisz dane ręcznie albo zrób screena pojedynczej karty zamiast listy.</span>', 'bad');
+    return;
+  }
+  // ostrzeżenie, gdy instrument nie pasuje do zamykanej pozycji
+  const pos = (typeof opzClosingId !== 'undefined' && typeof opzPositions !== 'undefined')
+    ? opzPositions.find(p => p.id === opzClosingId) : null;
+  let warn = '';
+  if (pos && d.token && String(pos.token).toUpperCase() !== d.token)
+    warn = '<br><span class="by-note">⚠ Screen dotyczy ' + d.token + ', a zamykasz ' + pos.token + ' — sprawdź, czy to ta pozycja.</span>';
+
+  const setF = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el || val == null) return;
+    el.value = val; el.classList.add('by-fill');
+  };
+  setF('opzClosePrice', d.exit);
+  setF('opzCloseResult', +Number(d.pnl).toFixed(2));
+  if (d.closeTime) {
+    const m = d.closeTime.match(/(\d{2}):(\d{2})/);
+    if (m) setF('opzCloseTime', m[1] + ':' + m[2]);
+  }
+  if (typeof opzUpdateCloseRR === 'function') opzUpdateCloseRR();
+  if (typeof opzValidateCloseTime === 'function') opzValidateCloseTime();
+
+  bySay('<b>✓ ODCZYTANO</b> — sprawdź i zatwierdź'
+      + '<div class="by-line" style="margin-top:6px;">'
+      +   '<span>' + d.token + ' <b>' + d.dir + '</b></span>'
+      +   '<span>ilość <b>' + d.qty + '</b></span>'
+      +   '<span>' + byFmt(d.entry, 4) + ' → <b>' + byFmt(d.exit, 4) + '</b></span>'
+      +   '<span>prowizje <b>−' + byFmt(d.fees, 4) + '$</b></span>'
+      +   '<span>wynik <b>' + (d.pnl >= 0 ? '+' : '') + byFmt(d.pnl, 4) + '$</b></span>'
+      + '</div>'
+      + '<div class="by-calc">rachunek (' + d.src + '): ' + (d.gross >= 0 ? '+' : '') + byFmt(d.gross, 4)
+      +   ' − ' + byFmt(d.fees, 4) + ' = ' + (d.expect >= 0 ? '+' : '') + byFmt(d.expect, 4)
+      +   ' · zgadza się z kartą</div>'
+      + (d.notes.length ? '<div class="by-note">ℹ odtworzone z rachunku: ' + d.notes.join(', ') + '</div>' : '')
+      + warn, 'ok');
+}
+
+// wklejanie ze schowka, gdy okno zamknięcia jest otwarte
+document.addEventListener('paste', function(e) {
+  const m = document.getElementById('opzModalClose');
+  if (!m || !m.classList.contains('open')) return;
+  const items = (e.clipboardData || {}).items || [];
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type && items[i].type.indexOf('image') === 0) {
+      const f = items[i].getAsFile();
+      if (f) { e.preventDefault(); byFromFile(f); return; }
+    }
+  }
+});
+</script>
+
 <!-- ── MODAL: ZAMKNIJ POZYCJĘ ── -->
 <div class="opz-modal-overlay" id="opzModalClose">
   <div class="opz-modal-box danger">
     <div class="opz-modal-title red">ZAMKNIJ POZYCJĘ</div>
     <div id="opzCloseInfo" style="font-size:11px;color:var(--dim2);margin-bottom:16px;letter-spacing:1px;"></div>
+
+    <!-- V241: odczyt ze screena Bybita -->
+    <div class="by-strip" id="byStrip">
+      <div class="by-row">
+        <button class="by-btn" id="byPickBtn" onclick="byPick()" type="button">📷 ODCZYTAJ ZE SCREENA BYBITA</button>
+        <span class="by-hint">karta pojedynczej pozycji · nie lista</span>
+      </div>
+      <input type="file" id="byFile" accept="image/*" hidden onchange="byFromFile(this.files&&this.files[0])">
+      <div class="by-result" id="byResult" hidden></div>
+    </div>
 
     <div class="opz-field-row">
       <div class="opz-field">
@@ -17925,6 +18186,13 @@ function opzOpenCloseModal(id) {
   document.getElementById('opzCloseInfo').textContent = `${pos.token} · ${pos.dir} · wejście ${pos.entry.toLocaleString()}$ · ryzyko ${pos.risk}$`;
   document.getElementById('opzClosePrice').value = '';
   document.getElementById('opzCloseResult').value = '';
+  // V241: wyczysc odczyt z poprzedniego zamkniecia
+  _byLast = null;
+  const _byR = document.getElementById('byResult');
+  if (_byR) { _byR.hidden = true; _byR.innerHTML = ''; }
+  ['opzClosePrice','opzCloseResult','opzCloseTime'].forEach(function(id){
+    const el = document.getElementById(id); if (el) el.classList.remove('by-fill');
+  });
   document.getElementById('opzCloseRRPreview').textContent = '';
   // V215: interfejs musi mówić wprost, czego dotyczy pole "wynik"
   const _lk = (typeof tpLockedUsd === 'function') ? tpLockedUsd(pos) : 0;
@@ -35889,6 +36157,34 @@ body.dc-phone .sl-dim{font-size:9.5px !important;}
   background:linear-gradient(160deg, rgba(0,232,122,.2), rgba(0,0,0,.28)) !important;}
 body.dc-phone .sl-chip.addbtn{font-size:12.5px !important;padding:13px 17px !important;}
 
+
+/* ══ V241 · odczyt karty Bybita w oknie zamknięcia ══ */
+.by-strip{
+  border:1px dashed rgba(118,158,205,.26);border-radius:10px;
+  padding:10px 12px;margin-bottom:14px;background:rgba(0,0,0,.18);}
+.by-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.by-btn{
+  font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1.4px;
+  padding:8px 13px;border-radius:8px;cursor:pointer;
+  border:1px solid rgba(0,200,240,.35);background:rgba(0,200,240,.07);color:var(--cyan);
+  transition:border-color .15s,background .15s;}
+.by-btn:hover{border-color:rgba(0,200,240,.7);background:rgba(0,200,240,.14);}
+.by-btn:disabled{opacity:.5;cursor:wait;}
+.by-hint{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--dim2);}
+.by-result{margin-top:10px;font-family:'Share Tech Mono',monospace;font-size:9px;line-height:1.75;}
+.by-result.ok{color:var(--green);}
+.by-result.bad{color:var(--red);}
+.by-line{display:flex;gap:8px;flex-wrap:wrap;color:rgba(200,220,240,.7);}
+.by-line b{color:rgba(242,246,242,.95);font-weight:400;}
+.by-calc{margin-top:6px;padding-top:6px;border-top:1px solid rgba(118,158,205,.14);
+  color:rgba(200,220,240,.6);font-size:8.5px;}
+.by-note{color:var(--gold);font-size:8.5px;}
+/* pola wypełnione z odczytu — propozycja, nie zapis */
+.opz-field-input.by-fill{
+  border-color:rgba(255,196,0,.6) !important;
+  background:rgba(255,196,0,.07) !important;}
+body.dc-phone .by-btn{font-size:12px !important;padding:13px 16px !important;}
+body.dc-phone .by-hint,body.dc-phone .by-result{font-size:11px !important;}
 
 /* ══ V236 · screeny z chmury — stan ładowania i braku ══ */
 img.shot-lazy:not([data-sok]){
