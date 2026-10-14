@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v242 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v243 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v242 · EXECUTION OS</div>
+    <div class="splash-ver">v243 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v242</div>
+      <div class="sb-logo-sub">EXECUTION OS · v243</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8064,7 +8064,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v242';
+window.DC_VERSION = 'v243';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17494,9 +17494,30 @@ function byParse(labTxt, rawTxt) {
   }
   d.volOpen  = byPick(lab, 'open trade volume');
   d.volClose = byPick(lab, 'closed trade volume');
-  const fees = ['opening fee', 'closing fee', 'funding fee']
+
+  // V243: PROWIZJE — trzy drogi, od najdokładniejszej do najbardziej odpornej.
+  // Pojedyncza nazwa etykiety nie wystarcza: OCR robi z „Opening Fee" raz
+  // „Openina Fee", raz „Openinq Fee", a z „USDT" bywa „USOT" albo „US0T".
+  // Dlatego: najpierw po nazwach, potem po samym słowie „fee", a na końcu
+  // po jednostce w przebiegu surowym, gdzie prowizje i tak stoją osobno.
+  let fees = ['opening fee', 'closing fee', 'funding fee']
     .map(k => byPick(lab, k)).filter(v => v !== null);
-  d.fees = fees.length >= 2 ? fees.reduce((a, b) => a + b, 0) : null;
+
+  if (fees.length < 2) {                       // droga 2: samo „fee" w etykietach
+    const f2 = [];
+    lab.forEach(l => { if (/f[eo]{2}/i.test(l)) { const n = byNums(l); if (n.length) f2.push(n[n.length - 1]); } });
+    if (f2.length >= fees.length) fees = f2;
+  }
+  if (fees.length < 2) {                       // droga 3: jednostka w surowym odczycie
+    const f3 = [];
+    raw.forEach(l => { if (/us[d0o]t/i.test(l)) { const n = byNums(l); if (n.length) f3.push(n[n.length - 1]); } });
+    if (f3.length >= 2) fees = f3;
+  }
+  // prowizja od strony to ułamek nominału — odsiej liczby, które nią nie są
+  const notion = Math.max(d.volOpen || 0, d.volClose || 0);
+  if (notion > 0) fees = fees.filter(v => Math.abs(v) < notion * 0.01);
+  d.fees = fees.length >= 2 ? +fees.reduce((a, b) => a + b, 0).toFixed(8) : null;
+  d.feeParts = fees;
 
   const ts = (lab.join('\n').match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/g) || []);
   d.openTime = ts[0] || null;
@@ -18396,6 +18417,14 @@ function opzConfirmClose() {
       paper: !!pos.paper,                                          // V207: transakcja dziedziczy tryb
       rr: rrStr, setup: 'POZYCJE',
       posId: pos.id,                                               // V151: łącznik z Session Log
+      fees: (function(){                                           // V243: z odczytu karty Bybita
+        try {
+          if (typeof _byLast !== 'undefined' && _byLast && _byLast.ok && _byLast.fees != null &&
+              String(_byLast.token || '').toUpperCase() === String(pos.token || '').toUpperCase())
+            return +Number(_byLast.fees).toFixed(4);
+        } catch(e) {}
+        return null;
+      })(),
       // V194: pełna anatomia wyjścia — plan i realizacja
       legs: (typeof tpLegs === 'function') ? tpLegs(pos).map(l => ({ size: l.size, r: l.r, tag: l.tag })) : null,
       fills: (typeof tpFills === 'function')
@@ -19099,6 +19128,10 @@ function renderJournal() {
     const entryHtml = (t.entry != null) ? `<div class="tcard-metric"><div class="tcard-m-l">Entry → Exit</div><div class="tcard-m-v" style="color:var(--cyan);font-size:11px;">${t.entry}${t.exit != null ? ' → ' + t.exit : ''}</div></div>` : '';
     // V148: czas w rynku z jednostkami
     const durHtml = t.opzDuration ? `<div class="tcard-metric"><div class="tcard-m-l">Czas w rynku</div><div class="tcard-m-v" style="color:var(--purple)">${jDurFmt(t.opzDuration)}</div></div>` : '';
+    // V243: prowizje — informacyjnie. Wynik jest już netto, więc R się nie zmienia;
+    // to tylko zapis, ile z tego wyniku zabrała giełda.
+    const _fv = (t.fees != null && !isNaN(parseFloat(t.fees))) ? parseFloat(t.fees) : null;
+    const feeHtml = _fv === null ? '' : `<div class="tcard-metric"><div class="tcard-m-l">Prowizje</div><div class="tcard-m-v" style="color:var(--dim2);font-size:10.5px;">−${_fv.toFixed(2)}$ <span style="opacity:.55;">· brutto ${(t.pnl + _fv) >= 0 ? '+' : ''}${(t.pnl + _fv).toFixed(2)}$</span></div></div>`;
     const sessHtml = (t.sess && t.sess !== '—') ? `<div class="tcard-metric"><div class="tcard-m-l">Sesja</div><div class="tcard-m-v" style="color:var(--text2)">${t.sess}</div></div>` : '';
 
     return `
@@ -19117,7 +19150,7 @@ function renderJournal() {
       </div>
       <div class="tcard-body">
         <div class="tcard-exec" style="grid-template-columns:repeat(auto-fit,minmax(100px,1fr));">
-          ${durHtml}${rrHtml}${entryHtml}${setupHtml}${sessHtml}
+          ${durHtml}${feeHtml}${rrHtml}${entryHtml}${setupHtml}${sessHtml}
         </div>
         ${planHtml}
         ${flagsHtml}
