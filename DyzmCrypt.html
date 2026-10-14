@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v251 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v252 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v251 · EXECUTION OS</div>
+    <div class="splash-ver">v252 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v251</div>
+      <div class="sb-logo-sub">EXECUTION OS · v252</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v251';
+window.DC_VERSION = 'v252';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17312,6 +17312,40 @@ body.dc-phone .sbd-g{grid-template-columns:repeat(auto-fill,minmax(136px,1fr));}
   border:1px dashed rgba(118,158,205,.22);background:rgba(0,0,0,.2);text-align:center;}
 .orm-facts-miss span{display:block;font-family:'Share Tech Mono',monospace;font-size:8px;
   line-height:1.7;color:var(--dim2);margin-bottom:9px;}
+
+
+/* V252 — dziennik jako lista: ten sam naglowek karty, co dotad,
+   tylko caly klika w okno. Styl zostaje, znika tylko rozwijane cialo. */
+.tcard.jrow{cursor:pointer;margin-bottom:7px;}
+.tcard.jrow:hover{border-color:rgba(118,158,205,.38);background:rgba(255,255,255,.022);
+  box-shadow:0 2px 14px rgba(0,0,0,.3);}
+.tcard.jrow:active{transform:scale(.995);}
+/* Zadnej strzalki: .tcard-head to grid, wiec ::after staje sie
+   kolejnym elementem siatki i laduje w nowym wierszu, rozdymajac pasek.
+   Wyglad zostaje taki, jaki byl — klikalnosc niesie kursor i hover. */
+.tcard.jrow .tcard-head{padding:11px 14px;}
+@media(max-width:520px){
+  .tcard.jrow .tcard-head{grid-template-columns:auto 1fr auto auto;gap:8px;}
+  .tcard.jrow .tcard-dir{display:none;}
+}
+
+/* V252 — ogon okna: to, co dotad wisialo na karcie w dzienniku */
+.ormt-flags{display:flex;flex-wrap:wrap;gap:5px;margin-top:12px;}
+.ormt-note{margin-top:11px;padding:10px 12px;border-radius:8px;background:rgba(0,0,0,.22);
+  border:1px solid rgba(118,158,205,.1);font-family:'Share Tech Mono',monospace;
+  font-size:10px;line-height:1.7;color:rgba(200,220,240,.72);white-space:pre-wrap;}
+.ormt-shot{margin-top:11px;}
+.ormt-shot img{display:block;width:100%;border-radius:8px;border:1px solid rgba(118,158,205,.14);cursor:zoom-in;}
+.ormt-sbar{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;}
+.ormt-bar{display:flex;align-items:center;gap:9px;margin-top:13px;padding-top:11px;
+  border-top:1px solid rgba(118,158,205,.12);font-family:'Share Tech Mono',monospace;font-size:8.5px;}
+.ormt-grade{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;
+  padding:3px 7px;background:rgba(0,0,0,.3);border-radius:4px;}
+.ormt-del{margin-left:auto;color:rgba(255,90,90,.6);cursor:pointer;letter-spacing:1px;padding:3px 7px;
+  border:1px solid rgba(255,90,90,.2);border-radius:5px;}
+.ormt-del:hover{color:var(--red);border-color:rgba(255,90,90,.5);background:rgba(255,90,90,.07);}
+body.dc-phone .ormt-note{font-size:11.5px !important;}
+
 .ocd-stat{margin-top:8px;font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:1px;color:var(--dim2);}
 .ocd-stat.ok{color:var(--green);} .ocd-stat.bad{color:var(--red);}
 
@@ -18148,9 +18182,24 @@ function opzShowRealization(id) {
     if (B.feeOpen != null || B.feeClose != null)
       rows.push(row('prowizje', '<em>otw.</em> <b>' + nf(B.feeOpen, 4) + '</b> <em>· zamk.</em> <b>' + nf(B.feeClose, 4) + '</b>'
         + (B.feeFund != null ? ' <em>· fund.</em> <b>' + nf(B.feeFund, 4) + '</b>' : '')));
+    // V252: setup i sesja wisialy na karcie w dzienniku — karty juz nie ma
+    if (t.setup) rows.push(row('setup', '<b>' + opzEsc(String(t.setup)) + '</b>'));
+    if (t.sess && t.sess !== '—') rows.push(row('sesja', '<b>' + opzEsc(String(t.sess)) + '</b>'));
     facts = '<div class="orm-term">' + rows.join('') + '</div>';
   } else {
-    facts = '<div class="orm-facts-miss">'
+    // V252: bez karty z gieldy nadal pokaz to, co wiemy z wpisu
+    let base = '';
+    const bRow = (l, v) => '<div class="r"><i>' + l + '</i><span>' + v + '</span></div>';
+    const bR = [];
+    if (t.entry != null) bR.push(bRow('cena', '<b>' + t.entry + '</b>'
+      + (t.exit != null ? ' <em>→</em> <b>' + t.exit + '</b>' : '')));
+    if (t.opzDuration && typeof jDurFmt === 'function') bR.push(bRow('czas', '<u>' + jDurFmt(t.opzDuration) + '</u>'));
+    if (fees !== null) bR.push(bRow('prowizje', '<b>' + fees.toFixed(2) + ' $</b>'));
+    if (t.setup) bR.push(bRow('setup', '<b>' + opzEsc(String(t.setup)) + '</b>'));
+    if (t.sess && t.sess !== '—') bR.push(bRow('sesja', '<b>' + opzEsc(String(t.sess)) + '</b>'));
+    if (bR.length) base = '<div class="orm-term">' + bR.join('') + '</div>';
+
+    facts = base + '<div class="orm-facts-miss">'
       + '<span>Karta z giełdy niedostępna — pozycja zamknięta przed wprowadzeniem zapisu.</span>'
       + '<button class="by-btn" onclick="byAttach(' + t.id + ')" type="button">📷 DOPNIJ ZE SCREENA</button>'
       + '<input type="file" id="ocdFile_' + t.id + '" accept="image/*" hidden onchange="byAttachFile(' + t.id + ', this.files&&this.files[0])">'
@@ -18169,6 +18218,66 @@ function opzShowRealization(id) {
     else { verdict = 'STRATA UCIĘTA PRZED PEŁNYM STOPEM'; vColor = 'var(--text2)'; }
   } else verdict = 'transakcja sprzed v111 — plan RRR nie był zapisywany';
 
+  // ══ V252 · OGON Z DZIENNIKA ══════════════════════════════
+  // Dziennik nie rysuje juz wlasnej karty — klika w to okno.
+  // Wszystko, co bylo na karcie, musi wiec byc tutaj, inaczej znika.
+  let tail = '';
+  {
+    const neg = (t.tags || []).filter(function (x) {
+      return ['fomo','forced','emotional','rulebreak','revenge','overmgmt'].indexOf(x) >= 0; });
+    const grade = neg.length === 0 ? 'CLEAN' : (neg.length <= 1 ? 'WARN' : 'POOR');
+    const gCol = grade === 'CLEAN' ? 'var(--green)' : (grade === 'WARN' ? 'var(--orange)' : 'var(--red)');
+
+    const fMap = {fomo:'tf-fomo',hesitation:'tf-hesitation',forced:'tf-forced',aplus:'tf-aplus',
+      emotional:'tf-emotional',rulebreak:'tf-rulebreak',overmgmt:'tf-overmgmt',
+      fearex:'tf-earlyclose',revenge:'tf-revenge'};
+    const fLab = {fomo:'FOMO',hesitation:'HESITATION',forced:'FORCED',aplus:'A+',
+      emotional:'EMOTIONAL',rulebreak:'RULE BREAK',overmgmt:'OVERMGMT',
+      fearex:'FEAR EXIT',revenge:'REVENGE'};
+    const flags = (t.tags && t.tags.length)
+      ? '<div class="ormt-flags">' + t.tags.map(function (x) {
+          return '<span class="tcard-flag ' + (fMap[x] || '') + '">' + (fLab[x] || x) + '</span>'; }).join('')
+        + '</div>' : '';
+
+    // noga po nodze — jesli byl plan czesciowych TP
+    let ladder = '';
+    if (Array.isArray(t.legs) && t.legs.length > 1) {
+      const fl = Array.isArray(t.fills) ? t.fills : [];
+      ladder = '<div class="tcard-ladder">' + t.legs.map(function (l) {
+          const f = fl.find(function (x) { return x.tag === l.tag; });
+          const c = !f ? 'var(--dim)' : (f.r > 0.02 ? 'var(--green)' : (f.r < -0.02 ? 'var(--red)' : 'var(--cyan)'));
+          return '<span class="tl-leg"><b>' + l.tag + '</b> ' + Math.round(l.size) + '% @ ' + l.r + 'R'
+            + '<i style="color:' + c + '">' + (f ? (f.r >= 0 ? '+' : '') + parseFloat(f.r).toFixed(2) + 'R' : '—') + '</i></span>';
+        }).join('')
+        + (t.beMoved ? '<span class="tl-be">SL→BE' + (t.beAfter === 0 ? ' przed TP'
+            : (t.beAfter != null ? ' po ' + t.beAfter + ' TP' : '')) + '</span>' : '')
+        + '</div>';
+    }
+
+    const note = t.note ? '<div class="ormt-note">' + String(t.note).replace(/</g, '&lt;') + '</div>' : '';
+
+    let shot = '';
+    if (typeof jShotHas === 'function') {
+      const has = jShotHas(t.id);
+      shot = '<div class="ormt-shot">'
+        + (has ? '<img class="shot-lazy" data-sid="' + t.id + '" alt="screen" loading="lazy"'
+               + ' onclick="jShotOpen(\'' + t.id + '\')">' : '')
+        + '<div class="ormt-sbar">'
+        + '<button class="tcard-sbtn" onclick="jShotPick(' + t.id + ')">'
+        + (has ? '🖼 ZMIEŃ SCREEN' : '🖼 DODAJ SCREEN') + '</button>'
+        + (has ? '<button class="tcard-sbtn del" onclick="jShotDel(' + t.id + ')">✕ USUŃ SCREEN</button>'
+               : '<span class="tcard-sbtn" style="border-style:dashed;cursor:default;">lub wklej Ctrl+V</span>')
+        + '</div></div>';
+    }
+
+    const bar = '<div class="ormt-bar">'
+      + '<span class="ormt-grade" style="color:' + gCol + '">' + grade + '</span>'
+      + (t.paper ? '<span class="pm-badge">PAPER</span>' : '')
+      + '<span class="ormt-del" onclick="ormDelTrade(' + t.id + ')">✕ USUŃ TRANSAKCJĘ</span></div>';
+
+    tail = ladder + flags + note + shot + bar;
+  }
+
   modal.innerHTML = '<div class="orm-box">'
     + '<div class="orm-head"><span>' + opzEsc(t.token) + '</span>'
     +   '<em class="orm-dir ' + (String(t.dir).toUpperCase() === 'LONG' ? 'l' : 's') + '">' + opzEsc(t.dir) + '</em>'
@@ -18179,8 +18288,11 @@ function opzShowRealization(id) {
     + '<div class="orm-verdict" style="color:' + vColor + ';border-color:' + vColor + '">' + verdict + '</div>'
     + flow
     + facts
+    + tail
     + '</div>';
   modal.classList.add('open');
+  modal.setAttribute('data-tid', t.id);          // V252: dla wklejania i odswiezania
+  if (typeof dcShotHydrate === 'function') dcShotHydrate(modal);
 }
 window.opzShowRealization = opzShowRealization;
 
@@ -19411,6 +19523,58 @@ function renderJournal() {
     body.innerHTML = '<div class="j-empty">CZYSTY DZIEŃ — PIERWSZA TRANSAKCJA WYŻEJ' + yHtml + '</div>';
     return;
   }
+  // ══ V252 · DZIENNIK: PASEK ZOSTAJE, ROZWIJANIE ZNIKA ══════
+  // Pasek wyglada dokladnie tak, jak wygladal naglowek karty —
+  // numer, token, kierunek, ocena, wynik. Zmienia sie tylko to,
+  // co sie dzieje po klikniecu: zamiast rozwijac wlasny widok,
+  // otwiera to samo okno, co panel Pozycji. Jeden wyglad szczegolow
+  // w calej apce i jedno miejsce do poprawiania.
+  body.innerHTML = trades.map(function (t, i) {
+    const outcome = isWin(t.pnl) ? 'win' : (isBE(t.pnl) ? 'be' : 'loss');
+    const tcClass = { win: 'tc-win', be: 'tc-be', loss: 'tc-loss' }[outcome];
+    const pnlClass = { win: 'pos', be: 'be', loss: 'neg' }[outcome];
+    const pnlSign = t.pnl > 0 ? '+' : '';
+    const beBadge = outcome === 'be'
+      ? ' <span style="font-size:8px;color:var(--cyan);font-family:Share Tech Mono,monospace;'
+        + 'padding:1px 5px;border:1px solid rgba(0,200,240,.3);border-radius:3px;">BE</span>' : '';
+
+    const negTags = (t.tags || []).filter(function (tg) {
+      return ['fomo','forced','emotional','rulebreak','revenge','overmgmt'].indexOf(tg) >= 0; });
+    const execGrade = negTags.length === 0 ? 'CLEAN' : (negTags.length <= 1 ? 'WARN' : 'POOR');
+    const gradeColor = execGrade === 'CLEAN' ? 'var(--green)'
+      : (execGrade === 'WARN' ? 'var(--orange)' : 'var(--red)');
+
+    const cycleColors = { c1:'var(--green)', c2:'var(--cyan)', c3:'var(--red)', c33:'var(--purple)' };
+    const cycleLabel = t.label
+      ? '<span style="font-family:\'Orbitron\',monospace;font-size:8px;padding:2px 5px;border-radius:3px;'
+        + 'background:var(--bg3);border:1px solid var(--border2);color:'
+        + (cycleColors[t.cycle] || 'var(--dim2)') + ';">' + t.label + '</span>' : '';
+
+    const dirUp = String(t.dir || '').trim().toUpperCase();
+
+    return '<div class="tcard ' + tcClass + ' jrow' + (t.paper ? ' is-paper' : '') + '"'
+      + ' id="tcard-' + t.id + '" onclick="jOpenTrade(' + t.id + ')">'
+      + '<div class="tcard-head">'
+      +   '<div class="tcard-num">' + String(i + 1).padStart(2, '0') + '</div>'
+      +   '<div>'
+      +     '<div class="tcard-token">' + t.token + ' ' + cycleLabel + '</div>'
+      +     '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--dim2);'
+      +       'margin-top:2px;">' + (t.time || '—') + ' · ' + (t.sess || '—') + '</div>'
+      +   '</div>'
+      +   '<div class="tcard-dir ' + dirUp.toLowerCase() + '">' + (dirUp || '—') + '</div>'
+      +   (t.paper ? '<span class="pm-badge">PAPER</span>' : '')
+      +   '<div style="font-family:\'Orbitron\',monospace;font-size:9px;color:' + gradeColor
+      +     ';padding:2px 6px;background:var(--bg3);border-radius:3px;">' + execGrade + '</div>'
+      +   '<div class="tcard-pnl ' + pnlClass + '">' + pnlSign + t.pnl.toFixed(2) + '$' + beBadge + '</div>'
+      +   '<div class="tcard-del" onclick="event.stopPropagation();deleteTrade(' + t.id + ')">✕</div>'
+      + '</div></div>';
+  }).join('');
+  return;
+}
+
+// V252: stary rysownik rozwijanych kart — nieuzywany, zostawiony,
+// zeby powrot byl jedna linijka, a nie odtwarzaniem kodu.
+function _jRenderCardsLegacy(body, trades) {
   body.innerHTML = trades.map((t, i) => {
     const outcome = isWin(t.pnl) ? 'win' : (isBE(t.pnl) ? 'be' : 'loss');
     const tcClass = {win:'tc-win', be:'tc-be', loss:'tc-loss'}[outcome];
@@ -19535,6 +19699,32 @@ function renderJournal() {
   if (typeof dcShotHydrate === 'function') dcShotHydrate(body);       // V236
 }
 
+// ══ V252 · wejscie z dziennika do okna realizacji ══
+// Dziennik nie ma juz wlasnego widoku szczegolow — otwiera to samo okno,
+// co panel Pozycji, zeby jedna zmiana wygladu dzialala w obu miejscach.
+function jOpenTrade(id) {
+  if (typeof opzShowRealization === 'function') opzShowRealization(id);
+}
+window.jOpenTrade = jOpenTrade;
+
+// kasowanie transakcji z poziomu okna — okno musi sie zamknac,
+// bo za chwile nie bedzie czego pokazywac
+function ormDelTrade(id) {
+  const m = document.getElementById('opzRealModal');
+  if (m) { m.classList.remove('open'); m.removeAttribute('data-tid'); }
+  if (typeof deleteTrade === 'function') deleteTrade(id);
+}
+window.ormDelTrade = ormDelTrade;
+
+// screen dodany/usuniety w otwartym oknie => przerysuj okno, nie tylko liste
+function _ormRefresh(id) {
+  const m = document.getElementById('opzRealModal');
+  if (!m || !m.classList.contains('open')) return;
+  if (String(m.getAttribute('data-tid')) !== String(id)) return;
+  if (typeof opzShowRealization === 'function') opzShowRealization(id);
+}
+window._ormRefresh = _ormRefresh;
+
 // V149: RR czytelnie — "1:3.90" → "1 : 3.9" (jedynka z oddechem, bez zbędnych zer)
 function jRrFmt(rr) {
   if (!rr) return '';
@@ -19596,6 +19786,7 @@ function jShotDel(id) {
   try { if (typeof dcShotDelete === 'function') dcShotDelete(id); } catch(e) {}
   try { const s = jShotsAll(); if (s[String(id)]) { delete s[String(id)]; dcSave('tradeShots', s); } } catch(e) {}
   renderJournal();
+  if (typeof _ormRefresh === 'function') _ormRefresh(id);
   if (typeof dcToast === 'function') dcToast('Screen usunięty', 'toast-gold');
 }
 function jShotCompress(file, cb) {
@@ -19627,8 +19818,7 @@ function jShotPick(id) {
     jShotCompress(f, function(dataUrl) {
       jShotSet(id, dataUrl);
       renderJournal();
-      const card = document.getElementById('tcard-' + id);
-      if (card) card.classList.add('expanded');
+      if (typeof _ormRefresh === 'function') _ormRefresh(id);
       if (typeof dcToast === 'function') dcToast('🖼 Screen dodany (' + Math.round(dataUrl.length / 1400) + ' KB)', 'toast-green');
     });
   };
@@ -19654,19 +19844,19 @@ function jShotOpen(id) {
 }
 // wklejanie ze schowka do rozwiniętej karty
 document.addEventListener('paste', function(e) {
-  const card = document.querySelector('.tcard.expanded');
-  if (!card) return;
+  // V252: celem jest otwarte okno realizacji — rozwijanych kart juz nie ma
+  const m = document.getElementById('opzRealModal');
+  const id = (m && m.classList.contains('open')) ? m.getAttribute('data-tid') : null;
+  if (!id) return;
   const items = (e.clipboardData || {}).items || [];
   for (let i = 0; i < items.length; i++) {
     if (items[i].type && items[i].type.indexOf('image') === 0) {
       const f = items[i].getAsFile();
       if (!f) continue;
-      const id = card.id.replace('tcard-', '');
       jShotCompress(f, function(dataUrl) {
         jShotSet(id, dataUrl);
         renderJournal();
-        const c2 = document.getElementById('tcard-' + id);
-        if (c2) c2.classList.add('expanded');
+        if (typeof _ormRefresh === 'function') _ormRefresh(id);
         if (typeof dcToast === 'function') dcToast('🖼 Screen wklejony', 'toast-green');
       });
       e.preventDefault();
