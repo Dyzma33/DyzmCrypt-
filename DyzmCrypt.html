@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v248 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v250 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v248 · EXECUTION OS</div>
+    <div class="splash-ver">v250 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v248</div>
+      <div class="sb-logo-sub">EXECUTION OS · v250</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8064,7 +8064,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v248';
+window.DC_VERSION = 'v250';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17225,64 +17225,51 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
 .orm-row b{font-family:'Orbitron',monospace;font-size:15px;font-weight:800;letter-spacing:1px;}
 .orm-row b i{font-family:'Share Tech Mono',monospace;font-size:9px;font-style:normal;color:var(--dim2);}
 .orm-row.orm-diff b{font-size:18px;}
-/* V247 · karta pozycji z giełdy — surowe fakty */
-.ocd{margin-top:16px;padding-top:14px;border-top:1px solid rgba(118,158,205,.14);}
-.ocd-h{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2.2px;
-  color:var(--cyan);opacity:.75;margin-bottom:10px;}
-.ocd-h i{font-style:normal;color:var(--dim2);letter-spacing:1.2px;}
-.ocd-g{padding:7px 0;border-bottom:1px solid rgba(118,158,205,.07);}
-.ocd-g:last-child{border-bottom:0;padding-bottom:0;}
-.ocd-r{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:3px 0;}
-.ocd-r span{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:1.1px;
-  color:var(--dim2);white-space:nowrap;}
-.ocd-r b{font-family:'Share Tech Mono',monospace;font-size:10px;font-weight:400;
-  color:rgba(238,244,248,.92);font-variant-numeric:tabular-nums;text-align:right;word-break:break-all;}
-.ocd-r.sum{margin-top:4px;padding-top:6px;border-top:1px dashed rgba(118,158,205,.16);}
-.ocd-r.sum b{color:var(--gold);}
-.ocd-miss{font-family:'Share Tech Mono',monospace;font-size:8.5px;line-height:1.7;
-  color:var(--dim2);margin-bottom:10px;}
-.ocd-add{width:100%;}
-.ocd-stat{margin-top:9px;font-family:'Share Tech Mono',monospace;font-size:8.5px;
-  letter-spacing:1px;color:var(--dim2);}
-.ocd-stat.ok{color:var(--green);}
-.ocd-stat.bad{color:var(--red);}
-body.dc-phone .ocd-miss,body.dc-phone .ocd-stat{font-size:11px !important;}
-body.dc-phone .ocd-r span{font-size:10.5px !important;}
-body.dc-phone .ocd-r b{font-size:11.5px !important;}
-body.dc-phone .ocd-h{font-size:10px !important;}
+/* ══ V249 · okno realizacji — jeden rysunek zamiast listy wierszy ══ */
+.orm-box{width:min(420px,94vw);}
+.orm-head{gap:9px;}
+.orm-dir{font-family:'Share Tech Mono',monospace;font-size:8px;font-style:normal;letter-spacing:1.6px;
+  padding:3px 8px;border-radius:10px;border:1px solid;margin-right:auto;}
+.orm-dir.l{color:var(--green);border-color:rgba(0,232,122,.4);background:rgba(0,232,122,.08);}
+.orm-dir.s{color:var(--red);border-color:rgba(255,90,90,.4);background:rgba(255,90,90,.08);}
 
-/* V246 · plan kontra wynik, z rozbiciem roznicy */
-.orm-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0 2px;}
-.orm-cell{background:rgba(0,0,0,.26);border:1px solid rgba(118,158,205,.14);border-radius:9px;padding:10px 12px;}
-.orm-cell .l{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.8px;color:var(--dim2);}
-.orm-cell .v{font-family:'Orbitron',monospace;font-size:19px;font-weight:800;letter-spacing:.5px;margin-top:4px;}
-.orm-cell .s{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim2);margin-top:2px;}
-.orm-bar-wrap{margin:14px 0 2px;}
-.orm-bar{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;background:rgba(0,0,0,.4);}
-.orm-seg{display:block;height:100%;}
-.orm-seg.net{background:var(--green);}
-.orm-seg.fee{background:rgba(200,220,240,.3);}
-.orm-seg.rest{background:rgba(118,158,205,.12);}
-.orm-bar-legend{display:flex;gap:13px;flex-wrap:wrap;margin-top:8px;
-  font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:.8px;color:var(--dim2);}
-.orm-bar-legend .k{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:5px;vertical-align:middle;}
-.orm-bar-legend .k.net{background:var(--green);}
-.orm-bar-legend .k.fee{background:rgba(200,220,240,.3);}
-.orm-bar-legend .k.rest{background:rgba(118,158,205,.22);}
-.orm-split{margin-top:14px;padding:10px 12px;border-radius:9px;
-  background:rgba(0,0,0,.26);border:1px solid rgba(118,158,205,.14);}
-.orm-split-h{display:flex;justify-content:space-between;align-items:baseline;
-  font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.8px;color:var(--dim2);
-  padding-bottom:7px;border-bottom:1px solid rgba(118,158,205,.12);}
-.orm-split-h b{font-family:'Orbitron',monospace;font-size:14px;font-weight:800;}
-.orm-split-r{display:flex;justify-content:space-between;align-items:baseline;padding-top:7px;
-  font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;color:rgba(200,220,240,.68);}
-.orm-split-r b{font-family:'Share Tech Mono',monospace;font-size:10px;color:rgba(242,246,242,.9);}
-.orm-split-r b i{font-style:normal;color:var(--dim2);font-size:9px;}
-body.dc-phone .orm-cell .v{font-size:22px !important;}
-body.dc-phone .orm-bar{height:12px;}
-body.dc-phone .orm-bar-legend,body.dc-phone .orm-split-r{font-size:11px !important;}
-body.dc-phone .orm-split-r b{font-size:12px !important;}
+.orm-axis{display:block;width:100%;height:auto;margin:6px 0 2px;overflow:visible;}
+
+/* przepływ pieniędzy — jedna linia, nie trzy wiersze */
+.orm-flow{display:flex;align-items:stretch;gap:7px;margin-top:13px;}
+.ofl{flex:1;min-width:0;background:rgba(0,0,0,.26);border:1px solid rgba(118,158,205,.12);
+  border-radius:8px;padding:8px 9px;text-align:center;}
+.ofl span{display:block;font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:1.6px;color:var(--dim2);}
+.ofl b{display:block;margin-top:3px;font-family:'Orbitron',monospace;font-size:13px;font-weight:800;
+  color:rgba(238,244,248,.92);font-variant-numeric:tabular-nums;}
+.ofl b.fee{color:rgba(200,220,240,.55);}
+.ofl.hi{border-color:rgba(118,158,205,.3);background:rgba(0,0,0,.4);}
+.ofl-op{align-self:center;font-family:'Share Tech Mono',monospace;font-size:11px;font-style:normal;color:var(--dim2);}
+
+/* V250 — fakty jako odczyt terminalowy: kolumna etykiet, kolumna wartosci */
+.orm-term{margin-top:14px;padding:12px 14px;border-radius:9px;background:rgba(0,0,0,.3);
+  border-left:2px solid rgba(0,200,240,.3);font-family:'Share Tech Mono',monospace;
+  font-size:9.5px;line-height:2.1;color:rgba(200,220,240,.62);
+  font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+.orm-term .r{display:flex;align-items:baseline;gap:9px;}
+.orm-term .r > i{flex:0 0 72px;font-style:normal;color:rgba(90,106,138,.95);}
+.orm-term .r > span{flex:1;min-width:0;}
+.orm-term b{font-weight:400;color:rgba(238,244,248,.92);}
+.orm-term u{text-decoration:none;color:var(--gold);opacity:.88;}
+.orm-term em{font-style:normal;color:var(--dim2);}
+.orm-facts-miss{margin-top:13px;padding:11px 12px;border-radius:9px;
+  border:1px dashed rgba(118,158,205,.22);background:rgba(0,0,0,.2);text-align:center;}
+.orm-facts-miss span{display:block;font-family:'Share Tech Mono',monospace;font-size:8px;
+  line-height:1.7;color:var(--dim2);margin-bottom:9px;}
+.ocd-stat{margin-top:8px;font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:1px;color:var(--dim2);}
+.ocd-stat.ok{color:var(--green);} .ocd-stat.bad{color:var(--red);}
+
+body.dc-phone .ofl span{font-size:9px !important;}
+body.dc-phone .ofl b{font-size:15px !important;}
+body.dc-phone .orm-term{font-size:11px !important;line-height:2.15 !important;}
+
+body.dc-phone .orm-facts-miss span{font-size:10.5px !important;}
+body.dc-phone .orm-term .r > i{flex-basis:80px !important;}
 
 .orm-verdict{margin-top:14px;text-align:center;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1.5px;border:1px solid;border-radius:7px;padding:9px 10px;}
 
@@ -18014,133 +18001,133 @@ function opzShowRealization(id) {
     document.body.appendChild(modal);
   }
 
-  const ach = opzRealR(t);
+  const ach  = opzRealR(t);
   const plan = (t.plannedRR != null && !isNaN(parseFloat(t.plannedRR))) ? parseFloat(t.plannedRR) : null;
   const risk = parseFloat(t.riskUsd) || null;
-  const pnl = parseFloat(t.pnl) || 0;
-
-  // V246: prowizje rozdzielaja plan od wyniku. PLAN liczy sie przed nimi,
-  // WYNIK po nich — wiec dotychczasowa "roznica" sklejala dwie rozne przyczyny
-  // w jedna liczbe: ile zamknales przed celem i ile zabrala gielda.
-  const fees  = (t.fees != null && !isNaN(parseFloat(t.fees))) ? parseFloat(t.fees) : null;
-  const feeR  = (fees !== null && risk) ? fees / risk : null;
+  const pnl  = parseFloat(t.pnl) || 0;
+  const fees = (t.fees != null && !isNaN(parseFloat(t.fees))) ? parseFloat(t.fees) : null;
+  const feeR = (fees !== null && risk) ? fees / risk : null;
   const grossR = (feeR !== null && ach !== null) ? ach + feeR : null;
-
-  // pasek: ile z planu zostalo w kieszeni, ile zjadly prowizje, ile nie doszlo
-  let bar = '';
-  if (plan !== null && plan > 0 && ach !== null && ach > 0) {
-    const pct = v => Math.max(0, Math.min(100, (v / plan) * 100));
-    const wNet  = pct(ach);
-    const wFee  = feeR !== null ? Math.max(0, pct(grossR) - wNet) : 0;
-    const wRest = Math.max(0, 100 - wNet - wFee);
-    bar = '<div class="orm-bar-wrap">'
-        + '<div class="orm-bar">'
-        +   '<i class="orm-seg net"  style="width:' + wNet.toFixed(1)  + '%"></i>'
-        + (wFee > 0 ? '<i class="orm-seg fee"  style="width:' + wFee.toFixed(1) + '%"></i>' : '')
-        +   '<i class="orm-seg rest" style="width:' + wRest.toFixed(1) + '%"></i>'
-        + '</div>'
-        + '<div class="orm-bar-legend">'
-        +   '<span><i class="k net"></i>w kieszeni ' + ach.toFixed(2) + 'R</span>'
-        + (feeR !== null ? '<span><i class="k fee"></i>prowizje ' + feeR.toFixed(2) + 'R</span>' : '')
-        +   '<span><i class="k rest"></i>do celu ' + Math.max(0, plan - (grossR !== null ? grossR : ach)).toFixed(2) + 'R</span>'
-        + '</div></div>';
-  }
-
-  let rows = '';
-  rows += '<div class="orm-pair">'
-      + '<div class="orm-cell"><div class="l">PLAN</div><div class="v" style="color:var(--cyan)">'
-      +   (plan !== null ? plan.toFixed(2) + 'R' : '—') + '</div>'
-      +   '<div class="s">' + (plan !== null && risk ? '+' + (plan * risk).toFixed(2) + '$' : '') + '</div></div>'
-      + '<div class="orm-cell"><div class="l">OSIĄGNIĘTE</div><div class="v" style="color:'
-      +   (ach !== null && ach >= 0 ? 'var(--green)' : 'var(--red)') + '">'
-      +   (ach !== null ? (ach >= 0 ? '+' : '') + ach.toFixed(2) + 'R' : '—') + '</div>'
-      +   '<div class="s">' + (pnl >= 0 ? '+' : '') + pnl.toFixed(2) + '$</div></div>'
-      + '</div>' + bar;
-
-  let verdict = '', vColor = 'var(--dim2)';
-  if (plan !== null && ach !== null) {
-    const diff = ach - plan;
-    // rozbicie roznicy na skladniki — informacyjnie, bez oceniania
-    if (diff < -0.01 && feeR !== null && grossR !== null) {
-      const early = plan - grossR;
-      rows += '<div class="orm-split"><div class="orm-split-h"><span>GDZIE POSZŁA RÓŻNICA</span>'
-            +   '<b style="color:var(--red)">' + diff.toFixed(2) + 'R</b></div>'
-            + (early > 0.01 ? '<div class="orm-split-r"><span>zamknięte przed celem</span><b>−' + early.toFixed(2) + 'R</b></div>' : '')
-            +   '<div class="orm-split-r"><span>prowizje</span><b>−' + feeR.toFixed(2) + 'R <i>(−' + fees.toFixed(2) + '$)</i></b></div>'
-            + '</div>';
-    } else {
-      rows += '<div class="orm-row orm-diff"><span>RÓŻNICA</span><b style="color:' + (diff >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (diff >= 0 ? '+' : '') + diff.toFixed(2) + 'R</b></div>';
-    }
-    if (ach >= plan - 0.02) { verdict = '✓ PLAN WYKONANY' + (diff > 0.05 ? ' Z NAWIĄZKĄ' : ''); vColor = 'var(--green)'; }
-    else if (ach > 0) {
-      // procent z BRUTTO — plan tez jest brutto, wiec porownanie jest uczciwe
-      const base = (grossR !== null ? grossR : ach);
-      verdict = 'ZYSK ZAMKNIĘTY PRZED CELEM · zrealizowano ' + Math.round(base / plan * 100) + '% planu';
-      vColor = 'var(--gold)';
-    }
-    else if (ach <= -0.9 && !dcIsSlip(ach)) { verdict = (ach >= -1.08) ? 'STOP WYKONANY ZGODNIE Z PLANEM (−1R)' : 'STOP WG PLANU + KOSZTY (prowizje/funding) — w normie'; vColor = 'var(--cyan)'; }
-    else if (dcIsSlip(ach)) { verdict = '⚠ PRZEKROCZONY STOP · KRD ' + dcSlipName(dcSlipTier(ach)) + ' · ' + ach.toFixed(2) + 'R'; vColor = 'var(--red)'; }
-    else { verdict = 'STRATA UCIĘTA PRZED PEŁNYM STOPEM'; vColor = 'var(--text2)'; }
-  } else {
-    verdict = 'transakcja sprzed v111 — plan RRR nie był jeszcze zapisywany';
-  }
-
-  // V247: KARTA POZYCJI — te same fakty, ktore pokazuje Bybit, w naszym stylu.
-  // Surowe liczby, zero interpretacji: co, ile, po jakiej cenie, kiedy i za ile.
-  let card = '';
   const B = t.by;
-  if (!B) {
-    // V248: karta zapisuje sie przy zamykaniu od v248. Starsze transakcje jej
-    // nie maja — wiec pozwalamy dopiac ja pozniej, z tego samego screena.
-    card = '<div class="ocd"><div class="ocd-h">KARTA POZYCJI <i>· brak</i></div>'
-         + '<div class="ocd-miss">Ta pozycja była zamykana, zanim karta trafiała do zapisu.</div>'
-         + '<button class="by-btn ocd-add" onclick="byAttach(' + t.id + ')" type="button">📷 DOPNIJ KARTĘ ZE SCREENA</button>'
-         + '<input type="file" id="ocdFile_' + t.id + '" accept="image/*" hidden onchange="byAttachFile(' + t.id + ', this.files&&this.files[0])">'
-         + '<div class="ocd-stat" id="ocdStat_' + t.id + '" hidden></div>'
-         + '</div>';
-  }
-  if (B) {
-    const n = (v, dp) => (v == null || isNaN(v)) ? '—'
-      : Number(v).toLocaleString('pl-PL', { minimumFractionDigits: dp, maximumFractionDigits: dp });
-    const tm = s => String(s || '').replace('T', ' ');
-    const row = (l, v, cls) => '<div class="ocd-r' + (cls ? ' ' + cls : '') + '"><span>' + l + '</span><b>' + v + '</b></div>';
-    let dur = '';
-    if (B.openTime && B.closeTime) {
-      const a = new Date(B.openTime.replace(' ', 'T')), b2 = new Date(B.closeTime.replace(' ', 'T'));
-      const m = Math.round((b2 - a) / 60000);
-      if (isFinite(m) && m >= 0) dur = m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm';
+
+  const nf = (v, dp) => (v == null || isNaN(v)) ? '—'
+    : Number(v).toLocaleString('pl-PL', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+  const sg = v => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2);
+
+  // ══ OŚ TRANSAKCJI ══════════════════════════════════════════
+  // Cała pozycja na jednej skali R: gdzie stał stop, gdzie wszedłeś,
+  // dokąd doszedł rynek, ile z tego zostało po prowizjach, gdzie był cel.
+  // Jeden rysunek zamiast dwóch kafelków, paska i tabelki rozbicia.
+  let axis = '';
+  if (ach !== null) {
+    const W = 360, H = 92, PAD = 26;
+    const hiV = Math.max(plan !== null ? plan : 0, grossR !== null ? grossR : ach, ach, 1) * 1.12;
+    const loV = Math.min(-1.25, ach - 0.35);
+    const X = v => PAD + ((v - loV) / (hiV - loV)) * (W - PAD * 2);
+    const Y = 54;
+    const g = [];
+    // tor
+    g.push('<line x1="' + X(loV) + '" y1="' + Y + '" x2="' + X(hiV) + '" y2="' + Y + '" stroke="rgba(118,158,205,.18)" stroke-width="1.5" stroke-linecap="round"/>');
+    // strefa straty (od stopu do zera)
+    g.push('<line x1="' + X(-1) + '" y1="' + Y + '" x2="' + X(0) + '" y2="' + Y + '" stroke="rgba(255,90,90,.22)" stroke-width="5" stroke-linecap="round"/>');
+    if (ach > 0) {
+      const gr = grossR !== null ? grossR : ach;
+      // brutto: dokad doszedl rynek
+      g.push('<line x1="' + X(0) + '" y1="' + Y + '" x2="' + X(gr) + '" y2="' + Y + '" stroke="rgba(200,220,240,.26)" stroke-width="7" stroke-linecap="round"/>');
+      // netto: co zostalo
+      g.push('<line x1="' + X(0) + '" y1="' + Y + '" x2="' + X(ach) + '" y2="' + Y + '" stroke="var(--green)" stroke-width="7" stroke-linecap="round"/>');
+    } else {
+      g.push('<line x1="' + X(Math.min(0, ach)) + '" y1="' + Y + '" x2="' + X(0) + '" y2="' + Y + '" stroke="var(--red)" stroke-width="7" stroke-linecap="round"/>');
     }
-    card = '<div class="ocd">'
-      + '<div class="ocd-h">KARTA POZYCJI <i>· z giełdy</i></div>'
-      + '<div class="ocd-g">'
-      +   row('Ilość', n(B.qty, B.qty != null && B.qty >= 1000 ? 1 : 3))
-      +   row('Cena wejścia', n(B.entry, B.entry != null && B.entry >= 100 ? 1 : 4))
-      +   row('Cena wyjścia', n(B.exit, B.exit != null && B.exit >= 100 ? 1 : 4))
-      + '</div>'
-      + '<div class="ocd-g">'
-      +   row('Wolumen otwarcia', n(B.volOpen, 2) + ' $')
-      +   row('Wolumen zamknięcia', n(B.volClose, 2) + ' $')
-      + '</div>'
-      + '<div class="ocd-g">'
-      +   row('Prowizja otwarcia', n(B.feeOpen, 8) + ' $')
-      +   row('Prowizja zamknięcia', n(B.feeClose, 8) + ' $')
-      +   row('Funding', n(B.feeFund, 8) + ' $')
-      +   (fees !== null ? row('Razem', '−' + n(fees, 4) + ' $', 'sum') : '')
-      + '</div>'
-      + '<div class="ocd-g">'
-      +   row('Otwarcie', tm(B.openTime))
-      +   row('Zamknięcie', tm(B.closeTime))
-      +   (dur ? row('Czas w rynku', dur) : '')
-      + '</div>'
+    // znaczniki pionowe
+    const tick = (v, col, dash) => '<line x1="' + X(v) + '" y1="' + (Y - 13) + '" x2="' + X(v) + '" y2="' + (Y + 13) + '" stroke="' + col + '" stroke-width="1.5"' + (dash ? ' stroke-dasharray="2 3"' : '') + '/>';
+    g.push(tick(-1, 'rgba(255,90,90,.75)', false));
+    g.push(tick(0, 'rgba(200,220,240,.5)', false));
+    if (plan !== null) g.push(tick(plan, 'var(--cyan)', true));
+    // kropka wyniku
+    g.push('<circle cx="' + X(ach) + '" cy="' + Y + '" r="5.5" fill="' + (ach >= 0 ? 'var(--green)' : 'var(--red)') + '" stroke="#0b111c" stroke-width="2"/>');
+    // podpisy
+    const lab = (v, txt, col, below, anchor) =>
+      '<text x="' + X(v) + '" y="' + (below ? Y + 27 : Y - 20) + '" fill="' + col + '" font-size="7.5" letter-spacing=".8" text-anchor="' + (anchor || 'middle') + '" font-family="Share Tech Mono, monospace">' + txt + '</text>';
+    g.push(lab(-1, 'STOP', 'rgba(255,90,90,.75)', true));
+    g.push(lab(0, 'WEJŚCIE', 'rgba(200,220,240,.45)', true));
+    if (plan !== null) g.push(lab(plan, 'CEL ' + plan.toFixed(2) + 'R', 'var(--cyan)', true, X(plan) > W - 50 ? 'end' : 'middle'));
+    g.push('<text x="' + X(ach) + '" y="' + (Y - 20) + '" fill="' + (ach >= 0 ? 'var(--green)' : 'var(--red)') + '" font-size="13" font-weight="800" text-anchor="middle" font-family="Orbitron, monospace">' + (ach >= 0 ? '+' : '') + ach.toFixed(2) + 'R</text>');
+    if (grossR !== null && ach > 0 && Math.abs(grossR - ach) > 0.08)
+      g.push('<text x="' + X(grossR) + '" y="' + (Y + 27) + '" fill="rgba(200,220,240,.42)" font-size="7" text-anchor="middle" font-family="Share Tech Mono, monospace">brutto ' + grossR.toFixed(2) + 'R</text>');
+
+    axis = '<svg class="orm-axis" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Pozycja na skali R">' + g.join('') + '</svg>';
+  }
+
+  // ══ PRZEPŁYW PIENIĘDZY ═════════════════════════════════════
+  let flow = '';
+  if (fees !== null) {
+    const brutto = pnl + fees;
+    flow = '<div class="orm-flow">'
+      + '<div class="ofl"><span>BRUTTO</span><b>' + sg(brutto) + '$</b></div>'
+      + '<i class="ofl-op">−</i>'
+      + '<div class="ofl"><span>PROWIZJE</span><b class="fee">' + fees.toFixed(2) + '$</b></div>'
+      + '<i class="ofl-op">=</i>'
+      + '<div class="ofl hi"><span>NETTO</span><b style="color:' + (pnl >= 0 ? 'var(--green)' : 'var(--red)') + '">' + sg(pnl) + '$</b></div>'
       + '</div>';
   }
 
+  // ══ FAKTY ══════════════════════════════════════════════════
+  let facts = '';
+  if (B) {
+    let dur = '';
+    if (B.openTime && B.closeTime) {
+      const m = Math.round((new Date(B.closeTime.replace(' ', 'T')) - new Date(B.openTime.replace(' ', 'T'))) / 60000);
+      if (isFinite(m) && m >= 0) dur = m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm';
+    }
+    const dp = v => (v == null ? 0 : (v >= 100 ? 1 : 4));
+    const move = (B.entry != null && B.exit != null)
+      ? '<b>' + nf(B.entry, dp(B.entry)) + '</b> <em>→</em> <b>' + nf(B.exit, dp(B.exit)) + '</b>' : '—';
+    const movePct = (B.entry && B.exit) ? ((B.exit - B.entry) / B.entry * 100) : null;
+    const hm = s => String(s || '').slice(11, 19) || '—';
+    // V250: jeden odczyt zamiast siatki kafelkow. Wolumen zniknal —
+    // sluzy do liczenia brutto, na ekranie nie mowil nic nowego.
+    const row = (l, v) => '<div class="r"><i>' + l + '</i><span>' + v + '</span></div>';
+    const rows = [];
+    rows.push(row('cena', move + (movePct !== null ? ' &nbsp;<u>' + (movePct >= 0 ? '+' : '') + movePct.toFixed(2) + '%</u>' : '')));
+    rows.push(row('ilość', '<b>' + nf(B.qty, B.qty != null && B.qty >= 1000 ? 1 : 3) + '</b>'
+      + (t.token ? ' <em>' + opzEsc(t.token) + '</em>' : '')));
+    rows.push(row('czas', '<b>' + hm(B.openTime) + '</b> <em>→</em> <b>' + hm(B.closeTime) + '</b>'
+      + (dur ? ' &nbsp;<u>' + dur + '</u>' : '')));
+    if (B.feeOpen != null || B.feeClose != null)
+      rows.push(row('prowizje', '<em>otw.</em> <b>' + nf(B.feeOpen, 4) + '</b> <em>· zamk.</em> <b>' + nf(B.feeClose, 4) + '</b>'
+        + (B.feeFund != null ? ' <em>· fund.</em> <b>' + nf(B.feeFund, 4) + '</b>' : '')));
+    facts = '<div class="orm-term">' + rows.join('') + '</div>';
+  } else {
+    facts = '<div class="orm-facts-miss">'
+      + '<span>Karta z giełdy niedostępna — pozycja zamknięta przed wprowadzeniem zapisu.</span>'
+      + '<button class="by-btn" onclick="byAttach(' + t.id + ')" type="button">📷 DOPNIJ ZE SCREENA</button>'
+      + '<input type="file" id="ocdFile_' + t.id + '" accept="image/*" hidden onchange="byAttachFile(' + t.id + ', this.files&&this.files[0])">'
+      + '<div class="ocd-stat" id="ocdStat_' + t.id + '" hidden></div>'
+      + '</div>';
+  }
+
+  // ══ WERDYKT ════════════════════════════════════════════════
+  let verdict = '', vColor = 'var(--dim2)';
+  if (plan !== null && ach !== null) {
+    const base = (grossR !== null ? grossR : ach);
+    if (ach >= plan - 0.02) { verdict = 'PLAN WYKONANY' + (ach - plan > 0.05 ? ' Z NAWIĄZKĄ' : ''); vColor = 'var(--green)'; }
+    else if (ach > 0) { verdict = 'ZAMKNIĘTE PRZED CELEM · ' + Math.round(base / plan * 100) + '% planu'; vColor = 'var(--gold)'; }
+    else if (ach <= -0.9 && !dcIsSlip(ach)) { verdict = (ach >= -1.08) ? 'STOP WG PLANU' : 'STOP WG PLANU + KOSZTY — w normie'; vColor = 'var(--cyan)'; }
+    else if (dcIsSlip(ach)) { verdict = 'PRZEKROCZONY STOP · KRD ' + dcSlipName(dcSlipTier(ach)) + ' · ' + ach.toFixed(2) + 'R'; vColor = 'var(--red)'; }
+    else { verdict = 'STRATA UCIĘTA PRZED PEŁNYM STOPEM'; vColor = 'var(--text2)'; }
+  } else verdict = 'transakcja sprzed v111 — plan RRR nie był zapisywany';
+
   modal.innerHTML = '<div class="orm-box">'
-    + '<div class="orm-head"><span>' + opzEsc(t.token) + ' · ' + opzEsc(t.dir) + '</span><span class="orm-x" onclick="document.getElementById(\'opzRealModal\').classList.remove(\'open\')">✕</span></div>'
-    + '<div class="orm-meta">' + opzEsc(t.time || '') + (t.opzDuration != null ? ' · ' + opzFormatTimer(t.opzDuration * 60000) + ' na rynku' : '') + (t.label ? ' · ' + opzEsc(t.label) : '') + '</div>'
-    + rows
+    + '<div class="orm-head"><span>' + opzEsc(t.token) + '</span>'
+    +   '<em class="orm-dir ' + (String(t.dir).toUpperCase() === 'LONG' ? 'l' : 's') + '">' + opzEsc(t.dir) + '</em>'
+    +   '<span class="orm-x" onclick="document.getElementById(\'opzRealModal\').classList.remove(\'open\')">✕</span></div>'
+    + '<div class="orm-meta">' + opzEsc(t.time || '') + (t.label ? ' · ' + opzEsc(t.label) : '')
+    +   (risk ? ' · ryzyko ' + risk.toFixed(2) + '$' : '') + '</div>'
+    + axis
     + '<div class="orm-verdict" style="color:' + vColor + ';border-color:' + vColor + '">' + verdict + '</div>'
-    + card
+    + flow
+    + facts
     + '</div>';
   modal.classList.add('open');
 }
