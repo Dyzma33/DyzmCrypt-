@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v258 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v259 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v258 · EXECUTION OS</div>
+    <div class="splash-ver">v259 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v258</div>
+      <div class="sb-logo-sub">EXECUTION OS · v259</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v258';
+window.DC_VERSION = 'v259';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17753,6 +17753,38 @@ function byParse(labTxt, rawTxt) {
         }
       });
     });
+    // V259: SILNIK GUBI KROPKE DZIESIETNA.
+    // Zrzut z urzadzenia pokazal, ze Tesseract czyta czerwone "-4.1405"
+    // jako "-41405" — kropka znika calkowicie (nie zamienia sie w przecinek).
+    // Liczba bez zadnego separatora, ktora po wstawieniu kropki trafia w
+    // rachunek z dokladnoscia do 1%, to prawie na pewno ten sam wynik.
+    // Druga proba, tylko gdy pierwsza zawiodla, i tylko dla liczb calkowitych.
+    // Przy wyniku bliskim zera prog 0.02 jest szerszy niz sam wynik i
+    // KAZDA liczba calkowita podzielona przez milion w niego wpada.
+    // Dlatego odtwarzanie dziala tylko dla sensownych kwot i wylacznie
+    // z progiem wzglednym — bez podlogi 0.02.
+    const tolR = Math.abs(exp) * 0.01;
+    if (best === null && Math.abs(exp) >= 0.10) {
+      (lab.concat(raw)).forEach(function (l) {
+        const toks = String(l).match(/-?\d+(?:[.,]\d+)?/g) || [];
+        toks.forEach(function (tok) {
+          if (/[.,]/.test(tok)) return;             // ta miala separator — nie zgubila go
+          const n = parseFloat(tok);
+          if (!isFinite(n) || !Number.isInteger(n)) return;
+          for (let k = 1; k <= 6; k++) {
+            const v = n / Math.pow(10, k);
+            if (isFee(v)) continue;
+            const dAbs = Math.abs(Math.abs(v) - Math.abs(exp));
+            if (dAbs <= tolR && dAbs < bestD) {
+              bestD = dAbs;
+              best = (exp < 0) ? -Math.abs(v) : Math.abs(v);
+            }
+          }
+        });
+      });
+      if (best !== null) d.notes.push('kropka dziesiętna odtworzona z rachunku');
+    }
+
     d.pnl = best; d.expect = +exp.toFixed(4);
   }
 
