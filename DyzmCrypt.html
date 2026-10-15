@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v257 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v258 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v257 · EXECUTION OS</div>
+    <div class="splash-ver">v258 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v257</div>
+      <div class="sb-logo-sub">EXECUTION OS · v258</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v257';
+window.DC_VERSION = 'v258';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17734,9 +17734,17 @@ function byParse(labTxt, rawTxt) {
     // z wolumenow i prowizji — karta ma tylko potwierdzic wielkosc. Gdy OCR
     // zgubi minus przy czerwonej liczbie, zgodnosc co do grosza nadal liczy
     // sie jako potwierdzenie, a znak bierzemy z rachunku, nie z obrazka.
+    // V258: Tesseract czyta kropke dziesietna raz jako ".", raz jako ",".
+    // byNums traktuje przecinek jako separator tysiecy, wiec "-4,1405"
+    // staje sie -41405 i wynik przepada. Przy szukaniu wyniku bierzemy
+    // OBIE interpretacje — to tylko kandydaci, rachunek i tak rozstrzyga.
+    const altNums = function (l) {
+      if (String(l).indexOf(',') < 0) return [];
+      return byNums(String(l).replace(/,/g, '.'));
+    };
     let best = null, bestD = Infinity;
     (lab.concat(raw)).forEach(l => {
-      byNums(l).forEach(v => {
+      byNums(l).concat(altNums(l)).forEach(v => {
         if (isFee(v)) return;
         const dAbs = Math.abs(Math.abs(v) - Math.abs(exp));
         if (dAbs <= tol && dAbs < bestD) {
@@ -18636,7 +18644,7 @@ function opzRenderPositions() {
           <div class="opz-rr-gain" style="width:${100 - riskPct}%"></div>
         </div>
         <div class="opz-grid">
-          <div class="opz-cell"><div class="opz-cell-label">WEJŚCIE</div><div class="opz-cell-val gold">${p.entry.toLocaleString()}$</div></div>
+          <div class="opz-cell"><div class="opz-cell-label">WEJŚCIE</div><div class="opz-cell-val gold">${opzPx(p.entry)}$</div></div>
           <div class="opz-cell"><div class="opz-cell-label">RYZYKO</div><div class="opz-cell-val red">−${risk}$</div></div>
           ${(function(){
             // V198 FIX: kafel pokazywał ZASIĘG setupu (12.73R = 42.39$), a przy
@@ -18792,7 +18800,7 @@ function opzOpenCloseModal(id) {
   opzClosingId = id;
   const pos = opzPositions.find(p => p.id === id);
   if (!pos) return;
-  document.getElementById('opzCloseInfo').textContent = `${pos.token} · ${pos.dir} · wejście ${pos.entry.toLocaleString()}$ · ryzyko ${pos.risk}$`;
+  document.getElementById('opzCloseInfo').textContent = `${pos.token} · ${pos.dir} · wejście ${opzPx(pos.entry)}$ · ryzyko ${pos.risk}$`;
   document.getElementById('opzClosePrice').value = '';
   document.getElementById('opzCloseResult').value = '';
   // V241: wyczysc odczyt z poprzedniego zamkniecia
@@ -18928,6 +18936,20 @@ function opzConfirmEdit(id) {
 }
 
 // ── ZAMKNIJ POZYCJĘ + integracja z Journalem (Tactical Review) ──
+// V258: toLocaleString() domyslnie tnie do 3 miejsc po przecinku, wiec
+// cena wejscia 0.12971 pokazywala sie jako "0,13". Wartosc w danych byla
+// caly czas pelna, ale na karcie nie dalo sie odroznic dwoch pozycji
+// roznigcych sie na czwartym miejscu. Grosze przy BTC, cala tozsamosc
+// pozycji przy tanich instrumentach.
+function opzPx(v) {
+  const n = parseFloat(v);
+  if (!isFinite(n)) return '—';
+  const a = Math.abs(n);
+  const dp = a >= 1000 ? 2 : (a >= 1 ? 4 : 8);
+  return n.toLocaleString('pl-PL', { minimumFractionDigits: 0, maximumFractionDigits: dp });
+}
+window.opzPx = opzPx;
+
 function opzConfirmClose() {
   const result = parseFloat(document.getElementById('opzCloseResult').value);
   const closeTime = document.getElementById('opzCloseTime').value;
