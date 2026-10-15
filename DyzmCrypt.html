@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v255 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v256 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v255 · EXECUTION OS</div>
+    <div class="splash-ver">v256 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v255</div>
+      <div class="sb-logo-sub">EXECUTION OS · v256</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v255';
+window.DC_VERSION = 'v256';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17714,10 +17714,21 @@ function byParse(labTxt, rawTxt) {
   // wynik: liczony, potem szukany w odczycie
   if (Number.isFinite(d.gross) && Number.isFinite(d.fees)) {
     const exp = d.gross - d.fees, tol = Math.max(0.02, Math.abs(exp) * 0.01);
+    // V256: NIE pomijamy juz calych linii ze slowem "usdt".
+    // Ten filtr mial chronic przed wzieciem prowizji za wynik, ale karta
+    // Bybita trzyma wynik w naglowku "Closed P&L(USDT)" — przy trybie
+    // jednego bloku Tesseract sklejal etykiete z liczba i cala linia
+    // wypadala. Czytalo sie wszystko poza jedna rzecza: wynikiem.
+    // Teraz odrzucamy nie linie, tylko KONKRETNE liczby bedace prowizjami.
+    const feeVals = [d.feeOpen, d.feeClose, d.feeFund]
+      .filter(function (v) { return Number.isFinite(v); });
+    const isFee = function (v) {
+      return feeVals.some(function (f) { return Math.abs(v - f) < 1e-6; });
+    };
     let best = null;
     (lab.concat(raw)).forEach(l => {
-      if (l.toLowerCase().indexOf('usdt') !== -1) return;
       byNums(l).forEach(v => {
+        if (isFee(v)) return;
         if (Math.abs(v - exp) <= tol && (best === null || Math.abs(v - exp) < Math.abs(best - exp))) best = v;
       });
     });
@@ -19058,8 +19069,27 @@ window.obClose = obClose;
 
 // ── DOPASOWANIE ───────────────────────────────────────────────
 // Zwraca { state, posId, why, cands }.
+// V256: nazwij KONKRETNY brak. "Odczyt niepewny" nie mowi nic i kazdy
+// blad wyglada tak samo — przy pojedynczym zamykaniu ta informacja jest
+// od V242, w partii jej zabraklo i diagnoza zajela pol godziny.
+function obWhyBad(d) {
+  if (!d) return 'brak odczytu';
+  const miss = [];
+  if (d.token == null) miss.push('instrument');
+  if (d.dir == null) miss.push('kierunek');
+  if (d.qty == null) miss.push('ilość');
+  if (d.entry == null) miss.push('cena wejścia');
+  if (d.exit == null) miss.push('cena wyjścia');
+  if (d.fees == null) miss.push('prowizje');
+  if (miss.length) return 'nie odczytano: ' + miss.join(', ');
+  if (d.priceOk === false) return 'ceny nie zgadzają się z wolumenem';
+  if (d.pnl == null && Number.isFinite(d.expect))
+    return 'wynik z rachunku (' + Number(d.expect).toFixed(4) + ') nie zgadza się z żadną liczbą na karcie';
+  return 'rachunek się nie domyka';
+}
+
 function obMatch(d) {
-  if (!d || !d.ok) return { state: 'no', why: 'odczyt niepewny — zamknij tę pozycję ręcznie' };
+  if (!d || !d.ok) return { state: 'no', why: obWhyBad(d) + ' — zamknij tę pozycję ręcznie' };
   const tok = String(d.token || '').toUpperCase();
   const dir = String(d.dir || '').toUpperCase();
 
