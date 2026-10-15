@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v256 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v257 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v256 · EXECUTION OS</div>
+    <div class="splash-ver">v257 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v256</div>
+      <div class="sb-logo-sub">EXECUTION OS · v257</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v256';
+window.DC_VERSION = 'v257';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17584,7 +17584,12 @@ let _byBusy = false, _byLast = null;
 
 function byNums(s) {
   const out = [];
-  (String(s).replace(/\//g, '7').match(/-?\d[\d,]*\.?\d*/g) || [])
+  // V257: minus przed liczba bywa odczytany jako U+2212, polpauza, pauza
+  // albo tylda — Bybit rysuje go cienka czerwona kreska. Bez tego
+  // "-4.1405" wchodzilo do rachunku jako 4.1405 i wynik nie pasowal.
+  const norm = String(s).replace(/\//g, '7')
+    .replace(/[\u2212\u2013\u2014\u2012\u02dc~]\s*(?=\d)/g, '-');
+  (norm.match(/-?\d[\d,]*\.?\d*/g) || [])
     .forEach(x => { const v = parseFloat(x.replace(/,/g, '')); if (!isNaN(v)) out.push(v); });
   return out;
 }
@@ -17725,11 +17730,19 @@ function byParse(labTxt, rawTxt) {
     const isFee = function (v) {
       return feeVals.some(function (f) { return Math.abs(v - f) < 1e-6; });
     };
-    let best = null;
+    // V257: szukamy WARTOSCI BEZWZGLEDNEJ. Znak wyniku jest juz policzony
+    // z wolumenow i prowizji — karta ma tylko potwierdzic wielkosc. Gdy OCR
+    // zgubi minus przy czerwonej liczbie, zgodnosc co do grosza nadal liczy
+    // sie jako potwierdzenie, a znak bierzemy z rachunku, nie z obrazka.
+    let best = null, bestD = Infinity;
     (lab.concat(raw)).forEach(l => {
       byNums(l).forEach(v => {
         if (isFee(v)) return;
-        if (Math.abs(v - exp) <= tol && (best === null || Math.abs(v - exp) < Math.abs(best - exp))) best = v;
+        const dAbs = Math.abs(Math.abs(v) - Math.abs(exp));
+        if (dAbs <= tol && dAbs < bestD) {
+          bestD = dAbs;
+          best = (exp < 0) ? -Math.abs(v) : Math.abs(v);
+        }
       });
     });
     d.pnl = best; d.expect = +exp.toFixed(4);
@@ -19191,6 +19204,21 @@ function obPick(key, posId) {
 }
 window.obPick = obPick;
 
+function obPeek(key) {
+  const it = _obItems.find(function (x) { return x.key === key; });
+  const el = document.getElementById('obDump' + key);
+  if (!it || !el || !it.d) return;
+  if (!el.hidden) { el.hidden = true; return; }
+  el.textContent = '── SILNIK ' + (typeof DC_VERSION !== 'undefined' ? DC_VERSION : '?') + ' ──\n'
+    + '\n── ETYKIETY ──\n' + ((it.d._lab || []).join('\n'))
+    + '\n\n── CYFRY ──\n' + ((it.d._raw || []).join('\n'))
+    + '\n\n── RACHUNEK ──\n'
+    + 'brutto ' + it.d.gross + ' (' + it.d.src + ') − prowizje ' + it.d.fees
+    + ' = ' + it.d.expect + '  · znaleziony wynik: ' + it.d.pnl;
+  el.hidden = false;
+}
+window.obPeek = obPeek;
+
 function obToggle(key) {
   const it = _obItems.find(function (x) { return x.key === key; });
   if (!it || it.state !== 'ok') return;
@@ -19227,6 +19255,11 @@ function obRender() {
 
     let why = esc(it.why);
     if (pos) why = 'pozycja <u>#' + pos.id + '</u> · ' + why;
+    // V257: podglad surowego odczytu przy kazdym nieudanym wierszu.
+    // Bez tego przyczyne zgaduje sie z objawu — a objaw jest zawsze ten sam.
+    if (it.state !== 'ok' && it.d && (it.d._lab || it.d._raw))
+      why += ' <span class="ob-peek" onclick="obPeek(' + it.key + ')">▸ co odczytał silnik</span>'
+           + '<pre class="ob-dump" id="obDump' + it.key + '" hidden></pre>';
 
     let pick = '';
     if (it.state === 'amb' && it.cands && it.cands.length) {
@@ -38109,6 +38142,12 @@ body.dc-phone #panel-bieganie .rn-hclock{font-size:10px;}
   border:1px solid rgba(118,158,205,.22);color:var(--dim2);background:transparent;}
 .ob-btn.go{border-color:var(--green);color:var(--green);background:rgba(0,232,122,.08);flex:2;}
 .ob-btn.go:disabled{border-color:rgba(118,158,205,.2);color:var(--dim);background:transparent;cursor:default;}
+.ob-peek{display:inline-block;margin-top:4px;color:var(--cyan);cursor:pointer;
+  border-bottom:1px dotted rgba(0,200,240,.4);}
+.ob-dump{margin-top:7px;padding:9px;border-radius:7px;background:rgba(0,0,0,.45);
+  border:1px solid rgba(118,158,205,.14);font-family:'Share Tech Mono',monospace;
+  font-size:8px;line-height:1.55;color:rgba(200,220,240,.7);
+  white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto;}
 .ob-warn{margin-top:11px;font-family:'Share Tech Mono',monospace;font-size:8.5px;
   color:rgba(255,159,64,.9);line-height:1.7;}
 body.dc-phone .ob-l1{font-size:12px !important;}
