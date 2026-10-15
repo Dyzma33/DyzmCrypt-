@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v259 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v261 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v259 · EXECUTION OS</div>
+    <div class="splash-ver">v261 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v259</div>
+      <div class="sb-logo-sub">EXECUTION OS · v261</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v259';
+window.DC_VERSION = 'v261';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17355,6 +17355,16 @@ body.dc-phone .sbd-g{grid-template-columns:repeat(auto-fill,minmax(136px,1fr));}
 .ormt-del:hover{color:var(--red);border-color:rgba(255,90,90,.5);background:rgba(255,90,90,.07);}
 body.dc-phone .ormt-note{font-size:11.5px !important;}
 
+/* V260 — wiersz poziomu jest klikalny, a cel skoku musi dac sie znalezc
+   wzrokiem: samo przewiniecie na srodek gubi sie w dlugiej liscie. */
+.lvl-trade-row.lvl-trade-go{cursor:pointer;transition:background .15s;}
+.lvl-trade-row.lvl-trade-go:hover{background:rgba(255,255,255,.04);}
+.tcard.lvl-jump{animation:lvlJump 1.8s ease-out;}
+@keyframes lvlJump{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,196,0,0);}
+  15%{box-shadow:0 0 0 2px rgba(255,196,0,.55);}
+  60%{box-shadow:0 0 0 2px rgba(255,196,0,.35);}
+}
 .ocd-stat{margin-top:8px;font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:1px;color:var(--dim2);}
 .ocd-stat.ok{color:var(--green);} .ocd-stat.bad{color:var(--red);}
 
@@ -17668,14 +17678,48 @@ function byParse(labTxt, rawTxt) {
   }
   // prowizja od strony to ułamek nominału — odsiej liczby, które nią nie są
   const notion = Math.max(d.volOpen || 0, d.volClose || 0);
-  fees = fees.filter(v => Number.isFinite(v));
+
+  // V261: TA SAMA ZGUBIONA KROPKA, CO W WYNIKU — tylko w prowizjach.
+  // "1.10222695" czyta sie jako "110222695"; filtr ponizej uznawal to za
+  // absurdalnie wysoka prowizje i wyrzucal OBIE, a karta przepadala przez
+  // "nie odczytano: prowizje". Skala prowizji jest znana: ulamek nominalu,
+  // wiec dzielimy przez 10 az wartosc wroci do sensownego pasma.
+  // Pasmo musi byc WASKIE. Przy 1% gorna granica zarowno 11,02 jak i 1,10
+  // "miescily sie" i ratunek zatrzymywal sie o jedno miejsce za wczesnie,
+  // dajac prowizje 10x za duza. Stawka Bybita to 0,02% (maker) do 0,055%
+  // (taker) od strony, wiec szukamy skalowania, ktore trafia w to pasmo.
+  const FEE_LO = 0.0001, FEE_HI = 0.0015, FEE_MID = 0.00040;
+  const feeFix = function (v) {
+    if (!Number.isFinite(v) || notion <= 0) return v;
+    if (v === 0) return 0;
+    if (Math.abs(v) <= notion * 0.01) return v;   // juz sensowna — nie ruszamy
+    let best = null, bestD = Infinity, x = Math.abs(v);
+    for (let k = 1; k <= 10; k++) {
+      x = x / 10;
+      const r = x / notion;
+      if (r >= FEE_LO && r <= FEE_HI) {
+        const dd = Math.abs(r - FEE_MID);
+        if (dd < bestD) { bestD = dd; best = x; }
+      }
+    }
+    if (best === null) return v;                  // nie da sie — niech odsieje filtr
+    return (v < 0 ? -best : best);
+  };
+
+  fees = fees.filter(v => Number.isFinite(v)).map(feeFix);
   if (notion > 0) fees = fees.filter(v => Math.abs(v) < notion * 0.01);
   d.fees = fees.length >= 2 ? +fees.reduce((a, b) => a + b, 0).toFixed(8) : null;
   d.feeParts = fees;
   // V247: trzy prowizje osobno — karta Bybita pokazuje je rozdzielnie
-  d.feeOpen  = byLabel(lab, 'opening fee');
-  d.feeClose = byLabel(lab, 'closing fee');
-  d.feeFund  = byLabel(lab, 'funding fee');
+  d.feeOpen  = feeFix(byLabel(lab, 'opening fee'));
+  d.feeClose = feeFix(byLabel(lab, 'closing fee'));
+  d.feeFund  = feeFix(byLabel(lab, 'funding fee'));
+  // jesli ktorakolwiek wymagala ratunku, powiedz to wprost na karcie
+  if ([d.feeOpen, d.feeClose].some(function (v) { return Number.isFinite(v); })
+      && notion > 0
+      && [byLabel(lab, 'opening fee'), byLabel(lab, 'closing fee')]
+           .some(function (v) { return Number.isFinite(v) && Math.abs(v) > notion * 0.01; }))
+    d.notes.push('kropka w prowizjach odtworzona');
   if (!Number.isFinite(d.feeOpen))  d.feeOpen  = null;
   if (!Number.isFinite(d.feeClose)) d.feeClose = null;
   if (!Number.isFinite(d.feeFund))  d.feeFund  = null;
@@ -21508,7 +21552,9 @@ function renderLvlModal() {
     const isLong = dirUp === 'LONG';
     const dirCls = isLong ? 'long' : (dirUp === 'SHORT' ? 'short' : 'none');
     const dirLabel = dirUp || '—';
-    return `<div class="lvl-trade-row">
+    // V260: wiersz prowadzi do miejsca, gdzie ta transakcja faktycznie lezy —
+    // dzisiejsza do Dziennika i rozwija ja, starsza do raportu dnia w Archiwum.
+    return `<div class="lvl-trade-row lvl-trade-go" onclick="lvlGoToTrade(${t.id}, '${t._day || ''}', ${t._today ? 'true' : 'false'})" title="Pokaż tę transakcję">
       <div>${t.token}</div>
       <div class="ltr-dir ${dirCls}">${dirLabel}</div>
       <div class="ltr-pnl ${pnlCls}">${pnlStr}</div>
@@ -21518,6 +21564,45 @@ function renderLvlModal() {
     </div>`;
   }).join('');
 }
+
+// ══ V260 · Z POZIOMU DO TRANSAKCJI ══════════════════════════
+// Lista w "Postep do awansu" pokazywala transakcje, ale konczyla sie
+// slepo — zeby zobaczyc szczegoly, trzeba bylo szukac tego samego
+// wpisu recznie w Dzienniku albo w Archiwum. Teraz wiersz tam prowadzi.
+function lvlGoToTrade(id, day, isToday) {
+  if (typeof closeLvlModal === 'function') closeLvlModal();
+
+  const today = (typeof dcDayStr === 'function') ? dcDayStr() : '';
+  const sameDay = isToday || !day || day === today;
+
+  if (sameDay) {
+    if (typeof navTo === 'function')
+      navTo('journal', document.querySelector('.sb-item[onclick*="journal"]'));
+    // Dziennik rysuje sie po przelaczeniu panelu, wiec czekamy na wiersz,
+    // zamiast zgadywac stale opoznienie.
+    let tries = 0;
+    const tick = function () {
+      const card = document.getElementById('tcard-' + id);
+      if (!card) { if (++tries < 40) return setTimeout(tick, 60); return; }
+      if (typeof jToggleTrade === 'function' && !card.classList.contains('expanded'))
+        jToggleTrade(id);
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('lvl-jump');
+      setTimeout(function () { card.classList.remove('lvl-jump'); }, 1800);
+    };
+    setTimeout(tick, 80);
+    return;
+  }
+
+  // starszy dzien => raport dnia w Archiwum
+  if (typeof navTo === 'function')
+    navTo('archiwum', document.querySelector('.sb-item[onclick*="archiwum"]'));
+  setTimeout(function () {
+    if (typeof arcOpenReport === 'function') arcOpenReport(day);
+    else if (typeof dcToast === 'function') dcToast('Nie udało się otworzyć raportu dnia', 'toast-red');
+  }, 260);
+}
+window.lvlGoToTrade = lvlGoToTrade;
 
 // ── SURPLUS CALCULATOR ──
 const surplusKeys = {
