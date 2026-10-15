@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v254 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v255 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v254 · EXECUTION OS</div>
+    <div class="splash-ver">v255 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v254</div>
+      <div class="sb-logo-sub">EXECUTION OS · v255</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v254';
+window.DC_VERSION = 'v255';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17448,7 +17448,10 @@ body.dc-phone .orm-term .r > i{flex-basis:80px !important;}
   <!-- V105: RISK DESK — agregaty otwartego portfela -->
   <div class="opz-desk" id="opzDesk" style="display:none;"></div>
   <div id="opzList"></div>
-  <button class="opz-add-btn" onclick="opzOpenAddModal()">+ OTWÓRZ NOWĄ POZYCJĘ</button>
+  <div class="opz-btn-row">
+    <button class="opz-add-btn" onclick="opzOpenAddModal()">+ OTWÓRZ NOWĄ POZYCJĘ</button>
+    <button class="opz-batch-btn" id="obOpenBtn" onclick="obOpen()">📷 ZAMKNIJ ZE SCREENÓW</button>
+  </div>
 
   <div class="at-gt">HISTORIA DZISIAJ (Z TEGO MODUŁU)</div>
   <div id="opzHistList"></div>
@@ -17765,6 +17768,30 @@ function bySay(html, cls) {
   r.hidden = false; r.className = 'by-result' + (cls ? ' ' + cls : ''); r.innerHTML = html;
 }
 function byFmt(v, dp) { return v == null ? '—' : Number(v).toFixed(dp == null ? 4 : dp); }
+
+// V255: sam odczyt, bez UI. Partia i pojedyncze zamykanie musza isc
+// tym samym parserem — inaczej jedno z nich po cichu odjedzie.
+async function byReadFile(file) {
+  if (!file) return null;
+  if (!BY_CDN_OK()) throw new Error('silnik niedostepny');
+  const img = await new Promise(function (res, rej) {
+    const i = new Image(), u = URL.createObjectURL(file);
+    i.onload = function () { URL.revokeObjectURL(u); res(i); };
+    i.onerror = function () { URL.revokeObjectURL(u); rej(new Error('obraz')); };
+    i.src = u;
+  });
+  const plain = document.createElement('canvas');
+  plain.width = img.width; plain.height = img.height;
+  plain.getContext('2d').drawImage(img, 0, 0);
+  const worker = await Tesseract.createWorker('eng');
+  try {
+    await worker.setParameters({ tessedit_pageseg_mode: '6' });
+    const raw = (await worker.recognize(plain)).data.text;
+    const lab = (await worker.recognize(byBoost(img))).data.text;
+    return byParse(lab, raw);
+  } finally { try { await worker.terminate(); } catch (_) {} }
+}
+window.byReadFile = byReadFile;
 
 async function byFromFile(file) {
   if (!file || _byBusy) return;
@@ -18984,6 +19011,327 @@ document.querySelectorAll('.opz-modal-overlay').forEach(o => {
 
 // Init
 opzRenderPositions();
+</script>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  V255 · ZAMYKANIE PARTII ZE SCREENOW
+//
+//  Problem, ktory ten modul musi rozwiazac bezpiecznie: dwie otwarte
+//  pozycje na tym samym instrumencie i w tym samym kierunku (dwa BTC
+//  SHORT) sa nie do odroznienia po tokenie. Jedyne, co je rozdziela,
+//  to CENA WEJSCIA — karta Bybita ja niesie, pozycja ja pamieta.
+//
+//  Zasada: nic nie zamyka sie samo. Dopasowanie tylko proponuje,
+//  zamyka dopiero to, co uzytkownik odhaczy.
+// ══════════════════════════════════════════════════════════════
+
+let _obItems = [];          // { key, name, state, d, posId, why, cands, checked }
+let _obSeq = 0;
+let _obBusy = false;
+
+function obOpen() {
+  if (typeof opzPositions === 'undefined' || !opzPositions.length) {
+    if (typeof dcToast === 'function') dcToast('Brak otwartych pozycji', 'toast-gold');
+    return;
+  }
+  _obItems = [];
+  let ov = document.getElementById('obOv');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'obOv';
+    ov.onclick = function (e) { if (e.target === ov) obClose(); };
+    document.body.appendChild(ov);
+  }
+  ov.classList.add('open');
+  obRender();
+}
+window.obOpen = obOpen;
+
+function obClose() {
+  if (_obBusy) return;                       // nie zamykaj w trakcie czytania
+  const ov = document.getElementById('obOv');
+  if (ov) ov.classList.remove('open');
+  _obItems = [];
+}
+window.obClose = obClose;
+
+// ── DOPASOWANIE ───────────────────────────────────────────────
+// Zwraca { state, posId, why, cands }.
+function obMatch(d) {
+  if (!d || !d.ok) return { state: 'no', why: 'odczyt niepewny — zamknij tę pozycję ręcznie' };
+  const tok = String(d.token || '').toUpperCase();
+  const dir = String(d.dir || '').toUpperCase();
+
+  const all = opzPositions.filter(function (p) {
+    return String(p.token || '').toUpperCase() === tok
+        && String(p.dir || '').toUpperCase() === dir;
+  });
+  if (!all.length) return { state: 'no', why: 'nie ma otwartej pozycji ' + tok + ' ' + dir };
+
+  // pozycje juz przypisane w tej partii nie moga pojsc drugi raz
+  const taken = _obItems.filter(function (x) { return x.posId != null; })
+                        .map(function (x) { return x.posId; });
+  const free = all.filter(function (p) { return taken.indexOf(p.id) < 0; });
+  const pool = free.length ? free : all;
+
+  // ── CENA WEJSCIA ROZSTRZYGA ──
+  // Tolerancja 0.05%: karta i pozycja moga sie roznic zaokragleniem,
+  // ale dwie rozne pozycje na tym samym instrumencie — nie.
+  const TOL = 0.0005;
+  if (d.entry != null) {
+    const scored = pool.map(function (p) {
+      const e = parseFloat(p.entry);
+      const rel = (isFinite(e) && e !== 0) ? Math.abs(e - d.entry) / Math.abs(e) : Infinity;
+      return { p: p, rel: rel };
+    }).sort(function (a, b) { return a.rel - b.rel; });
+
+    const hits = scored.filter(function (x) { return x.rel <= TOL; });
+    if (hits.length === 1) {
+      return { state: 'ok', posId: hits[0].p.id,
+               why: 'po cenie wejścia (' + Number(d.entry).toFixed(d.entry >= 100 ? 1 : 4) + ')', cands: pool };
+    }
+    if (hits.length > 1) {
+      return { state: 'amb', why: 'kilka pozycji ma tę samą cenę wejścia — wskaż ręcznie', cands: pool };
+    }
+    // ZADNA sie nie zgadza. Nie wolno przyjac "zostala jedna, wiec pewnie ta" —
+    // to wlasnie tak zamyka sie zla pozycje cudzym wynikiem.
+    return { state: 'amb',
+             why: 'cena wejścia z karty (' + Number(d.entry).toFixed(d.entry >= 100 ? 1 : 4)
+                  + ') nie zgadza się z żadną otwartą ' + tok + ' ' + dir + ' — wskaż ręcznie',
+             cands: pool };
+  }
+
+  // ── BEZ CENY NA KARCIE ──
+  // Pewne tylko wtedy, gdy taka pozycja jest jedna jedyna. Zawezenie przez
+  // eliminacje nie wystarczy: nie wiadomo, czy to nie ten sam instrument
+  // zamkniety dwa razy tym samym screenem.
+  if (all.length === 1) {
+    return { state: 'ok', posId: all[0].id,
+             why: 'jedyna otwarta pozycja ' + tok + ' ' + dir, cands: all };
+  }
+  return { state: 'amb',
+           why: 'nie odczytano ceny wejścia, a pozycji ' + tok + ' ' + dir
+                + ' jest ' + all.length + ' — wskaż ręcznie', cands: pool };
+}
+
+// ── WCZYTYWANIE PLIKOW ────────────────────────────────────────
+async function obAddFiles(files) {
+  const list = Array.prototype.slice.call(files || []).filter(function (f) {
+    return f && f.type && f.type.indexOf('image') === 0;
+  });
+  if (!list.length) return;
+  if (typeof Tesseract === 'undefined') {
+    if (typeof dcToast === 'function') dcToast('✗ Silnik odczytu niedostępny', 'toast-red');
+    return;
+  }
+  _obBusy = true; obRender();
+  for (let i = 0; i < list.length; i++) {
+    const it = { key: ++_obSeq, name: list[i].name || ('screen ' + _obSeq),
+                 state: 'busy', d: null, posId: null, why: 'czytam…', cands: [], checked: false };
+    _obItems.push(it);
+    obRender();
+    try {
+      const d = await byReadFile(list[i]);
+      it.d = d;
+      const m = obMatch(d);
+      it.state = m.state; it.posId = m.posId != null ? m.posId : null;
+      it.why = m.why; it.cands = m.cands || [];
+      it.checked = (it.state === 'ok');          // pewne sa wstepnie odhaczone
+    } catch (e) {
+      console.error('[DYZMCRYPT] partia — odczyt nieudany:', e);
+      it.state = 'no'; it.why = 'odczyt nieudany — spróbuj screena pojedynczej karty';
+    }
+    obRender();
+  }
+  _obBusy = false; obRender();
+}
+window.obAddFiles = obAddFiles;
+
+function obPick(key, posId) {
+  const it = _obItems.find(function (x) { return x.key === key; });
+  if (!it) return;
+  if (posId === 0) { it.state = 'no'; it.posId = null; it.checked = false; it.why = 'pominięty'; }
+  else {
+    const p = opzPositions.find(function (x) { return x.id === posId; });
+    it.posId = posId; it.state = 'ok'; it.checked = true;
+    it.why = 'wskazane ręcznie' + (p && p.entry != null ? ' · wejście ' + p.entry : '');
+  }
+  obRender();
+}
+window.obPick = obPick;
+
+function obToggle(key) {
+  const it = _obItems.find(function (x) { return x.key === key; });
+  if (!it || it.state !== 'ok') return;
+  it.checked = !it.checked;
+  obRender();
+}
+window.obToggle = obToggle;
+
+// ── RYSOWANIE ─────────────────────────────────────────────────
+function obRender() {
+  const ov = document.getElementById('obOv');
+  if (!ov) return;
+  const openN = (typeof opzPositions !== 'undefined') ? opzPositions.length : 0;
+  const esc = function (x) { return String(x == null ? '' : x).replace(/</g, '&lt;'); };
+
+  let rows = '';
+  _obItems.forEach(function (it) {
+    const d = it.d || {};
+    const pos = it.posId != null ? opzPositions.find(function (p) { return p.id === it.posId; }) : null;
+
+    let chk;
+    if (it.state === 'ok') chk = '<span class="ob-chk ' + (it.checked ? 'on' : '')
+      + '" onclick="obToggle(' + it.key + ')">' + (it.checked ? '✓' : '') + '</span>';
+    else chk = '<span class="ob-chk off"></span>';
+
+    // BTC przy 4 miejscach po przecinku to "81067.6000" — nieczytelne.
+    // Ta sama zasada, co w oknie realizacji: duze ceny krocej.
+    const px = function (v) { return v == null ? '—' : Number(v).toFixed(v >= 100 ? 1 : 4); };
+    const head = d.token
+      ? '<b>' + esc(d.token) + '</b> <em>' + esc(d.dir || '') + '</em>'
+        + (d.entry != null ? ' &nbsp;' + px(d.entry) : '')
+        + (d.exit != null ? ' <em>→</em> ' + px(d.exit) : '')
+      : '<b>' + esc(it.name) + '</b>';
+
+    let why = esc(it.why);
+    if (pos) why = 'pozycja <u>#' + pos.id + '</u> · ' + why;
+
+    let pick = '';
+    if (it.state === 'amb' && it.cands && it.cands.length) {
+      pick = '<div class="ob-pick">' + it.cands.map(function (p) {
+        const hhmm = p.openedAt ? new Date(p.openedAt).toLocaleTimeString('pl-PL',
+          { hour: '2-digit', minute: '2-digit' }) : '—';
+        return '<span onclick="obPick(' + it.key + ',' + p.id + ')">#' + p.id
+             + ' · wejście ' + (p.entry != null ? p.entry : '—') + ' · otw. ' + hhmm + '</span>';
+      }).join('') + '<span onclick="obPick(' + it.key + ',0)">POMIŃ</span></div>';
+    }
+
+    const pnl = (d.pnl != null)
+      ? '<span class="ob-pnl" style="color:' + (d.pnl >= 0 ? 'var(--green)' : 'var(--red)') + '">'
+        + (d.pnl >= 0 ? '+' : '') + Number(d.pnl).toFixed(2) + '$</span>' : '';
+
+    rows += '<div class="ob-row ' + it.state + '">' + chk
+      + '<div class="ob-mid"><div class="ob-l1">' + head + '</div>'
+      + '<div class="ob-l2">' + why + '</div>' + pick + '</div>' + pnl + '</div>';
+  });
+
+  const n = _obItems.filter(function (x) { return x.state === 'ok' && x.checked; }).length;
+
+  ov.innerHTML = '<div class="ob-box">'
+    + '<div class="ob-hd"><span>ZAMKNIJ ZE SCREENÓW</span>'
+    +   '<span class="x" onclick="obClose()">✕</span></div>'
+    + '<div class="ob-meta">' + openN + ' otwart' + (openN === 1 ? 'a pozycja' : (openN < 5 ? 'e pozycje' : 'ych pozycji'))
+    +   ' · dopasowanie po cenie wejścia</div>'
+    + '<div class="ob-drop" id="obDrop" onclick="document.getElementById(\'obFile\').click()">'
+    +   '<b>⬇ WRZUĆ SCREENY KART</b>możesz wybrać kilka naraz · albo wklej Ctrl+V</div>'
+    + '<input type="file" id="obFile" accept="image/*" multiple hidden'
+    +   ' onchange="obAddFiles(this.files); this.value=\'\';">'
+    + rows
+    + '<div class="ob-ftr">'
+    +   '<button class="ob-btn" onclick="obClose()">ANULUJ</button>'
+    +   '<button class="ob-btn go" id="obGo" onclick="obCommit()"' + (n ? '' : ' disabled') + '>'
+    +     (_obBusy ? 'CZYTAM…' : (n ? 'ZAMKNIJ ' + n + ' ZAZNACZON' + (n === 1 ? 'Ą' : 'E') : 'ZAMKNIJ'))
+    +   '</button></div>'
+    + '<div class="ob-warn">⚠ Zamykane są wyłącznie pozycje odhaczone ✓. '
+    +   'Niepewne czekają na twój klik — nic nie zamknie się „na wyczucie".</div>'
+    + '</div>';
+
+  // przeciaganie plikow na pole
+  const dz = document.getElementById('obDrop');
+  if (dz) {
+    dz.ondragover = function (e) { e.preventDefault(); dz.classList.add('over'); };
+    dz.ondragleave = function () { dz.classList.remove('over'); };
+    dz.ondrop = function (e) {
+      e.preventDefault(); dz.classList.remove('over');
+      obAddFiles(e.dataTransfer && e.dataTransfer.files);
+    };
+  }
+}
+
+// ── ZATWIERDZENIE ─────────────────────────────────────────────
+// Kazda pozycja idzie przez opzConfirmClose — ta sama sciezka, co przy
+// pojedynczym zamknieciu. Zadnego drugiego zapisu do dziennika, zadnej
+// kopii logiki poziomow; jedna zmiana tam dziala i tutaj.
+function obCommit() {
+  if (_obBusy) return;
+  const todo = _obItems.filter(function (x) { return x.state === 'ok' && x.checked && x.posId != null; });
+  if (!todo.length) return;
+
+  const need = ['opzClosePrice', 'opzCloseResult', 'opzCloseTime', 'opzLogToJournal'];
+  for (let i = 0; i < need.length; i++) {
+    if (!document.getElementById(need[i])) {
+      if (typeof dcToast === 'function') dcToast('✗ Brak formularza zamknięcia', 'toast-red');
+      return;
+    }
+  }
+
+  let done = 0, failed = [];
+  todo.forEach(function (it) {
+    const pos = opzPositions.find(function (p) { return p.id === it.posId; });
+    if (!pos) { failed.push(it); return; }
+    try {
+      opzClosingId = it.posId;
+      _byLast = it.d;
+      const set = function (id, v) { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+      set('opzClosePrice', it.d.exit);
+      set('opzCloseResult', +Number(it.d.pnl).toFixed(2));
+      // Godzina z karty bywa minute do przodu wzgledem zegara urzadzenia,
+      // a walidacja odrzuca przyszlosc i wtedy opzConfirmClose cicho nic nie robi.
+      // Dlatego liczymy ja tutaj i w razie czego cofamy do "teraz".
+      const now = new Date();
+      const hhmmNow = String(now.getHours()).padStart(2, '0') + ':'
+                    + String(now.getMinutes()).padStart(2, '0');
+      let hhmm = hhmmNow;
+      const m = String(it.d.closeTime || '').match(/(\d{2}):(\d{2})/);
+      if (m) {
+        const cand = m[1] + ':' + m[2];
+        const ts = (typeof opzTimeToTs === 'function') ? opzTimeToTs(cand) : null;
+        const sane = (ts !== null) && (ts <= Date.now() + 60000) && (ts >= pos.openedAt);
+        hhmm = sane ? cand : hhmmNow;
+        if (!sane) it.why = (it.why || '') + ' · godzina z karty poza zakresem — użyto bieżącej';
+      }
+      set('opzCloseTime', hhmm);
+      document.getElementById('opzLogToJournal').checked = true;
+      opzConfirmClose();
+      // potwierdzenie: pozycja faktycznie znikla z otwartych
+      if (opzPositions.some(function (p) { return p.id === it.posId; })) failed.push(it);
+      else done++;
+    } catch (e) {
+      console.error('[DYZMCRYPT] partia — zamkniecie nieudane:', e);
+      failed.push(it);
+    }
+  });
+
+  _obItems = _obItems.filter(function (x) { return failed.indexOf(x) >= 0 || x.state !== 'ok' || !x.checked; });
+  failed.forEach(function (x) { x.state = 'no'; x.checked = false;
+    x.why = 'nie udało się zamknąć — zrób to ręcznie'; });
+
+  if (typeof dcToast === 'function') {
+    if (done) dcToast('✓ Zamknięto ' + done + (failed.length ? ' · ' + failed.length + ' nieudanych' : ''),
+      failed.length ? 'toast-gold' : 'toast-green');
+    else dcToast('✗ Nic nie zamknięto', 'toast-red');
+  }
+  if (!opzPositions.length && !_obItems.length) obClose();
+  else obRender();
+}
+window.obCommit = obCommit;
+
+// wklejanie ze schowka, gdy okno partii jest otwarte
+document.addEventListener('paste', function (e) {
+  const ov = document.getElementById('obOv');
+  if (!ov || !ov.classList.contains('open')) return;
+  const items = (e.clipboardData || {}).items || [];
+  const files = [];
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type && items[i].type.indexOf('image') === 0) {
+      const f = items[i].getAsFile();
+      if (f) files.push(f);
+    }
+  }
+  if (files.length) { e.preventDefault(); obAddFiles(files); }
+});
 </script>
 
 <!-- old elements (hidden) -->
@@ -37671,6 +38019,72 @@ body.dc-phone #panel-bieganie .rn-hclock{font-size:10px;}
 </style>
 <!-- ════════ END V80 DASHBOARD CSS ════════ -->
 
+
+<!-- ════════ V255 · ZAMYKANIE PARTII ZE SCREENOW ════════ -->
+<style id="v255-batch">
+.opz-btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+.opz-btn-row .opz-add-btn{flex:1;min-width:180px;}
+.opz-batch-btn{flex:1;min-width:180px;cursor:pointer;padding:11px 14px;border-radius:9px;
+  font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:1.4px;
+  color:var(--cyan);border:1px solid rgba(0,200,240,.3);background:rgba(0,200,240,.06);
+  transition:background .15s,border-color .15s;}
+.opz-batch-btn:hover{background:rgba(0,200,240,.12);border-color:rgba(0,200,240,.55);}
+.opz-batch-btn:disabled{opacity:.4;cursor:default;}
+
+#obOv{position:fixed;inset:0;z-index:9000;background:rgba(3,6,12,.82);
+  display:none;align-items:flex-start;justify-content:center;padding:24px 14px;overflow:auto;}
+#obOv.open{display:flex;}
+.ob-box{width:min(620px,96vw);background:var(--bg2);border:1px solid var(--border);
+  border-radius:12px;padding:20px;box-shadow:0 8px 44px rgba(0,0,0,.55);}
+.ob-hd{display:flex;align-items:center;gap:10px;font-family:'Orbitron',monospace;
+  font-size:13px;font-weight:800;letter-spacing:2px;color:var(--text);}
+.ob-hd .x{margin-left:auto;cursor:pointer;color:var(--dim2);font-size:14px;padding:2px 6px;}
+.ob-hd .x:hover{color:var(--red);}
+.ob-meta{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim2);
+  letter-spacing:1px;margin:4px 0 14px;}
+.ob-drop{border:1px dashed rgba(118,158,205,.3);border-radius:10px;padding:16px;text-align:center;
+  cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim2);
+  background:rgba(0,0,0,.2);margin-bottom:14px;transition:border-color .15s,background .15s;}
+.ob-drop:hover,.ob-drop.over{border-color:rgba(0,200,240,.5);background:rgba(0,200,240,.05);}
+.ob-drop b{display:block;color:var(--cyan);font-size:11px;margin-bottom:5px;letter-spacing:1px;}
+
+.ob-row{display:flex;align-items:flex-start;gap:11px;padding:11px 12px;margin-bottom:7px;
+  border-radius:9px;background:rgba(0,0,0,.24);border:1px solid rgba(118,158,205,.12);
+  border-left:2px solid var(--dim);font-family:'Share Tech Mono',monospace;}
+.ob-row.ok{border-left-color:var(--green);}
+.ob-row.amb{border-left-color:var(--gold);}
+.ob-row.no{border-left-color:var(--red);}
+.ob-row.busy{border-left-color:var(--cyan);}
+.ob-chk{width:17px;height:17px;flex:0 0 auto;margin-top:1px;border-radius:4px;cursor:pointer;
+  border:1px solid rgba(118,158,205,.4);background:rgba(0,0,0,.3);
+  display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--green);}
+.ob-chk.on{border-color:var(--green);background:rgba(0,232,122,.12);}
+.ob-chk.off{opacity:.3;cursor:default;}
+.ob-mid{flex:1;min-width:0;}
+.ob-l1{font-size:10px;color:rgba(238,244,248,.92);}
+.ob-l1 b{font-family:'Orbitron',monospace;font-size:10.5px;letter-spacing:.5px;}
+.ob-l1 em{font-style:normal;color:var(--dim2);}
+.ob-l2{font-size:8.5px;color:var(--dim2);margin-top:4px;letter-spacing:.4px;line-height:1.6;}
+.ob-l2 u{text-decoration:none;color:var(--cyan);}
+.ob-pnl{font-family:'Orbitron',monospace;font-size:13px;font-weight:800;
+  font-variant-numeric:tabular-nums;white-space:nowrap;}
+.ob-pick{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;}
+.ob-pick span{font-size:8px;letter-spacing:.8px;padding:4px 8px;border-radius:5px;cursor:pointer;
+  border:1px solid rgba(255,196,0,.35);color:var(--gold);background:rgba(255,196,0,.07);}
+.ob-pick span:hover{background:rgba(255,196,0,.16);}
+.ob-ftr{display:flex;gap:8px;margin-top:15px;padding-top:14px;
+  border-top:1px solid rgba(118,158,205,.12);}
+.ob-btn{flex:1;text-align:center;padding:11px;border-radius:8px;cursor:pointer;
+  font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:1.5px;
+  border:1px solid rgba(118,158,205,.22);color:var(--dim2);background:transparent;}
+.ob-btn.go{border-color:var(--green);color:var(--green);background:rgba(0,232,122,.08);flex:2;}
+.ob-btn.go:disabled{border-color:rgba(118,158,205,.2);color:var(--dim);background:transparent;cursor:default;}
+.ob-warn{margin-top:11px;font-family:'Share Tech Mono',monospace;font-size:8.5px;
+  color:rgba(255,159,64,.9);line-height:1.7;}
+body.dc-phone .ob-l1{font-size:12px !important;}
+body.dc-phone .ob-l2{font-size:10px !important;}
+body.dc-phone .ob-pnl{font-size:15px !important;}
+</style>
 <!-- ════════ V251 · PASEK NAWIGACJI — KOLOR SEKCJI ════════ -->
 <style id="v251-nav">
 /* Problem: po zwinieciu paska znikaja naglowki sekcji i zostaje 16
