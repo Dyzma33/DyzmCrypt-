@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v262 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v265 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v262 · EXECUTION OS</div>
+    <div class="splash-ver">v265 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v262</div>
+      <div class="sb-logo-sub">EXECUTION OS · v265</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8046,7 +8046,7 @@ body.os-lockdown #workspace::before {
 const _SB_URL = 'https://kawkfhvijblbdnlwsese.supabase.co';
 const _SB_KEY = 'sb_publishable_0G0d3H6TuYNyEBdDcCo_QA_w2Mma09p';
 const _SB_SESS = 'dc_sb_session_v2';
-const _DC_KEYS = ['day','trades','sessions','krdCounters','krdLastTrigger','riskState','archive','activeState','levelState','positions','lastAutoArchive','pdbHistory','settings','medState','todayExec','todaySupp','dayReview','tradeShots','sessionlog','sessionShots','runState','d6Choice','d9Choice','planMode','dayStart','slCustomMarks','opzIdSeq','shotIndex'];
+const _DC_KEYS = ['day','trades','sessions','krdCounters','krdLastTrigger','riskState','archive','activeState','levelState','positions','lastAutoArchive','pdbHistory','settings','medState','todayExec','todaySupp','dayReview','tradeShots','sessionlog','sessionShots','runState','d6Choice','d9Choice','planMode','dayStart','slCustomMarks','opzIdSeq','shotIndex','slWeeks'];
 
 // ══ V128: KANONICZNA GRANICA DNIA ══
 // toISOString() zwraca datę UTC — Polska to UTC+1/UTC+2, więc między północą
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v262';
+window.DC_VERSION = 'v265';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -9013,13 +9013,81 @@ function dcLoad(key, fallback) {
 // Teraz: przy istniejącej sesji reset wywołuje engine PO pierwszym UDANYM pullu
 // (restore lub dcPeriodicPull); bez sesji (tryb lokalny) — od razu, jak dawniej.
 // Zwraca true, gdy faktycznie zresetowano (engine robi wtedy push + reload).
+// ══ V264: ZMIANA DNIA NIGDY NIE KASUJE TRANSAKCJI ══
+// Błąd z 15/16.10: LONG LTC otwarty 23:30, zamknięty 00:27 — zanim appka
+// zauważyła nowy dzień. Transakcja dostała stempel 16.10 i siedziała w
+// 'trades' obok czwartkowych. Przy przewinięciu: archiwum 15.10 już istniało
+// (auto-zapis 22:00) → "już zapisany, pomiń" → reset dnia → trades = [].
+// Piątkowa transakcja zniknęła bez śladu, bo nie pasowała do żadnej szuflady.
+// Teraz: każda transakcja trafia do archiwum SWOJEGO dnia (dopisana do
+// istniejącego wpisu, bez dubli), a dzisiejsze zostają na dziś.
+function dcTradeKey(t) { return String(t && t.id) + '|' + String(t && t.token) + '|' + String(t && t.time); }
+function dcArcStats(tr, prev) {
+  const _tl = (typeof dcLiveOnly === 'function') ? dcLiveOnly(tr) : tr;
+  const w = _tl.filter(function(x){ return x.pnl > 1; }).length;
+  const l = _tl.filter(function(x){ return x.pnl < -1; }).length;
+  const be = _tl.filter(function(x){ return Math.abs(x.pnl) <= 1; }).length;
+  const pnl = _tl.reduce(function(a, x){ return a + (parseFloat(x.pnl) || 0); }, 0);
+  const o = Object.assign({}, prev || {});
+  o.total = tr.length; o.wins = w; o.losses = l; o.be = be;
+  o.totalPnL = parseFloat(pnl.toFixed(2));
+  o.winrate = (w + l) ? Math.round(w / (w + l) * 100) : 0;
+  if (o.sessDone == null) o.sessDone = 0;
+  if (o.maxSessions == null) o.maxSessions = window._maxSessions || 13;
+  return o;
+}
+// byDay: { 'YYYY-MM-DD': [trade, ...] } → dopisuje do archiwum; zwraca liczbę dopisanych
+function dcArchiveMergeTrades(byDay) {
+  const archive = dcLoad('archive', []);
+  const arr = Array.isArray(archive) ? archive : [];
+  let added = 0;
+  Object.keys(byDay || {}).forEach(function(dstr) {
+    const list = (byDay[dstr] || []).filter(Boolean);
+    if (!list.length) return;
+    let rec = arr.find(function(d){ return d && d.date === dstr; });
+    if (!rec) {
+      rec = { date: dstr, savedAt: new Date().toISOString(), trades: [], sessions: [],
+              krdCounters: { low:0, med:0, high:0 }, riskState: 'STABLE', activeState: {}, stats: {} };
+      arr.push(rec);
+    }
+    if (!Array.isArray(rec.trades)) rec.trades = [];
+    const have = {};
+    rec.trades.forEach(function(t){ have[dcTradeKey(t)] = 1; });
+    list.forEach(function(t){ const k = dcTradeKey(t); if (!have[k]) { have[k] = 1; rec.trades.push(t); added++; } });
+    rec.noTrades = !rec.trades.length;
+    rec.stats = dcArcStats(rec.trades, rec.stats);
+  });
+  if (added) {
+    arr.sort(function(a, b){ return a.date < b.date ? 1 : -1; });
+    dcSave('archive', arr);
+    console.log('[DYZMCRYPT] V264: dopisano do archiwum ' + added + ' transakcji (dni: ' + Object.keys(byDay).join(',') + ')');
+  }
+  return added;
+}
+// rozdziela 'trades' przy zmianie dnia: obce dni → archiwum, dzisiejsze zostają
+function dcRolloverTrades(savedDay, today) {
+  const cur = dcLoad('trades', []);
+  const keep = [], byDay = {};
+  (Array.isArray(cur) ? cur : []).forEach(function(t) {
+    if (!t) return;
+    if (t.date === today) { keep.push(t); return; }
+    const d = t.date || savedDay;
+    if (!d) return;
+    (byDay[d] = byDay[d] || []).push(t);
+  });
+  try { dcArchiveMergeTrades(byDay); } catch(e) { console.error('[DYZMCRYPT] V264 merge:', e); }
+  return keep;
+}
+window.dcArchiveMergeTrades = dcArchiveMergeTrades;
+
 function dcCheckDayReset() {
   const today = dcDayStr();
   const savedDay = dcLoad('day', null);
   // TYLKO resetuj gdy dzień faktycznie się zmienił (nie gdy localStorage jest pusty)
   if (savedDay !== null && savedDay !== today) {
+    const _keep = dcRolloverTrades(savedDay, today);     // V264: zamiast trades = []
     dcSave('day', today);
-    dcSave('trades', []);
+    dcSave('trades', _keep);
     dcSave('sessions', Array(window._maxSessions || 13).fill(false));
     dcSave('krdCounters', { low:0, med:0, high:0 });
     dcSave('krdLastTrigger', { low:null, med:null, high:null });
@@ -9044,7 +9112,9 @@ if (window._dcLocalMode) { window._dcDayChecked = true; dcCheckDayReset(); }
 // dnia ratujemy jego dane do archiwum (gdyby auto-zapis 22:00 nie zdążył).
 function dcArchiveDayIfMissing(dayStr) {
   try {
-    const t = dcLoad('trades', []);
+    // V264: tylko transakcje TEGO dnia (bez stempla = też jego); reszta trafi do
+    // swoich dni w dcRolloverTrades — wcześniej szły wszystkie pod jedną datę
+    const t = (dcLoad('trades', []) || []).filter(function(x){ return x && (!x.date || x.date === dayStr); });
     const s = dcLoad('sessions', []);
     // ══ V228: DZIEŃ PRACY BEZ TRANSAKCJI TO TEŻ DZIEŃ ══
     // Warunek brzmiał: brak trade'ów I brak sesji → pomiń. Ale dzień
@@ -9130,8 +9200,15 @@ function dcDayGuard() {
         // 1) archiwizuj brakujące dni z osieroconych transakcji
         const byDay = {};
         staleT.forEach(function(t){ (byDay[t.date] = byDay[t.date] || []).push(t); });
-        const archive = dcLoad('archive', []);
+        let archive = dcLoad('archive', []);
         let archAdded = 0;
+        // V264: dzień już w archiwum → DOPISZ brakujące (wcześniej: pomiń i wytnij = utrata)
+        const _known = {};
+        Object.keys(byDay).forEach(function(dstr) {
+          if (archive.some(function(d){ return d && d.date === dstr; })) _known[dstr] = byDay[dstr];
+        });
+        try { dcArchiveMergeTrades(_known); } catch(e) {}
+        archive = dcLoad('archive', []);                  // świeża kopia po dopisaniu
         Object.keys(byDay).forEach(function(dstr) {
           if (archive.some(function(d){ return d && d.date === dstr; })) return;
           const tr = byDay[dstr];
@@ -12584,6 +12661,7 @@ window.dcTodayTrades = function() {
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
       <button class="jtab active" id="jScopeToday" onclick="jSetScope('today',this)">POZYCJE DZIŚ</button>
       <button class="jtab" id="jScopeAll" onclick="jSetScope('all',this)">WSZYSTKIE POZYCJE</button>
+      <span class="lt-btn" onclick="ltOpen()" title="Pozycja z giełdy, której nie ma w dzienniku — z datą z karty">↺ DOPISZ ZALEGŁĄ</span>
       <span id="jScopeInfo" style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim2);letter-spacing:1px;"></span>
     </div>
 
@@ -16370,6 +16448,7 @@ updateExposureBar();
       <button class="jtab active" onclick="slSetTab('entries',this)">WPISY</button>
       <button class="jtab" onclick="slSetTab('pending',this)">ZLECENIA<span class="sl-badge" id="slPendBadge"></span></button>
       <button class="jtab" onclick="slSetTab('gallery',this)">SCREENY</button>
+      <button class="jtab" id="slThreadsTab" onclick="slSetTab('threads',this)" title="Wątki tygodnia — zamknięta lista 13 analiz">📌 WĄTKI<span class="sl-badge" id="slThreadsBadge"></span></button>
     </span>
     <span class="sl-range" id="slRange">
       <span class="sl-chip gt on" onclick="slSetRange('today',this)">DZIŚ</span>
@@ -18884,6 +18963,7 @@ function opzOpenAddModal() {
   }
   opzSelectedDir = 'LONG';
   opzSelectDir('LONG');
+  window._opzThread = null;                           // V263: pozycja z wątku ustawia to PO otwarciu modala
   document.getElementById('opzAddTitle').textContent = '+ NOWA POZYCJA';
   document.getElementById('opzAddConfirmBtn').textContent = 'OTWÓRZ POZYCJĘ';
   document.getElementById('opzAddConfirmBtn').onclick = opzConfirmAdd;
@@ -19028,7 +19108,9 @@ function opzConfirmAdd() {
     tps: (_tpDraft.tps || []).filter(t => t.size > 0).map(t => ({ size: t.size, r: t.r })),
     rocket: _tpDraft.rocket ? { size: _tpDraft.rocket.size, r: _tpDraft.rocket.r } : null,
     bePlan: _tpDraft.bePlan || 'any',
-    fills: [], beMoved: false, beAfter: null });
+    fills: [], beMoved: false, beAfter: null,
+    thread: (window._opzThread != null ? window._opzThread : null) });   // V263: wątek tygodnia
+  window._opzThread = null;
   opzSave();
   opzRenderPositions();
   opzCloseModals();
@@ -19153,7 +19235,9 @@ function opzConfirmClose() {
       risk: (typeof activeState !== 'undefined' && activeState) ? activeState.risk : pos.risk,
       label: (typeof activeState !== 'undefined' && activeState) ? activeState.label : null,
       source: 'pozycje',
-      opzDuration: durationMin
+      opzDuration: durationMin,
+      openedAt: pos.openedAt || null,                              // V263: kapsuła na siatce wątków
+      thread: (pos.thread != null ? pos.thread : null)             // V263: transakcja dziedziczy wątek
     });
     dcSave('trades', trades);
     if (typeof renderJournal === 'function') renderJournal();
@@ -20081,13 +20165,15 @@ function renderJournal() {
         + (t.rr ? _m('RR', (typeof jRrFmt === 'function' ? jRrFmt(t.rr) : t.rr), 'var(--gold)') : '')
         + (t.setup ? _m('Setup', String(t.setup), 'var(--cyan)') : '')
         + (t.label ? _m('Poziom', String(t.label), 'var(--text2)') : '')
+        + (t.late ? _m('Dopisana', String(t.late) + ' · po fakcie', 'var(--gold)') : '')
         + '</div>'
         + (t.note ? '<div class="jd2-note">' + String(t.note).replace(/</g, '&lt;') + '</div>' : '');
       _h += '<div onclick="var d=this.nextElementSibling;if(d)d.classList.toggle(\'open\')" style="cursor:pointer;display:flex;align-items:center;gap:12px;background:linear-gradient(160deg,rgba(255,255,255,.015),rgba(0,0,0,.24));border:1px solid var(--border2);border-left:3px solid ' + _oc + ';border-radius:9px;padding:10px 14px;font-family:\'Share Tech Mono\',monospace;font-size:10px;">'
         + '<span style="color:var(--dim2);min-width:38px;">' + (t.time || '—') + '</span>'
         + '<span style="color:var(--text);letter-spacing:1px;min-width:56px;">' + String(t.token || '—') + '</span>'
         + '<span style="color:' + (t.dir === 'LONG' ? 'var(--green)' : 'var(--red)') + ';min-width:46px;">' + (t.dir || '—') + '</span>'
-        + '<span style="color:var(--dim2);flex:1;">' + _rr + (t.label ? ' · ' + t.label : '') + '</span>'
+        + '<span style="color:var(--dim2);flex:1;">' + _rr + (t.label ? ' · ' + t.label : '')
+        + (t.late ? ' <span class="lt-tag" title="Wpisana po fakcie z karty giełdy">↺ DOPISANA ' + String(t.late).slice(8, 10) + '.' + String(t.late).slice(5, 7) + '</span>' : '') + '</span>'
         + '<span style="font-family:\'Orbitron\',monospace;font-size:12px;font-weight:800;color:' + _oc + ';">' + (t.pnl >= 0 ? '+' : '') + (parseFloat(t.pnl) || 0).toFixed(2) + '$</span>'
         + '<span style="color:var(--dim);font-size:9px;">▾</span>'
         + '</div>'
@@ -20155,7 +20241,7 @@ function renderJournal() {
       + '<div class="tcard-head">'
       +   '<div class="tcard-num">' + String(i + 1).padStart(2, '0') + '</div>'
       +   '<div>'
-      +     '<div class="tcard-token">' + t.token + ' ' + cycleLabel + '</div>'
+      +     '<div class="tcard-token">' + t.token + ' ' + cycleLabel + (t.late ? ' <span class="lt-tag">↺ DOPISANA</span>' : '') + '</div>'
       +     '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--dim2);'
       +       'margin-top:2px;">' + (t.time || '—') + ' · ' + (t.sess || '—') + '</div>'
       +   '</div>'
@@ -31322,6 +31408,626 @@ setTimeout(initSupp, 500);
 </script>
 
 <script>
+// ══════════════════════════════════════════════════════════════
+//  V264 · ZALEGŁA POZYCJA
+//  Pozycja, która była na giełdzie, ale nie trafiła do dziennika.
+//  Data i godziny idą z karty Bybita (albo wpisane ręcznie) — NIE z
+//  dzisiaj. Transakcja trafia do archiwum dnia ZAMKNIĘCIA (jak każda)
+//  i na stałe niesie znacznik late = dzień dopisania.
+// ══════════════════════════════════════════════════════════════
+let _ltBusy = false, _ltRead = null;
+
+function ltPad(n) { return String(n).padStart(2, '0'); }
+function ltLocal(s) {                       // 'YYYY-MM-DD HH:MM[:SS]' → 'YYYY-MM-DDTHH:MM'
+  const m = String(s || '').match(/(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})/);
+  return m ? m[1] + 'T' + m[2] : '';
+}
+function ltTs(v) { const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/); return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]).getTime() : null; }
+function ltNum(id) { const el = document.getElementById(id); if (!el) return NaN; return parseFloat(String(el.value).replace(/\s/g, '').replace(',', '.')); }
+function ltVal(id) { const el = document.getElementById(id); return el ? String(el.value).trim() : ''; }
+const LT_DN = ['ND', 'PON', 'WT', 'ŚR', 'CZW', 'PT', 'SB'];
+
+function ltLevels() {
+  const out = [];
+  try {
+    Object.keys(levelsData).forEach(function (cy) {
+      (levelsData[cy] || []).forEach(function (lvl, i) {
+        out.push({ key: cy + '|' + i, cycle: cy, lvl: lvl, label: cycleLabel(cy, lvl),
+                   risk: lvl.rnum, active: activeState && activeState.cycle === cy && String(activeState.level) === String(lvl.n) });
+      });
+    });
+  } catch (e) {}
+  return out;
+}
+
+function ltOpen() {
+  _ltRead = null;
+  let ov = document.getElementById('ltOv');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'ltOv';
+    ov.onclick = function (e) { if (e.target === ov) ltClose(); };
+    document.body.appendChild(ov);
+  }
+  const lv = ltLevels();
+  const act = lv.find(function (x) { return x.active; }) || lv[0];
+  ov.innerHTML = '<div class="lt-box">'
+    + '<div class="ob-hd" style="color:var(--gold)">↺ DOPISZ ZALEGŁĄ POZYCJĘ<span class="x" onclick="ltClose()">✕</span></div>'
+    + '<div class="ob-meta" style="line-height:1.6">Pozycja, która była na giełdzie, a nie trafiła do dziennika. Data i godziny idą z karty — nie z dzisiaj. '
+    + 'Transakcja trafi do dnia zamknięcia i dostanie znacznik <span class="lt-tag">↺ DOPISANA ' + ltShort(dcDayStr()) + '</span>.</div>'
+    + '<div class="ob-drop" id="ltDrop" onclick="document.getElementById(\'ltFile\').click()">📷 <b style="color:var(--gold);font-weight:400">WCZYTAJ KARTĘ Z BYBITA</b> · ten sam odczyt co przy zamykaniu<br><span style="font-size:8.5px">albo wpisz dane ręcznie poniżej</span></div>'
+    + '<input type="file" id="ltFile" accept="image/*" style="display:none" onchange="ltFromFile(this.files&&this.files[0])">'
+    + '<div id="ltMsg" class="lt-msg" hidden></div>'
+    + '<div class="lt-grid">'
+    +   ltF('INSTRUMENT', '<input id="ltTok" class="lt-in" placeholder="LTC" style="text-transform:uppercase">')
+    +   ltF('KIERUNEK', '<select id="ltDir" class="lt-in"><option value="LONG">▲ LONG</option><option value="SHORT">▼ SHORT</option></select>')
+    +   ltF('WYNIK USD (netto)', '<input id="ltPnl" class="lt-in" inputmode="decimal" placeholder="+18.24" oninput="ltCalc()">')
+    +   ltF('WEJŚCIE', '<input id="ltEntry" class="lt-in" inputmode="decimal">')
+    +   ltF('WYJŚCIE', '<input id="ltExit" class="lt-in" inputmode="decimal">')
+    +   ltF('OPŁATY USD', '<input id="ltFees" class="lt-in" inputmode="decimal">')
+    +   ltF('OTWARCIE', '<input id="ltOpenT" class="lt-in" type="datetime-local" oninput="ltCalc()">', 'w3')
+    +   ltF('ZAMKNIĘCIE', '<input id="ltCloseT" class="lt-in" type="datetime-local" oninput="ltCalc()">', 'w3')
+    + '</div>'
+    + '<div class="lt-grid" style="margin-top:10px">'
+    +   ltF('POZIOM', '<select id="ltLvl" class="lt-in gold" onchange="ltLvlPick()">' + lv.map(function (x) {
+          return '<option value="' + x.key + '"' + (x === act ? ' selected' : '') + '>' + x.label + (x.active ? ' · aktywny' : '') + '</option>'; }).join('') + '</select>')
+    +   ltF('RYZYKO USD (mianownik R)', '<input id="ltRisk" class="lt-in gold" inputmode="decimal" value="' + (act ? act.risk : '') + '" oninput="ltCalc()">')
+    +   ltF('PLAN RR (opcjonalnie)', '<input id="ltPlan" class="lt-in" inputmode="decimal" placeholder="—">')
+    + '</div>'
+    + '<div class="lt-sum" id="ltSum"></div>'
+    + '<div class="lt-acts"><span class="sw-b" onclick="ltClose()">ANULUJ</span><span class="sw-b lt-go" id="ltGo" onclick="ltCommit()">↺ DOPISZ</span></div>'
+    + '</div>';
+  ov.classList.add('open');
+  ltCalc();
+}
+window.ltOpen = ltOpen;
+function ltF(l, inner, cls) { return '<label class="lt-f' + (cls ? ' ' + cls : '') + '"><span>' + l + '</span>' + inner + '</label>'; }
+function ltShort(d) { return String(d || '').slice(8, 10) + '.' + String(d || '').slice(5, 7); }
+function ltClose() { if (_ltBusy) return; const ov = document.getElementById('ltOv'); if (ov) ov.classList.remove('open'); _ltRead = null; }
+window.ltClose = ltClose;
+function ltSay(html, cls) { const m = document.getElementById('ltMsg'); if (!m) return; m.hidden = !html; m.className = 'lt-msg' + (cls ? ' ' + cls : ''); m.innerHTML = html || ''; }
+function ltLvlPick() {
+  const x = ltLevels().find(function (l) { return l.key === ltVal('ltLvl'); });
+  const r = document.getElementById('ltRisk'); if (x && r) r.value = x.risk;
+  ltCalc();
+}
+window.ltLvlPick = ltLvlPick;
+
+async function ltFromFile(file) {
+  if (!file || _ltBusy) return;
+  if (typeof byReadFile !== 'function') { ltSay('✗ Silnik odczytu niedostępny — wpisz ręcznie', 'bad'); return; }
+  _ltBusy = true;
+  const drop = document.getElementById('ltDrop');
+  if (drop) drop.innerHTML = '⏳ CZYTAM KARTĘ… (pierwszy raz trwa dłużej)';
+  let d = null, err = null;
+  for (let a = 1; a <= 2 && !d; a++) {
+    try { d = await byReadFile(file); } catch (e) { err = e; await new Promise(function (r) { setTimeout(r, 400); }); }
+  }
+  _ltBusy = false;
+  if (drop) drop.innerHTML = '📷 <b style="color:var(--gold);font-weight:400">WCZYTAJ INNĄ KARTĘ</b>';
+  if (!d) { ltSay('✗ Odczyt nieudany (' + (err && err.message || 'błąd') + ') — wpisz dane ręcznie', 'bad'); return; }
+  _ltRead = d;
+  const set = function (id, v) { const el = document.getElementById(id); if (el && v != null && v !== '') el.value = v; };
+  set('ltTok', d.token); set('ltDir', d.dir);
+  set('ltPnl', d.pnl != null ? +Number(d.pnl).toFixed(4) : null);
+  set('ltEntry', d.entry); set('ltExit', d.exit);
+  set('ltFees', d.fees != null ? +Number(d.fees).toFixed(4) : null);
+  set('ltOpenT', ltLocal(d.openTime)); set('ltCloseT', ltLocal(d.closeTime));
+  const miss = [];
+  if (!d.openTime) miss.push('godzina otwarcia'); if (!d.closeTime) miss.push('godzina zamknięcia');
+  if (d.pnl == null) miss.push('wynik');
+  ltSay(d.ok && !miss.length
+    ? '✓ Karta odczytana — sprawdź liczby z ekranem i dopisz'
+    : '⚠ ' + (d.ok ? '' : (typeof obWhyBad === 'function' ? obWhyBad(d) : 'odczyt niepełny')) + (miss.length ? (d.ok ? '' : ' · ') + 'brak: ' + miss.join(', ') : '') + ' — uzupełnij ręcznie',
+    d.ok && !miss.length ? 'ok' : 'warn');
+  ltCalc();
+}
+window.ltFromFile = ltFromFile;
+
+// wszystko, co da się policzyć z formularza; null w .err = gotowe do zapisu
+function ltState() {
+  const o = { err: null };
+  o.token = ltVal('ltTok').toUpperCase().replace(/USDT$/, '');
+  o.dir = ltVal('ltDir');
+  o.pnl = ltNum('ltPnl'); o.risk = ltNum('ltRisk');
+  o.entry = ltNum('ltEntry'); o.exit = ltNum('ltExit'); o.fees = ltNum('ltFees'); o.plan = ltNum('ltPlan');
+  o.open = ltTs(ltVal('ltOpenT')); o.close = ltTs(ltVal('ltCloseT'));
+  o.lv = ltLevels().find(function (l) { return l.key === ltVal('ltLvl'); }) || null;
+  if (!o.token) o.err = 'brak instrumentu';
+  else if (!isFinite(o.pnl)) o.err = 'brak wyniku';
+  else if (!o.close) o.err = 'brak godziny zamknięcia';
+  else if (o.close > Date.now() + 60000) o.err = 'zamknięcie w przyszłości';
+  else if (o.open && o.open > o.close) o.err = 'otwarcie po zamknięciu';
+  else if (!(o.risk > 0)) o.err = 'brak ryzyka — R nie ma mianownika';
+  if (o.close) {
+    const c = new Date(o.close);
+    o.day = c.getFullYear() + '-' + ltPad(c.getMonth() + 1) + '-' + ltPad(c.getDate());
+    o.time = ltPad(c.getHours()) + ':' + ltPad(c.getMinutes());
+    o.dn = LT_DN[c.getDay()];
+  }
+  o.R = (o.risk > 0 && isFinite(o.pnl)) ? o.pnl / o.risk : null;
+  // ta sama transakcja już jest? (podwójne dopisanie tej samej karty)
+  if (!o.err && o.day) {
+    const pool = [];
+    try { (dcLoad('archive', []) || []).forEach(function (d) { if (d && d.date === o.day) (d.trades || []).forEach(function (t) { pool.push(t); }); }); } catch (e) {}
+    if (o.day === dcDayStr()) trades.forEach(function (t) { pool.push(t); });
+    o.dup = pool.find(function (t) {
+      return t && String(t.token).toUpperCase() === o.token && Math.abs((parseFloat(t.pnl) || 0) - o.pnl) < 0.02;
+    }) || null;
+  }
+  return o;
+}
+
+function ltCalc() {
+  const el = document.getElementById('ltSum'); if (!el) return;
+  const s = ltState();
+  const go = document.getElementById('ltGo');
+  if (go) { go.classList.toggle('off', !!s.err); go.textContent = s.day && !s.err ? '↺ DOPISZ DO ' + ltShort(s.day) : '↺ DOPISZ'; }
+  const dur = (s.open && s.close) ? Math.round((s.close - s.open) / 60000) : null;
+  el.innerHTML = (s.day
+      ? '<div><span>TRAFI DO DNIA</span><b style="color:var(--cyan)">' + s.dn + ' ' + s.day.split('-').reverse().join('.') + '</b><i>dzień zamknięcia — jak każda transakcja</i></div>' : '')
+    + (s.R != null ? '<div><span>WYNIK W R</span><b style="color:' + (s.R > 0.02 ? 'var(--green)' : (s.R < -0.02 ? 'var(--red)' : 'var(--cyan)')) + '">'
+        + (s.R >= 0 ? '+' : '−') + Math.abs(s.R).toFixed(2).replace('.', ',') + 'R</b><i>' + (s.lv ? s.lv.label : '') + (dur != null ? ' · ' + (dur >= 60 ? Math.floor(dur / 60) + 'h ' : '') + (dur % 60) + 'min w rynku' : '') + '</i></div>' : '')
+    + (s.err ? '<div class="e">✗ ' + s.err + '</div>' : '')
+    + (s.dup ? '<div class="e" style="color:var(--gold)">⚠ ' + s.token + ' z wynikiem ' + (parseFloat(s.dup.pnl) || 0).toFixed(2) + ' USD już jest w tym dniu (' + (s.dup.time || '—') + ') — sprawdź, czy to nie dubel</div>' : '');
+}
+window.ltCalc = ltCalc;
+
+function ltCommit() {
+  const s = ltState();
+  if (s.err) { ltCalc(); return; }
+  if (s.dup && !confirm('Ta transakcja wygląda na już zapisaną w ' + s.day + ' (' + s.dup.time + ').\nDopisać mimo to?')) return;
+  const today = dcDayStr();
+  const ratio = s.pnl / s.risk;
+  const B = _ltRead && _ltRead.ok && String(_ltRead.token || '').toUpperCase() === s.token ? _ltRead : null;
+  const t = {
+    id: Date.now(), token: s.token, dir: s.dir, pnl: +s.pnl.toFixed(4),
+    rr: (ratio >= 0 ? '1:' : '-1:') + Math.abs(ratio).toFixed(2),
+    setup: 'POZYCJE', note: '', tags: [], paper: false,
+    entry: isFinite(s.entry) ? s.entry : null, exit: isFinite(s.exit) ? s.exit : null,
+    fees: isFinite(s.fees) ? +s.fees.toFixed(4) : null,
+    by: B ? { qty: B.qty, entry: B.entry, exit: B.exit, volOpen: B.volOpen, volClose: B.volClose,
+              feeOpen: B.feeOpen, feeClose: B.feeClose, feeFund: B.feeFund,
+              openTime: B.openTime, closeTime: B.closeTime } : null,
+    date: s.day, time: s.time, sess: '—',
+    plannedRR: isFinite(s.plan) && s.plan > 0 ? s.plan : null,
+    riskUsd: s.risk, achievedR: parseFloat(ratio.toFixed(2)),
+    cycle: s.lv ? s.lv.cycle : null, level: s.lv ? s.lv.lvl.n : null,
+    risk: s.lv ? s.lv.lvl.r : s.risk, label: s.lv ? s.lv.label : null,
+    source: 'zalegla', late: today,                      // znacznik na zawsze
+    openedAt: s.open || null,
+    opzDuration: s.open ? Math.max(0, Math.round((s.close - s.open) / 60000)) : null
+  };
+  if (s.day === today) {
+    trades.push(t); dcSave('trades', trades);
+  } else {
+    const byDay = {}; byDay[s.day] = [t];
+    dcArchiveMergeTrades(byDay);
+  }
+  if (typeof renderJournal === 'function') try { renderJournal(); } catch (e) {}
+  if (typeof updatePnL === 'function') try { updatePnL(); } catch (e) {}
+  if (typeof dcToast === 'function') dcToast('↺ ' + s.token + ' ' + (s.pnl >= 0 ? '+' : '') + s.pnl.toFixed(2) + ' USD dopisana do ' + s.day, 'toast-green');
+  _ltRead = null;
+  ltClose();
+}
+window.ltCommit = ltCommit;
+
+</script>
+<script>
+// ══════════════════════════════════════════════════════════════
+//  V263 · WĄTKI TYGODNIA
+//
+//  Eksperyment: w poniedziałek (najpóźniej we wtorek) wybierasz 13
+//  analiz i przez cały tydzień grasz WYŁĄCZNIE te instrumenty. Wtorek
+//  daje jednorazowo +3. Odpuszczony wątek NIE zwalnia miejsca.
+//
+//  Wątek to mapa instrumentu, nie jeden setup: z jednej analizy może
+//  wyjść kilka pozycji, w obie strony, na różnych interwałach. Dlatego
+//  "weszło" nie jest stanem wątku — stanem jest: aktywny / nieruszany /
+//  odpuszczony, a pozycje liczą się osobno.
+//
+//  Dane: klucz 'slWeeks' (w _DC_KEYS → chmura)
+//    { '<poniedziałek YYYY-MM-DD>': { roots:[tid...], meta:{ tid:{ inv, drop, at } } } }
+//  Pozycja otwarta z wątku niesie `thread`, a transakcja dziedziczy je
+//  przy zamknięciu (opzConfirmClose → też zamykanie zbiorcze).
+// ══════════════════════════════════════════════════════════════
+
+const SW_BASE = 13, SW_EXTRA = 3;            // lista + jednorazowa furtka wtorkowa
+const SW_STALE_H = 72;                        // 3 dni bez dopisku = nieruszany
+window._swOpen = window._swOpen || null;      // rozwinięty wątek
+
+function swPad(n) { return String(n).padStart(2, '0'); }
+function swDayStr(d) { return d.getFullYear() + '-' + swPad(d.getMonth() + 1) + '-' + swPad(d.getDate()); }
+function swParse(s) {
+  const m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+}
+// Tydzień handlowy: pon–pt. W weekend przygotowujesz NASTĘPNY tydzień,
+// więc sobota i niedziela należą już do poniedziałku, który nadchodzi.
+function swWeekStart(ref) {
+  const d = ref ? new Date(ref) : new Date();
+  d.setHours(0, 0, 0, 0);
+  const wd = d.getDay();                      // 0 nd … 6 sb
+  if (wd === 6) d.setDate(d.getDate() + 2);
+  else if (wd === 0) d.setDate(d.getDate() + 1);
+  else d.setDate(d.getDate() - (wd - 1));
+  return swDayStr(d);
+}
+function swIsoWeek(startStr) {
+  const d = swParse(startStr); if (!d) return '';
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - day);
+  const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return Math.ceil(((t - y0) / 86400000 + 1) / 7);
+}
+function swLoad() { const w = (typeof dcLoad === 'function') ? dcLoad('slWeeks', {}) : {}; return (w && typeof w === 'object') ? w : {}; }
+function swSaveAll(all) { if (typeof dcSave === 'function') dcSave('slWeeks', all); }
+function swCur() {
+  const all = swLoad(), start = swWeekStart();
+  const w = all[start] || { roots: [], meta: {} };
+  if (!Array.isArray(w.roots)) w.roots = [];
+  if (!w.meta || typeof w.meta !== 'object') w.meta = {};
+  return { all: all, start: start, w: w };
+}
+function swPut(c) { c.all[c.start] = c.w; swSaveAll(c.all); }
+function swRootOf(e) { return (e && e.thread != null) ? e.thread : (e ? e.id : null); }
+function swPinnedSet() { return new Set(swCur().w.roots.map(String)); }
+
+// ── PRZYPINANIE ───────────────────────────────────────────────
+function swPin(entryId) {
+  const e = slAll().find(x => x && x.id === entryId);
+  if (!e) return;
+  const tid = swRootOf(e);
+  const c = swCur();
+  if (c.w.roots.some(r => String(r) === String(tid))) {
+    if (typeof dcToast === 'function') dcToast('Ten wątek już jest na liście tygodnia', 'toast-gold');
+    return;
+  }
+  const n = c.w.roots.length;
+  if (n >= SW_BASE + SW_EXTRA) {
+    if (!confirm('Lista ma już ' + n + ' wątków (13 + 3 z furtki wtorkowej).\nDodanie kolejnego łamie zasadę zamkniętej listy. Dodać mimo to?')) return;
+  } else if (n >= SW_BASE) {
+    if (!confirm('13 wątków jest pełne. To będzie ' + (n - SW_BASE + 1) + '. z 3 miejsc z furtki wtorkowej. Dodać?')) return;
+  }
+  c.w.roots.push(tid);
+  c.w.meta[tid] = c.w.meta[tid] || { inv: '', drop: null, at: Date.now() };
+  swPut(c);
+  if (typeof dcToast === 'function') dcToast('📌 ' + (slInstrOf(e).join(' · ') || 'Wątek') + ' na liście tygodnia · ' + (n + 1) + ' / ' + SW_BASE, 'toast-green');
+  slRender();
+}
+window.swPin = swPin;
+
+function swUnpin(tid) {
+  if (!confirm('Odpiąć ten wątek z listy tygodnia?\n\nOdpięcie ZWALNIA miejsce na liście — to tylko na wypadek pomyłki.\nJeśli rezygnujesz z analizy, użyj „odpuść": miejsce nie wraca.')) return;
+  const c = swCur();
+  c.w.roots = c.w.roots.filter(r => String(r) !== String(tid));
+  delete c.w.meta[tid];
+  swPut(c);
+  if (String(window._swOpen) === String(tid)) window._swOpen = null;
+  slRender();
+}
+window.swUnpin = swUnpin;
+
+function swDrop(tid) {
+  const why = prompt('Dlaczego odpuszczasz ten wątek? (jedno zdanie — zostanie na liście)', '');
+  if (why === null) return;
+  const c = swCur();
+  c.w.meta[tid] = c.w.meta[tid] || { inv: '', at: Date.now() };
+  c.w.meta[tid].drop = { date: (typeof dcDayStr === 'function') ? dcDayStr() : swDayStr(new Date()), why: String(why).trim() };
+  swPut(c);
+  slRender();
+}
+window.swDrop = swDrop;
+
+function swRestore(tid) {
+  const c = swCur();
+  if (c.w.meta[tid]) c.w.meta[tid].drop = null;
+  swPut(c);
+  slRender();
+}
+window.swRestore = swRestore;
+
+function swSetInv(tid) {
+  const el = document.getElementById('swInv_' + tid);
+  if (!el) return;
+  const c = swCur();
+  c.w.meta[tid] = c.w.meta[tid] || { drop: null, at: Date.now() };
+  c.w.meta[tid].inv = el.value.trim();
+  swPut(c);
+  if (typeof dcToast === 'function') dcToast('✓ Warunek unieważnienia zapisany', 'toast-green');
+  slRender();
+}
+window.swSetInv = swSetInv;
+
+// ── ZDARZENIA WĄTKU: dopiski + pozycje ───────────────────────
+function swEntryTs(e) {
+  if (e && e.ts) { const t = new Date(e.ts).getTime(); if (isFinite(t)) return t; }
+  return (typeof slRecTs === 'function') ? slRecTs(e && e.date, '12:00') : 0;
+}
+function swTradeR(t) {
+  if (t.achievedR != null && isFinite(parseFloat(t.achievedR))) return parseFloat(t.achievedR);
+  const risk = parseFloat(t.riskUsd || t.risk);
+  return (risk > 0) ? (parseFloat(t.pnl) || 0) / risk : null;
+}
+function swEvents(tid, all) {
+  const chain = slThreadChain(tid, all);
+  const notes = chain.map(e => ({ kind: 'note', ts: swEntryTs(e), e: e }));
+  const pos = [], seen = {};
+  const addTrade = (t, day) => {
+    if (!t) return;
+    const key = (t.posId != null) ? 'p' + t.posId : 't' + t.id;
+    if (seen[key]) return; seen[key] = 1;
+    const close = slRecTs(t.date || day, t.time || '12:00');
+    const open = (t.openedAt && t.openedAt <= close) ? t.openedAt : close - (parseFloat(t.opzDuration) || 0) * 60000;
+    pos.push({ kind: 'trade', open: open, close: close, dir: String(t.dir || '').toUpperCase(), r: swTradeR(t), pnl: t.pnl, t: t });
+  };
+  const addOpen = p => {
+    if (!p) return;
+    const key = 'p' + p.id;
+    if (seen[key]) return; seen[key] = 1;
+    pos.push({ kind: 'open', open: p.openedAt || Date.now(), close: null, dir: String(p.dir || '').toUpperCase(), r: null, p: p });
+  };
+  // a) pozycje i transakcje otwarte z tego wątku
+  (typeof opzPositions !== 'undefined' && Array.isArray(opzPositions) ? opzPositions : [])
+    .forEach(p => { if (p && String(p.thread) === String(tid)) addOpen(p); });
+  const today = (typeof dcDayStr === 'function') ? dcDayStr() : '';
+  (typeof trades !== 'undefined' && Array.isArray(trades) ? trades : [])
+    .forEach(t => { if (t && String(t.thread) === String(tid)) addTrade(t, today); });
+  try {
+    const arch = dcLoad('archive', []) || [];
+    arch.forEach(d => (d && Array.isArray(d.trades) ? d.trades : [])
+      .forEach(t => { if (t && String(t.thread) === String(tid)) addTrade(t, d.date); }));
+  } catch (err) {}
+  // b) pozycje podpięte w Session Logu po staremu (podepnij pozycję)
+  chain.forEach(e => (e.linkedTrades || []).forEach(l => {
+    if (!l || l.role === 'pending') return;
+    let R = null; try { R = slResolve(l, e); } catch (err) {}
+    if (!R) return;
+    if (R.kind === 'pos') addOpen(R.p);
+    else if (R.f && R.f.t) addTrade(R.f.t, R.f.day);
+  }));
+  pos.sort((a, b) => a.open - b.open);
+  return { chain: chain, notes: notes, pos: pos };
+}
+
+function swInfo(tid, all, meta) {
+  const ev = swEvents(tid, all);
+  const root = ev.chain[0] || null;
+  const instr = Array.from(new Set([].concat.apply([], ev.chain.map(slInstrOf))));
+  const tfs = Array.from(new Set([].concat.apply([], ev.chain.map(e => [].concat.apply([], slAssetsOf(e).map(slTfsOf)))))).filter(x => x && x !== '—');
+  const lastNote = ev.notes.length ? Math.max.apply(null, ev.notes.map(n => n.ts)) : 0;
+  const lastPos = ev.pos.length ? Math.max.apply(null, ev.pos.map(p => p.close || Date.now())) : 0;
+  const last = Math.max(lastNote, lastPos);
+  const hasOpen = ev.pos.some(p => p.kind === 'open');
+  const closed = ev.pos.filter(p => p.kind === 'trade' && p.r != null);
+  const sumR = closed.reduce((s, p) => s + p.r, 0);
+  let state = 'a';
+  if (meta && meta.drop) state = 'd';
+  else if (!hasOpen && last && (Date.now() - last) > SW_STALE_H * 3600000) state = 's';
+  return { tid: tid, ev: ev, root: root, instr: instr, tfs: tfs, last: last, hasOpen: hasOpen,
+           closed: closed, sumR: sumR, state: state, meta: meta || {} };
+}
+
+// ── ZNACZNIK NA PASKU I ZAKŁADCE ─────────────────────────────
+function swStaleCount(all) {
+  const c = swCur();
+  let n = 0;
+  c.w.roots.forEach(tid => { if (swInfo(tid, all, c.w.meta[tid]).state === 's') n++; });
+  return n;
+}
+function swBadge(all) {
+  let n = 0;
+  try { n = swStaleCount(all || slAll()); } catch (err) {}
+  const tb = document.getElementById('slThreadsBadge');
+  if (tb) { tb.textContent = n ? String(n) : ''; tb.style.display = n ? 'inline-block' : 'none'; }
+  const it = document.querySelector('#sidebar .sb-item[data-tooltip="Session Log"]');
+  if (it) {
+    let b = it.querySelector('.sw-rbadge');
+    if (!b) { b = document.createElement('span'); b.className = 'sw-rbadge'; it.appendChild(b); }
+    b.textContent = n ? String(n) : '';
+    b.style.display = n ? 'flex' : 'none';
+    b.title = n ? (n + ' wątk' + (n === 1 ? '' : 'ów') + ' tygodnia bez dopisku od 3 dni') : '';
+  }
+}
+window.swBadge = swBadge;
+
+// ── AKCJE ────────────────────────────────────────────────────
+function swToggle(tid) { window._swOpen = (String(window._swOpen) === String(tid)) ? null : tid; slRender(); }
+window.swToggle = swToggle;
+function swContinue(tid) {
+  const chain = slThreadChain(tid);
+  if (!chain.length) return;
+  slContinueEntry(chain[chain.length - 1].id);
+}
+window.swContinue = swContinue;
+function swOpenThread(tid) {
+  const btn = document.querySelector('#slTabs .jtab');
+  slSetTab('entries', btn);
+  slOpenThread(tid);
+}
+window.swOpenThread = swOpenThread;
+function swNewPosition(tid) {
+  const chain = slThreadChain(tid);
+  const instr = chain.length ? (slInstrOf(chain[0])[0] || '') : '';
+  if (typeof navTo === 'function') navTo('pozycje', document.querySelector('.sb-item[onclick*="pozycje"]'));
+  setTimeout(function () {
+    if (typeof opzOpenAddModal !== 'function') return;
+    opzOpenAddModal();
+    window._opzThread = tid;
+    const tk = document.getElementById('opzToken'); if (tk) tk.value = instr;
+    const tt = document.getElementById('opzAddTitle');
+    if (tt) tt.textContent = '+ NOWA POZYCJA · WĄTEK ' + (instr || '');
+    const en = document.getElementById('opzEntry'); if (en) setTimeout(() => en.focus(), 120);
+  }, 180);
+}
+window.swNewPosition = swNewPosition;
+
+// ── RYSOWANIE ────────────────────────────────────────────────
+function swFmtR(v) { return (v > 0 ? '+' : (v < 0 ? '−' : '')) + Math.abs(v).toFixed(1).replace('.', ',') + 'R'; }
+function swHM(ts) { const d = new Date(ts); return swPad(d.getHours()) + ':' + swPad(d.getMinutes()); }
+const SW_DN = ['nd', 'pon', 'wt', 'śr', 'czw', 'pt', 'sb'];
+function swWhen(ts) { const d = new Date(ts); return SW_DN[d.getDay()] + ' ' + swHM(ts); }
+
+function swRender(all) {
+  const c = swCur();
+  const start = swParse(c.start);
+  const t0 = start.getTime(), span = 5 * 86400000;
+  const now = Date.now();
+  const X = ts => Math.max(0, Math.min(100, (ts - t0) / span * 100));
+  const nowIn = now >= t0 && now <= t0 + span;
+  const todayIdx = nowIn ? Math.floor((now - t0) / 86400000) : -1;
+  const days = [0, 1, 2, 3, 4].map(i => { const d = new Date(start); d.setDate(d.getDate() + i); return d; });
+  const DN = ['PON', 'WT', 'ŚR', 'CZW', 'PT'];
+  const esc = slEsc;
+
+  const infos = c.w.roots.map(tid => swInfo(tid, all, c.w.meta[tid]))
+    .filter(i => i.root);                                  // wątek skasowany z logu znika
+  // kolejność: nieruszane na górę (wymagają uwagi), potem aktywne, odpuszczone na dół
+  const ord = { s: 0, a: 1, d: 2 };
+  infos.sort((a, b) => (ord[a.state] - ord[b.state]) || (b.last - a.last));
+
+  const nA = infos.filter(i => i.state !== 'd').length;
+  const nS = infos.filter(i => i.state === 's').length;
+  const nD = infos.filter(i => i.state === 'd').length;
+  const allPos = [].concat.apply([], infos.map(i => i.ev.pos));
+  const closedAll = allPos.filter(p => p.kind === 'trade' && p.r != null);
+  const sumAll = closedAll.reduce((s, p) => s + p.r, 0);
+  const openAll = allPos.filter(p => p.kind === 'open').length;
+  const nRoots = c.w.roots.length;
+  const wk = swIsoWeek(c.start);
+  const fmtD = d => swPad(d.getDate()) + '.' + swPad(d.getMonth() + 1);
+
+  let h = '<div class="sw-box">';
+  h += '<div class="sw-hd"><div class="sw-ttl"><div class="k">WĄTKI TYGODNIA</div>'
+    + '<div class="t">TYDZIEŃ ' + wk + '</div>'
+    + '<div class="s">' + fmtD(days[0]) + ' → ' + fmtD(days[4]) + ' · lista zamknięta · '
+    + '<b class="' + (nRoots > SW_BASE ? 'over' : '') + '">' + nRoots + ' / ' + SW_BASE + '</b>'
+    + (nRoots > SW_BASE ? ' <span class="xtra">(+' + (nRoots - SW_BASE) + ' z furtki)</span>' : '') + '</div></div>'
+    + '<div class="sw-sp"></div>'
+    + '<div class="sw-kp"><div class="n" style="color:var(--cyan)">' + nA + '</div><div class="l">AKTYWNE</div>'
+    + '<div class="x" style="color:' + (nS ? 'var(--gold)' : 'var(--dim2)') + '">' + (nS ? nS + ' nieruszan' + (nS === 1 ? 'y' : 'e') : 'wszystkie świeże') + '</div></div>'
+    + '<div class="sw-kp"><div class="n" style="color:var(--green)">' + allPos.length + '</div><div class="l">POZYCJI Z LISTY</div>'
+    + '<div class="x" style="color:' + (sumAll >= 0 ? 'var(--green)' : 'var(--red)') + '">'
+    + (closedAll.length ? swFmtR(sumAll) + ' zamknięte' : 'brak zamkniętych') + (openAll ? ' · ' + openAll + ' otwart' + (openAll === 1 ? 'a' : 'e') : '') + '</div></div>'
+    + '<div class="sw-kp"><div class="n" style="color:var(--dim2)">' + nD + '</div><div class="l">ODPUSZCZONE</div><div class="x">slot nie wraca</div></div>'
+    + '</div>';
+
+  if (!infos.length) {
+    h += '<div class="sw-empty"><b>LISTA TYGODNIA JEST PUSTA</b>'
+      + 'Zrób analizę w zakładce WPISY i przypnij ją przyciskiem <span class="sw-pinx">📌</span> na karcie wpisu.<br>'
+      + '13 wątków na tydzień · we wtorek jednorazowo +3 · odpuszczony wątek nie zwalnia miejsca.</div></div>';
+    return h;
+  }
+
+  h += '<div class="sw-row sw-head"><div class="sw-nm">WĄTEK</div><div class="sw-days">'
+    + days.map((d, i) => '<div class="sw-dh' + (i === todayIdx ? ' today' : '') + '">' + DN[i] + '<i>' + (i === todayIdx ? 'DZIŚ' : fmtD(d)) + '</i></div>').join('')
+    + '</div><div class="sw-stc">STAN · POZYCJE</div></div>';
+
+  infos.forEach(I => {
+    const tid = I.tid, open = String(window._swOpen) === String(tid);
+    const edge = I.state === 'd' ? 'rgba(255,90,90,.6)' : (I.state === 's' ? 'var(--gold)' : 'var(--cyan)');
+    // linia życia wątku
+    const first = I.ev.notes.length ? Math.min.apply(null, I.ev.notes.map(n => n.ts)) : t0;
+    let tl = (todayIdx >= 0 ? '<div class="sw-band" style="left:' + (todayIdx * 20) + '%"></div>' : '')
+      + [1, 2, 3, 4].map(i => '<div class="sw-dsep" style="left:' + (i * 20) + '%"></div>').join('');
+    if (first < t0) tl += '<div class="sw-prev" title="wątek zaczął się przed tym tygodniem">◂</div>';
+    if (I.state === 'd') {
+      const dx = X(swParse(I.meta.drop.date).getTime() + 12 * 3600000);
+      tl += '<div class="sw-thr" style="left:' + X(first) + '%;width:' + Math.max(0, dx - X(first)) + '%;background:rgba(255,90,90,.35)"></div>'
+        + '<div class="sw-x" style="left:' + dx + '%">✕</div>';
+    } else {
+      const endTs = Math.max(I.last || first, first);
+      tl += '<div class="sw-thr" style="left:' + X(first) + '%;width:' + Math.max(0, X(endTs) - X(first)) + '%"></div>';
+      if (I.state === 's' && nowIn) tl += '<div class="sw-stale" style="left:' + X(endTs) + '%;width:' + Math.max(0, X(now) - X(endTs)) + '%"></div>';
+    }
+    I.ev.notes.forEach(n => { if (n.ts >= t0 - 86400000 * 7) tl += '<div class="sw-dp" style="left:' + X(n.ts) + '%" title="' + esc(swWhen(n.ts)) + ' · dopisek"></div>'; });
+    I.ev.pos.forEach(p => {
+      const x0 = X(p.open), x1 = X(p.close || now);
+      const L = p.dir === 'LONG';
+      const cls = p.kind === 'open' ? 'open' : (p.r > 0.02 ? 'win' : (p.r < -0.02 ? 'loss' : 'be'));
+      const lab = p.kind === 'open' ? 'otwarta' : (p.r != null ? swFmtR(p.r) : '—');
+      tl += '<div class="sw-cap ' + (L ? 'L' : 'S') + ' ' + cls + '" style="left:' + x0 + '%;width:calc(' + Math.max(0.6, x1 - x0) + '% )" title="'
+        + esc((L ? '▲ LONG' : '▼ SHORT') + ' · ' + swWhen(p.open) + (p.close ? ' → ' + swWhen(p.close) : ' · na rynku') + ' · ' + lab) + '"></div>'
+        + '<div class="sw-cl ' + (L ? 'L' : 'S') + ' ' + cls + '" style="left:' + x0 + '%">' + (L ? '▲' : '▼') + ' ' + lab + '</div>';
+    });
+    if (nowIn && I.state !== 'd') tl += '<div class="sw-now" style="left:' + X(now) + '%"></div>';
+
+    const pill = I.state === 'a' ? '<span class="sw-pill a">AKTYWNY</span>'
+      : I.state === 's' ? '<span class="sw-pill s">NIERUSZANY</span>' : '<span class="sw-pill d">ODPUSZCZONY</span>';
+    const ago = I.last ? Math.floor((now - I.last) / 86400000) : null;
+    let sub;
+    if (I.state === 'd') sub = '<span class="sw-sm">od ' + esc(I.meta.drop.date.slice(8, 10) + '.' + I.meta.drop.date.slice(5, 7)) + '</span>';
+    else if (I.ev.pos.length) {
+      const op = I.ev.pos.filter(p => p.kind === 'open').length;
+      sub = (I.closed.length ? '<span class="sw-sm"><b style="color:' + (I.sumR >= 0 ? 'var(--green)' : 'var(--red)') + '">' + swFmtR(I.sumR) + '</b></span>' : '')
+        + '<span class="sw-sm">' + I.ev.pos.length + ' poz.' + (op ? ' · ' + op + ' otwarta' : '') + '</span>';
+    } else if (I.state === 's') sub = '<span class="sw-sm" style="color:var(--gold)">' + ago + ' dni bez dopisku</span>';
+    else sub = '<span class="sw-sm">bez pozycji</span>';
+
+    const nw = I.ev.chain.length;
+    h += '<div class="sw-row' + (open ? ' sel' : '') + (I.state === 'd' ? ' off' : '') + '" onclick="swToggle(' + tid + ')">'
+      + '<div class="sw-nm"><span class="sw-edge" style="background:' + edge + '"></span>'
+      + '<div class="sw-tok">' + esc(I.instr.join(' · ') || '—') + '</div>'
+      + '<div class="sw-tf">' + esc(I.tfs.slice(0, 3).join(' · ')) + (I.tfs.length ? ' · ' : '') + nw + ' wpis' + (nw === 1 ? '' : (nw < 5 ? 'y' : 'ów')) + '</div></div>'
+      + '<div class="sw-tl">' + tl + '</div>'
+      + '<div class="sw-stc">' + pill + sub + '</div></div>';
+
+    if (open) {
+      const inv = I.meta.inv || '';
+      const nL = I.ev.pos.filter(p => p.dir === 'LONG').length, nS2 = I.ev.pos.length - nL;
+      const op = I.ev.pos.find(p => p.kind === 'open');
+      // przebieg: dopiski i pozycje w jednej osi czasu
+      const log = [].concat(
+        I.ev.notes.map(n => ({ ts: n.ts, html:
+          '<span class="t">' + esc(swWhen(n.ts)) + '</span><span class="ic n">○</span><span class="tx">'
+          + esc((n.e.note || '').trim().slice(0, 140) || ('analiza ' + [].concat.apply([], slAssetsOf(n.e).map(slTfsOf)).join(' · ')))
+          + ((n.e.note || '').trim().length > 140 ? '…' : '') + ' <em>S' + esc(n.e.sess || '?') + '</em></span><span></span>' })),
+        I.ev.pos.map(p => ({ ts: p.open, html:
+          '<span class="t">' + esc(swWhen(p.open)) + '</span><span class="ic ' + (p.dir === 'LONG' ? 'L' : 'S') + '">' + (p.dir === 'LONG' ? '▲' : '▼') + '</span>'
+          + '<span class="tx">' + (p.dir === 'LONG' ? 'LONG' : 'SHORT') + ' <em>' + (p.close ? '→ zamknięta ' + esc(swWhen(p.close)) : '· otwarta') + '</em></span>'
+          + (p.kind === 'open' ? '<span class="r o">na rynku</span>'
+            : '<span class="r" style="color:' + (p.r > 0.02 ? 'var(--green)' : (p.r < -0.02 ? 'var(--red)' : 'var(--cyan)')) + '">' + (p.r != null ? swFmtR(p.r) : '—') + '</span>') }))
+      ).sort((a, b) => a.ts - b.ts);
+
+      h += '<div class="sw-det" onclick="event.stopPropagation()">'
+        + '<div><div class="sw-k">WARUNEK UNIEWAŻNIENIA MAPY</div>'
+        + '<textarea class="sw-inv' + (inv ? '' : ' empty') + '" id="swInv_' + tid + '" rows="3" placeholder="np. zamknięcie 4H poniżej 9,80 — strefa przestaje istnieć">' + esc(inv) + '</textarea>'
+        + '<div class="sw-invbar"><span class="sw-b sm" onclick="swSetInv(' + tid + ')">ZAPISZ WARUNEK</span>'
+        + (inv ? '' : '<span class="sw-warn">dopisz, zanim wejdziesz</span>') + '</div>'
+        + '<div class="sw-sum"><div><span>POZYCJE Z WĄTKU</span><b>' + I.ev.pos.length + '</b></div>'
+        + '<div><span>LONG / SHORT</span><b>' + nL + ' / ' + nS2 + '</b></div>'
+        + '<div><span>ZAMKNIĘTE</span><b style="color:' + (I.sumR >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (I.closed.length ? swFmtR(I.sumR) : '—') + '</b></div>'
+        + '<div><span>OTWARTA</span><b style="color:var(--green)">' + (op ? (op.dir === 'LONG' ? '▲ LONG' : '▼ SHORT') : '—') + '</b></div></div>'
+        + (I.state === 'd' ? '<div class="sw-dropwhy"><span>ODPUSZCZONE ' + esc(I.meta.drop.date) + '</span>' + esc(I.meta.drop.why || '—') + '</div>' : '')
+        + '</div>'
+        + '<div class="sw-log"><div class="sw-k">PRZEBIEG WĄTKU</div>' + log.map(x => '<div class="sw-ev">' + x.html + '</div>').join('') + '</div>'
+        + '<div class="sw-acts">'
+        + (I.state !== 'd'
+            ? '<span class="sw-b go" onclick="swContinue(' + tid + ')">↳ DOPISZ DO WĄTKU</span>'
+              + '<span class="sw-b pos" onclick="swNewPosition(' + tid + ')">+ POZYCJA Z TEGO WĄTKU</span>'
+            : '<span class="sw-b go" onclick="swRestore(' + tid + ')">↩ PRZYWRÓĆ</span>')
+        + '<span class="sw-b" onclick="swOpenThread(' + tid + ')">OTWÓRZ CAŁY WĄTEK</span>'
+        + '<span class="sw-sp2"></span>'
+        + '<span class="sw-lnk" onclick="swUnpin(' + tid + ')">odepnij (pomyłka)</span>'
+        + (I.state !== 'd' ? '<span class="sw-b x" onclick="swDrop(' + tid + ')">✕ ODPUŚĆ</span>' : '')
+        + '</div></div>';
+    }
+  });
+
+  h += '<div class="sw-ft"><span><i class="lg dp"></i>dopisek</span><span><i class="lg L"></i>▲ long nad linią</span>'
+    + '<span><i class="lg S"></i>▼ short pod linią</span><span><i class="lg st"></i>cisza ≥3 dni</span>'
+    + '<span class="sw-hint">klik w wiersz rozwija wątek</span></div></div>';
+  return h;
+}
+window.swRender = swRender;
+
+// znacznik od startu i co 10 minut — cisza narasta, nawet gdy nic nie klikasz
+setTimeout(function () { try { swBadge(); } catch (e) {} }, 2500);
+setInterval(function () { try { swBadge(); } catch (e) {} }, 600000);
+
+</script>
+<script>
 // ════════════════════════════════════════════════════════
 // DYZMCRYPT v150 — SESSION LOG · dziennik pracy analitycznej
 // Wpis = jedna sesja pracy (okno czasowe), NIE transakcja.
@@ -32585,6 +33291,18 @@ function slRender() {
     badge.style.display = pendActive.length ? 'inline-block' : 'none';
   }
 
+  // V263: wątki tygodnia — własny widok, bez zakresu dni i filtrów
+  try { swBadge(all); } catch (err) {}
+  const _rgEl = document.getElementById('slRange');
+  if (_rgEl) _rgEl.style.display = (slTab === 'threads') ? 'none' : '';
+  if (fEl) fEl.style.display = (slTab === 'threads') ? 'none' : '';
+  if (slTab === 'threads') {
+    const _c = swCur();
+    if (cEl) cEl.textContent = _c.w.roots.length + ' / ' + SW_BASE + ' na liście';
+    listEl.innerHTML = swRender(all);
+    return;
+  }
+
   if (slTab === 'pending') {
     if (cEl) cEl.textContent = pendActive.length + ' aktywnych · ' + pendAll.length + ' łącznie';
     const row = (x, done) => {
@@ -32698,6 +33416,8 @@ function slRender() {
       +   (slIsWatchOnly(e) ? '<span class="sl-watch-b">👁 OBSERWACJA</span>' : '')
       +   '<span class="sl-when">' + when + '</span>'
       +   '<span class="sl-cont" onclick="slContinueEntry(' + e.id + ')" title="Kontynuuj tę analizę w bieżącej sesji">↳ kontynuuj</span>'
+      +   (function(){ var _pin = swPinnedSet().has(String(e.thread != null ? e.thread : e.id));
+            return '<span class="sl-pin' + (_pin ? ' on' : '') + '" onclick="' + (_pin ? 'slSetTab(\'threads\',document.getElementById(\'slThreadsTab\'))' : 'swPin(' + e.id + ')') + '" title="' + (_pin ? 'Wątek jest na liście tygodnia — pokaż' : 'Przypnij ten wątek do listy tygodnia (13)') + '">📌' + (_pin ? ' w tygodniu' : '') + '</span>'; })()
       +   '<span class="sl-edit" onclick="slEditEntry(' + e.id + ')" title="Edytuj wpis">✎</span>' + '<span class="sl-del" onclick="slDelete(' + e.id + ')">✕</span>'
       + '</div>'
       + ((e.types || []).length
@@ -37613,6 +38333,149 @@ body.dc-phone .sl-tb-g{font-size:10px !important;}
 body.dc-phone .sl-th-n{font-size:14px !important;}
 body.dc-phone .sl-th-m span{font-size:10.5px !important;}
 body.dc-phone .sl-th-x{font-size:11px !important;padding:7px 13px !important;}
+/* ═══ V264 · ZALEGŁA POZYCJA ═══ */
+#ltOv{position:fixed;inset:0;z-index:9000;background:rgba(3,6,12,.82);display:none;align-items:flex-start;justify-content:center;padding:24px 14px;overflow:auto;}
+#ltOv.open{display:flex;}
+.lt-box{width:min(600px,96vw);background:var(--bg2);border:1px solid rgba(240,180,41,.35);border-radius:12px;padding:20px;box-shadow:0 8px 44px rgba(0,0,0,.55);}
+.lt-tag{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:1.2px;color:var(--gold);border:1px dashed rgba(240,180,41,.55);padding:1px 6px;border-radius:8px;white-space:nowrap;vertical-align:middle;}
+.lt-msg{margin-top:10px;font-family:'Share Tech Mono',monospace;font-size:9.5px;padding:8px 11px;border-radius:7px;border:1px solid rgba(118,158,205,.2);color:var(--text2);}
+.lt-msg.ok{color:var(--green);border-color:rgba(0,232,122,.3);} .lt-msg.warn{color:var(--gold);border-color:rgba(240,180,41,.35);} .lt-msg.bad{color:var(--red);border-color:rgba(255,58,92,.35);}
+.lt-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px;}
+.lt-f{display:flex;flex-direction:column;gap:5px;min-width:0;}
+.lt-f.w3{grid-column:span 1;}
+.lt-f > span{font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:1.4px;color:var(--dim2);}
+.lt-in{width:100%;box-sizing:border-box;background:rgba(0,0,0,.3);border:1px solid rgba(118,158,205,.22);border-radius:7px;padding:8px 9px;color:#eef4f8;font-family:'Share Tech Mono',monospace;font-size:11px;outline:none;color-scheme:dark;}
+.lt-in:focus{border-color:rgba(0,200,240,.5);}
+.lt-in.gold{border-color:rgba(240,180,41,.4);color:var(--gold);}
+.lt-sum{margin-top:14px;display:flex;flex-direction:column;gap:8px;}
+.lt-sum > div{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;}
+.lt-sum span{font-size:7.5px;letter-spacing:1.4px;color:var(--dim2);min-width:94px;}
+.lt-sum b{font-family:'Orbitron',monospace;font-size:13px;font-weight:800;}
+.lt-sum i{font-style:normal;font-size:8.5px;color:var(--dim2);}
+.lt-sum .e{font-size:9.5px;color:var(--red);}
+.lt-acts{display:flex;gap:10px;margin-top:16px;justify-content:flex-end;}
+.lt-go{color:var(--gold) !important;border-color:rgba(240,180,41,.5) !important;background:rgba(240,180,41,.08);}
+.lt-go.off{opacity:.35;pointer-events:none;}
+.lt-btn{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:1.3px;color:var(--gold);background:rgba(240,180,41,.06);border:1px dashed rgba(240,180,41,.45);border-radius:14px;padding:6px 12px;cursor:pointer;}
+.lt-btn:hover{background:rgba(240,180,41,.12);}
+@media (max-width:560px){ .lt-grid{grid-template-columns:repeat(2,minmax(0,1fr));} .lt-f.w3{grid-column:span 2;} }
+
+/* ═══ V263 · WĄTKI TYGODNIA ═══ */
+.sl-pin{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.3px;color:var(--gold);opacity:.55;cursor:pointer;
+  padding:2px 7px;border:1px solid rgba(240,180,41,.24);border-radius:11px;transition:opacity .15s,border-color .15s;white-space:nowrap;}
+.sl-pin:hover{opacity:1;border-color:rgba(240,180,41,.6);}
+.sl-pin.on{opacity:.95;background:rgba(240,180,41,.09);border-color:rgba(240,180,41,.45);}
+#panel-sessionlog #slThreadsBadge{background:var(--gold);}
+.sw-rbadge{position:absolute;top:3px;right:5px;min-width:15px;height:15px;padding:0 4px;border-radius:8px;display:none;
+  align-items:center;justify-content:center;background:var(--gold);color:#0a0c06;font-family:'Orbitron',monospace;
+  font-size:8px;font-weight:800;box-shadow:0 0 0 2px #05080e;z-index:5;pointer-events:none;}
+.sw-box{background:rgba(11,17,28,.85);border:1px solid rgba(118,158,205,.2);border-radius:14px;overflow:hidden;font-family:'Share Tech Mono',monospace;color:var(--text2);}
+.sw-hd{display:flex;align-items:flex-end;gap:26px;padding:18px 20px 16px;border-bottom:1px solid rgba(118,158,205,.1);
+  background:linear-gradient(180deg,rgba(0,200,240,.035),transparent);flex-wrap:wrap;}
+.sw-ttl .k{font-size:8.5px;letter-spacing:3px;color:var(--dim2);}
+.sw-ttl .t{font-family:'Orbitron',monospace;font-size:17px;font-weight:800;letter-spacing:2px;margin-top:6px;color:#eef4f8;}
+.sw-ttl .s{font-size:9px;color:var(--dim2);margin-top:6px;}
+.sw-ttl .s b{color:var(--text2);} .sw-ttl .s b.over{color:var(--gold);} .sw-ttl .s .xtra{color:var(--gold);opacity:.8;}
+.sw-sp{flex:1;}
+.sw-kp .n{font-family:'Orbitron',monospace;font-size:24px;font-weight:800;line-height:1;}
+.sw-kp .l{font-size:8px;letter-spacing:2px;color:var(--dim2);margin-top:8px;}
+.sw-kp .x{font-size:9px;margin-top:4px;color:var(--dim2);}
+.sw-empty{padding:34px 22px;text-align:center;font-size:10px;line-height:1.9;color:var(--dim2);}
+.sw-empty b{display:block;font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;color:var(--text2);margin-bottom:8px;}
+.sw-pinx{color:var(--gold);}
+.sw-row{display:grid;grid-template-columns:150px minmax(0,1fr) 150px;border-bottom:1px solid rgba(118,158,205,.1);cursor:pointer;transition:background .12s;}
+.sw-row:not(.sw-head):hover{background:rgba(255,255,255,.018);}
+.sw-row.sw-head{cursor:default;}
+.sw-row.sw-head .sw-nm,.sw-row.sw-head .sw-stc{font-size:8.5px;letter-spacing:2px;color:var(--dim2);padding:12px 20px 10px;}
+.sw-row.sw-head .sw-stc{text-align:right;display:block;}
+.sw-days{display:grid;grid-template-columns:repeat(5,1fr);}
+.sw-dh{font-size:8.5px;letter-spacing:2px;color:var(--dim2);text-align:center;padding:12px 0 10px;}
+.sw-dh.today{color:var(--cyan);}
+.sw-dh i{display:block;font-style:normal;font-size:8px;letter-spacing:1px;color:var(--dim);margin-top:3px;}
+.sw-dh.today i{color:rgba(0,200,240,.6);}
+.sw-nm{position:relative;padding:0 20px;display:flex;flex-direction:column;justify-content:center;min-width:0;}
+.sw-edge{position:absolute;left:0;top:12px;bottom:12px;width:2px;border-radius:2px;}
+.sw-tok{font-family:'Orbitron',monospace;font-size:12.5px;font-weight:800;letter-spacing:1px;color:#eef4f8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sw-tf{font-size:7.5px;color:var(--dim2);letter-spacing:.8px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sw-tl{position:relative;height:74px;}
+.sw-band{position:absolute;top:0;bottom:0;width:20%;background:rgba(0,200,240,.035);}
+.sw-dsep{position:absolute;top:0;bottom:0;width:1px;background:rgba(118,158,205,.1);}
+.sw-prev{position:absolute;left:2px;top:30px;font-size:10px;color:var(--dim2);}
+.sw-thr{position:absolute;top:37px;height:1.5px;background:rgba(118,158,205,.35);}
+.sw-stale{position:absolute;top:37px;height:0;border-top:1.5px dashed rgba(240,180,41,.6);}
+.sw-x{position:absolute;top:29px;margin-left:-5px;font-size:11px;color:rgba(255,90,90,.75);}
+.sw-dp{position:absolute;top:32px;width:11px;height:11px;border-radius:50%;border:1.5px solid var(--cyan);background:#0b111c;z-index:3;margin-left:-5.5px;}
+.sw-now{position:absolute;top:6px;bottom:6px;width:1px;background:rgba(0,200,240,.55);z-index:1;}
+.sw-cap{position:absolute;height:9px;border-radius:5px;z-index:2;min-width:4px;}
+.sw-cap.L{top:21px;} .sw-cap.S{top:44px;}
+.sw-cap.win{background:var(--green);} .sw-cap.loss{background:var(--red);opacity:.75;} .sw-cap.be{background:var(--cyan);opacity:.6;}
+.sw-cap.open{background:none;border:1.5px solid var(--green);border-right:none;border-radius:5px 0 0 5px;}
+.sw-cl{position:absolute;font-size:8px;white-space:nowrap;z-index:3;pointer-events:none;}
+.sw-cl.L{top:9px;} .sw-cl.S{top:56px;}
+.sw-cl.win,.sw-cl.open{color:var(--green);} .sw-cl.loss{color:var(--red);} .sw-cl.be{color:var(--cyan);}
+.sw-stc{padding:0 20px;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:4px;}
+.sw-pill{font-size:7.5px;letter-spacing:1.4px;padding:3px 8px;border-radius:9px;border:1px solid;}
+.sw-pill.a{color:var(--cyan);border-color:rgba(0,200,240,.4);background:rgba(0,200,240,.07);}
+.sw-pill.s{color:var(--gold);border-color:rgba(240,180,41,.45);background:rgba(240,180,41,.08);}
+.sw-pill.d{color:var(--dim2);border-color:rgba(118,158,205,.2);}
+.sw-sm{font-size:8.5px;color:var(--dim2);text-align:right;}
+.sw-sm b{font-family:'Orbitron',monospace;font-weight:800;font-size:11px;}
+.sw-row.sel{background:rgba(255,255,255,.022);border-bottom-color:transparent;}
+.sw-row.off{opacity:.42;} .sw-row.off.sel{opacity:.8;}
+.sw-det{background:rgba(255,255,255,.022);border-bottom:1px solid rgba(118,158,205,.1);padding:6px 20px 18px;
+  display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;cursor:default;}
+.sw-k{font-size:8px;letter-spacing:2px;color:var(--dim2);margin-bottom:8px;}
+.sw-inv{width:100%;box-sizing:border-box;resize:vertical;border:none;border-left:2px solid var(--gold);padding:9px 12px;
+  background:rgba(240,180,41,.05);border-radius:0 6px 6px 0;font-family:'Share Tech Mono',monospace;font-size:10px;
+  color:rgba(255,224,140,.95);line-height:1.6;outline:none;}
+.sw-inv.empty{border-left-style:dashed;}
+.sw-inv::placeholder{color:rgba(240,180,41,.35);}
+.sw-invbar{display:flex;align-items:center;gap:10px;margin-top:6px;}
+.sw-warn{font-size:8px;letter-spacing:1px;color:rgba(240,180,41,.7);}
+.sw-sum{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.sw-sum div{background:rgba(0,0,0,.25);border:1px solid rgba(118,158,205,.1);border-radius:6px;padding:8px 10px;}
+.sw-sum span{display:block;font-size:7.5px;letter-spacing:1.4px;color:var(--dim2);}
+.sw-sum b{display:block;margin-top:4px;font-family:'Orbitron',monospace;font-size:12px;font-weight:800;color:#eef4f8;}
+.sw-dropwhy{margin-top:10px;font-size:9.5px;color:var(--text);line-height:1.5;border-left:2px solid rgba(255,90,90,.5);padding:6px 10px;}
+.sw-dropwhy span{display:block;font-size:7.5px;letter-spacing:1.4px;color:rgba(255,90,90,.7);margin-bottom:3px;}
+.sw-log{border-left:1px solid rgba(118,158,205,.2);padding-left:14px;min-width:0;}
+.sw-ev{display:grid;grid-template-columns:72px 18px minmax(0,1fr) auto;align-items:baseline;gap:6px;padding:4px 0;font-size:9.5px;}
+.sw-ev .t{color:var(--dim2);font-size:8.5px;}
+.sw-ev .ic{text-align:center;} .sw-ev .ic.n{color:var(--cyan);} .sw-ev .ic.L{color:var(--green);} .sw-ev .ic.S{color:var(--red);}
+.sw-ev .tx{color:var(--text2);overflow-wrap:anywhere;} .sw-ev .tx em{font-style:normal;color:var(--dim2);}
+.sw-ev .r{font-family:'Orbitron',monospace;font-size:10px;font-weight:800;} .sw-ev .r.o{color:var(--green);font-family:'Share Tech Mono',monospace;font-weight:400;font-size:8.5px;}
+.sw-acts{grid-column:1/-1;display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;align-items:center;}
+.sw-sp2{flex:1;}
+.sw-b{font-size:9px;letter-spacing:1.4px;padding:8px 14px;border-radius:7px;border:1px solid rgba(118,158,205,.2);color:var(--dim2);cursor:pointer;transition:filter .12s;user-select:none;}
+.sw-b:hover{filter:brightness(1.4);}
+.sw-b.sm{padding:5px 10px;font-size:8px;}
+.sw-b.go{color:var(--cyan);border-color:rgba(0,200,240,.4);background:rgba(0,200,240,.06);}
+.sw-b.pos{color:var(--green);border-color:rgba(0,232,122,.35);background:rgba(0,232,122,.05);}
+.sw-b.x{color:rgba(255,90,90,.75);border-color:rgba(255,90,90,.25);}
+.sw-lnk{font-size:8px;letter-spacing:1px;color:var(--dim);cursor:pointer;text-decoration:underline dotted;}
+.sw-lnk:hover{color:var(--dim2);}
+.sw-ft{display:flex;align-items:center;gap:18px;padding:13px 20px;font-size:8.5px;color:var(--dim2);flex-wrap:wrap;}
+.sw-hint{margin-left:auto;}
+.sw-ft .lg{display:inline-block;width:16px;height:7px;border-radius:4px;vertical-align:middle;margin-right:5px;}
+.sw-ft .lg.dp{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--cyan);}
+.sw-ft .lg.L{background:var(--green);} .sw-ft .lg.S{background:var(--red);opacity:.75;}
+.sw-ft .lg.st{height:0;border-top:1.5px dashed rgba(240,180,41,.7);border-radius:0;}
+@media (max-width:820px){
+  .sw-row{grid-template-columns:96px minmax(0,1fr) 92px;}
+  .sw-nm,.sw-stc{padding:0 10px;} .sw-row.sw-head .sw-nm,.sw-row.sw-head .sw-stc{padding:12px 10px 10px;}
+  .sw-tok{font-size:10.5px;} .sw-cl{font-size:7px;}
+  .sw-det{grid-template-columns:1fr;padding:6px 12px 16px;}
+  .sw-log{border-left:none;padding-left:0;}
+  .sw-hd{gap:16px;}
+}
+@media (max-width:520px){
+  .sw-row{grid-template-columns:78px minmax(0,1fr) 80px;}
+  .sw-nm,.sw-stc{padding:0 7px;}
+  .sw-dh{letter-spacing:0;font-size:7.5px;} .sw-dh i{display:none;} .sw-dh.today i{display:block;}
+  .sw-tf{display:none;} .sw-sm{font-size:7.5px;} .sw-pill{font-size:6.5px;padding:2px 5px;letter-spacing:.6px;}
+  .sw-cl{display:none;}
+}
+
 body.dc-phone .sl-thread-strip{max-height:230px;}
 body.dc-phone .sl-ts-m{font-size:10.5px !important;}
 body.dc-phone .sl-ts-n{font-size:11px !important;}
