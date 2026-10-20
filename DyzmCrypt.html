@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v269 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v270 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v269 · EXECUTION OS</div>
+    <div class="splash-ver">v270 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v269</div>
+      <div class="sb-logo-sub">EXECUTION OS · v270</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v269';
+window.DC_VERSION = 'v270';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17201,31 +17201,9 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
   </div>
 
   <!-- Przycisk zapisu dnia -->
-  <div class="arc-header">
-    <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim2);letter-spacing:2px;">
-      Kliknij aby zapisać dzisiejszy dzień do historii
-    </div>
-    <button class="arc-save-btn" onclick="archiveSaveDay()">⊕ ZAPISZ DZIEŃ</button>
-  </div>
-
-  <!-- Podsumowanie całości -->
-  <div class="arc-summary" id="arcSummary"></div>
-
-  <!-- V121: TRENDY -->
-  <div class="arc-card">
-    <div class="arc-ct">TRENDY
-      <span class="an-tabs" id="arcTrendTabs" style="margin-left:auto;">
-        <button class="an-tab active" onclick="arcSetTrend(7,this)">TYDZIEŃ</button>
-        <button class="an-tab" onclick="arcSetTrend(30,this)">30 DNI</button>
-      </span>
-    </div>
-    <div id="arcTrends"></div>
-  </div>
-
-  <!-- V121: FILTRY -->
-  <div class="arc-card">
-    <div class="arc-ct">FILTRY <span id="arcFCount" style="margin-left:auto;font-size:8px;color:var(--dim2);letter-spacing:1px;font-weight:400;">—</span></div>
-    <div class="arc-filters">
+  <!-- V270 · ARCHIWUM — LOG OPERACYJNY + KALENDARZ -->
+  <div class="arch-hud"><i class="c1"></i><i class="c2"></i><div id="arcHud"></div></div>
+  <div id="arcMore" style="display:none"><div class="arc-filters">
       <input class="arc-f" id="arcFTok" placeholder="token…" oninput="arcFilterChanged()">
       <select class="arc-f" id="arcFLvl" onchange="arcFilterChanged()"><option value="all">wszystkie poziomy</option></select>
       <select class="arc-f" id="arcFRes" onchange="arcFilterChanged()">
@@ -17242,15 +17220,16 @@ body.dc-phone #panel-bieganie .rn-rq{font-size:9px;padding:4px 9px;}
       <input class="arc-f" id="arcFFrom" type="date" onchange="arcFilterChanged()" title="od">
       <input class="arc-f" id="arcFTo" type="date" onchange="arcFilterChanged()" title="do">
       <button class="arc-f arc-f-reset" onclick="arcFilterReset()">✕ RESET</button>
-    </div>
-  </div>
-
-  <!-- V121: pasek porównania -->
+    </div><span id="arcFCount" style="display:none"></span></div>
   <div class="arc-cmp-bar" id="arcCmpBar" style="display:none;"></div>
-
-  <!-- Lista dni: klik = RAPORT DNIA, ⇄ = porównanie -->
-  <div id="arcList" class="arc-list">
-    <div class="arc-empty">BRAK ZAPISANYCH DNI · KLIKNIJ "ZAPISZ DZIEŃ" PO ZAKOŃCZENIU SESJI</div>
+  <div class="arch-lay">
+    <div class="arch-calw" id="arcCal"></div>
+    <div>
+      <div id="arcList" class="arc-list" style="gap:0;display:block;">
+        <div class="arc-empty">BRAK ZAPISANYCH DNI</div>
+      </div>
+      <div class="arch-leg"><span><i style="width:16px;height:9px;background:rgba(0,200,240,.55);border:1px solid var(--cyan)"></i>sesja zrobiona</span><span><i style="width:16px;height:9px;border:1px solid rgba(255,58,92,.35);background:repeating-linear-gradient(135deg,rgba(255,58,92,.18) 0 2px,transparent 2px 4px)"></i>sesja pominięta</span><span><i style="width:8px;height:8px;background:var(--green);transform:rotate(45deg)"></i>zamknięta pozycja · wielkość = wynik</span><span>klik w dzień → raport dnia</span></div>
+    </div>
   </div>
 </div>
 
@@ -32046,6 +32025,283 @@ window.tvBtn = tvBtn;
 </script>
 <script>
 // ══════════════════════════════════════════════════════════════
+//  V270 · ARCHIWUM — LOG OPERACYJNY + KALENDARZ
+//  Wygląd od nowa, dane bez zmian (klucz 'archive', raport dnia,
+//  porównanie, filtry, zapis 22:00). Ten blok tylko RYSUJE:
+//   · HUD z odczytem całości i szybkimi filtrami,
+//   · kalendarz miesiąca pon–pt (klik = skok do dnia w logu),
+//   · log dni pogrupowany poziomami; dzień = oś 7:00–24:00 z 13
+//     oknami sesji z planu i rombami zamkniętych pozycji.
+// ══════════════════════════════════════════════════════════════
+var arcCalYM = null;                           // [rok, miesiąc 0–11] w kalendarzu
+const ARC_T0 = 7 * 60, ARC_T1 = 24 * 60;
+
+function arcPad(n) { return String(n).padStart(2, '0'); }
+function arcFmtPl(v) { return (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2).replace('.', ',') + '$'; }
+function arcTimeMin(s) { const m = String(s || '').match(/(\d{1,2}):(\d{2})/); return m ? (+m[1]) * 60 + (+m[2]) : null; }
+function arcLive(arr) { return (typeof dcLiveOnly === 'function') ? dcLiveOnly(arr || []) : (arr || []); }
+const ARC_DN = ['ND', 'PON', 'WT', 'ŚR', 'CZW', 'PT', 'SB'];
+
+// okna sesji dla trybu dnia (d13 / d9 / d6) — te same bloki co Plan Dnia
+function arcSlots(mode) {
+  let blocks = null;
+  try {
+    if (mode === 'd6' && typeof buildBlocksD6 === 'function') blocks = buildBlocksD6();
+    else if (mode === 'd9') blocks = (typeof buildBlocksD9 === 'function') ? buildBlocksD9() : (typeof blocksD9 !== 'undefined' ? blocksD9 : null);
+    else if (typeof blocksD13 !== 'undefined') blocks = blocksD13;
+  } catch (e) {}
+  const out = [];
+  (Array.isArray(blocks) ? blocks : []).forEach(function (b) {
+    if (!b || (typeof TYPE !== 'undefined' && b.type !== TYPE.TRADING) || !Array.isArray(b.tasks)) return;
+    b.tasks.forEach(function (t) {
+      if (!t || !/sesja/i.test(t.label || '')) return;
+      const m = String(t.time || '').split(/[–-]/);
+      if (m.length < 2) return;
+      const s = arcTimeMin(m[0]), e = arcTimeMin(m[1]);
+      if (s != null && e != null && e > s) out.push({ s: s, e: e });
+    });
+  });
+  return out.sort(function (a, b) { return a.s - b.s; });
+}
+
+// etykieta poziomu → kafel w progresji
+function arcLvlInfo(label) {
+  if (!label || typeof levelsData === 'undefined') return null;
+  for (const cy of Object.keys(levelsData)) {
+    const arr = levelsData[cy] || [];
+    for (let i = 0; i < arr.length; i++) {
+      if (cycleLabel(cy, arr[i]) !== label) continue;
+      const list = (typeof getTradesForLevel === 'function') ? (getTradesForLevel(cy, arr[i].n) || []) : [];
+      const w = list.filter(function (t) { return t.pnl > 1; }).length, l = list.filter(function (t) { return t.pnl < -1; }).length;
+      return { cycle: cy, i: i, lvl: arr[i], state: getLevelState(cy, i), data: levelState[getLevelKey(cy, i)] || {},
+               n: list.length, pos: arr[i].pos || 13, pnl: list.reduce(function (a, t) { return a + (parseFloat(t.pnl) || 0); }, 0),
+               wr: (w + l) ? Math.round(w / (w + l) * 100) : 0,
+               last: (typeof lvlLastTrade === 'function') ? lvlLastTrade(cy, i) : null };
+    }
+  }
+  return null;
+}
+// poziom dnia = etykieta, którą niesie najwięcej jego pozycji (dzień bez pozycji — poziom aktywny tego dnia)
+function arcDayLevel(d) {
+  const cnt = {};
+  (d.trades || []).forEach(function (t) { if (t && t.label) cnt[t.label] = (cnt[t.label] || 0) + 1; });
+  const k = Object.keys(cnt).sort(function (a, b) { return cnt[b] - cnt[a]; })[0];
+  return k || (d.activeState && d.activeState.label) || '—';
+}
+
+// ── HUD: odczyt całości + szybkie filtry ────────────────────────
+function arcRenderHud(all, shown) {
+  const el = document.getElementById('arcHud'); if (!el) return;
+  const pnl = all.reduce(function (a, d) { return a + ((d.stats && d.stats.totalPnL) || 0); }, 0);
+  const tr = all.reduce(function (a, d) { return a + ((d.stats && d.stats.total) || 0); }, 0);
+  const w = all.reduce(function (a, d) { return a + ((d.stats && d.stats.wins) || 0); }, 0);
+  const l = all.reduce(function (a, d) { return a + ((d.stats && d.stats.losses) || 0); }, 0);
+  const trDays = all.filter(function (d) { return d.stats && d.stats.total > 0; }).length;
+  const sDone = all.reduce(function (a, d) { return a + ((d.sessions || []).filter(Boolean).length); }, 0);
+  const sMax = all.reduce(function (a, d) { return a + ((d.stats && d.stats.maxSessions) || 13); }, 0);
+  let lvDone = 0, lvAct = 0;
+  try { Object.keys(levelState || {}).forEach(function (k) { const s = (levelState[k] || {}).state; if (s === 'done') lvDone++; else if (s === 'active') lvAct++; }); } catch (e) {}
+  const levels = {};
+  all.forEach(function (d) { (d.trades || []).forEach(function (t) { if (t && t.label) levels[t.label] = 1; }); });
+  const f = arcGetFilters();
+  const cell = function (k, v, c) { return '<div><span>' + k + '</span><b style="color:' + c + '">' + v + '</b></div>'; };
+  el.innerHTML = '<div class="arch-top"><span class="arch-led"></span><span class="arch-t">ARCHIWUM</span>'
+    + '<span class="arch-s">LOG OPERACYJNY · ' + all.length + ' ' + (all.length === 1 ? 'DZIEŃ' : 'DNI') + ' · ' + Object.keys(levels).length + ' POZ.</span>'
+    + '<span class="arch-sp"></span><span class="arch-save" onclick="archiveSaveDay()">⤓ ZAPISZ DZIEŃ</span></div>'
+    + '<div class="arch-rd">'
+    + cell('P&amp;L ŁĄCZNY', arcFmtPl(pnl), pnl >= 0 ? 'var(--green)' : 'var(--red)')
+    + cell('WINRATE', ((w + l) ? Math.round(w / (w + l) * 100) : 0) + '%', '#eef4f8')
+    + cell('TRANSAKCJE', tr, '#eef4f8')
+    + cell('DNI HANDLOWE', trDays, '#eef4f8')
+    + cell('SESJE', sDone + ' / ' + sMax, 'var(--cyan)')
+    + cell('POZIOMY', lvDone + ' ⬡' + (lvAct ? ' · ' + lvAct + ' ●' : ''), 'var(--gold)')
+    + '</div>'
+    + '<div class="arch-flt">'
+    + '<span class="arch-f' + (f.level === 'all' && f.result === 'all' ? ' on' : '') + '" onclick="arcQuick(\'all\')">WSZYSTKO</span>'
+    + Object.keys(levels).sort().reverse().map(function (lb) { return '<span class="arch-f' + (f.level === lb ? ' on' : '') + '" onclick="arcQuick(\'lvl\',\'' + arcEsc(lb) + '\')">' + arcEsc(lb) + '</span>'; }).join('')
+    + '<span class="arch-f' + (f.result === 'red' ? ' on' : '') + '" onclick="arcQuick(\'red\')">TYLKO STRATY</span>'
+    + '<span class="arch-f' + (window._arcMore ? ' on' : '') + '" onclick="window._arcMore=!window._arcMore;arcRender();">' + (window._arcMore ? '▾' : '▸') + ' WIĘCEJ</span>'
+    + '<span class="arch-sp"></span><span class="arch-cnt">' + shown.length + ' z ' + all.length + ' dni</span>'
+    + '<span class="arch-f" onclick="arcCmpHint()">⇄ PORÓWNAJ DNI</span></div>';
+  const more = document.getElementById('arcMore');
+  if (more) more.style.display = window._arcMore ? '' : 'none';
+}
+function arcQuick(kind, val) {
+  const L = document.getElementById('arcFLvl'), R = document.getElementById('arcFRes');
+  if (kind === 'all') { arcFilterReset(); return; }
+  if (kind === 'lvl' && L) { if (!Array.prototype.some.call(L.options, function (o) { return o.value === val; })) { const o = document.createElement('option'); o.value = o.textContent = val; L.appendChild(o); } L.value = (L.value === val ? 'all' : val); }
+  if (kind === 'red' && R) R.value = (R.value === 'red' ? 'all' : 'red');
+  arcRender();
+}
+window.arcQuick = arcQuick;
+function arcCmpHint() { if (typeof dcToast === 'function') dcToast('Kliknij ⇄ przy dwóch dniach w logu — pojawi się PORÓWNAJ', 'toast-gold'); }
+window.arcCmpHint = arcCmpHint;
+
+// ── KALENDARZ ───────────────────────────────────────────────────
+function arcCalNav(dir) {
+  const ym = arcCalYM || [new Date().getFullYear(), new Date().getMonth()];
+  let y = ym[0], m = ym[1] + dir; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; }
+  arcCalYM = [y, m]; arcRenderTrends();
+}
+window.arcCalNav = arcCalNav;
+function arcJump(date) {
+  const el = document.getElementById('arcd-' + date);
+  if (!el) { if (typeof dcToast === 'function') dcToast('Ten dzień jest ukryty przez filtr', 'toast-gold'); return; }
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+window.arcJump = arcJump;
+arcRenderTrends = function () {
+  const el = document.getElementById('arcCal'); if (!el) return;
+  const all = arcAllDays(), map = {};
+  all.forEach(function (d) { if (d && d.stats) map[d.date] = d; });
+  const now = new Date(), today = dcDayStr();
+  if (!arcCalYM) arcCalYM = [now.getFullYear(), now.getMonth()];
+  const y = arcCalYM[0], m = arcCalYM[1];
+  const MN = ['STYCZEŃ', 'LUTY', 'MARZEC', 'KWIECIEŃ', 'MAJ', 'CZERWIEC', 'LIPIEC', 'SIERPIEŃ', 'WRZESIEŃ', 'PAŹDZIERNIK', 'LISTOPAD', 'GRUDZIEŃ'];
+  const first = new Date(y, m, 1), start = new Date(first); start.setDate(1 - ((first.getDay() + 6) % 7));
+  const last = new Date(y, m + 1, 0), end = new Date(last); end.setDate(last.getDate() + (7 - ((last.getDay() + 6) % 7) - 1));
+  const maxAbs = Math.max(1, Math.max.apply(null, all.map(function (d) { return Math.abs((d.stats && d.stats.totalPnL) || 0); }).concat([1])));
+  // dni, które zamknęły poziom
+  const ends = {};
+  try { Object.keys(levelState || {}).forEach(function (k) { const s = levelState[k]; if (s && s.state === 'done' && s.completedAt) ends[dcDayStr(new Date(s.completedAt))] = k; }); } catch (e) {}
+  let h = '<div class="arch-ch"><span class="t">' + MN[m] + ' ' + y + '</span><span class="arch-sp"></span>'
+    + '<span class="arch-nav" onclick="arcCalNav(-1)">◂</span><span class="arch-nav" onclick="arcCalNav(1)">▸</span></div>'
+    + '<div class="arch-cal">' + ['PON', 'WT', 'ŚR', 'CZW', 'PT'].map(function (x) { return '<div class="dh">' + x + '</div>'; }).join('');
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const wd = d.getDay(); if (wd === 0 || wd === 6) continue;
+    const key = dcDayStr(d), rec = map[key], inM = d.getMonth() === m;
+    const v = rec ? (rec.stats.totalPnL || 0) : null, has = rec && rec.stats.total > 0;
+    let st = '', cls = 'cd' + (inM ? '' : ' off') + (key === today ? ' today' : '') + (key > today ? ' fut' : '');
+    if (has) { const a = 0.16 + 0.5 * Math.abs(v) / maxAbs; st = 'background:' + (v >= 0 ? 'rgba(0,232,122,' : 'rgba(255,58,92,') + a.toFixed(2) + ');border-color:transparent;'; cls += ' has'; }
+    else if (rec) cls += ' work';
+    h += '<div class="' + cls + '" style="' + st + '"' + (rec ? ' onclick="arcJump(\'' + key + '\')"' : '') + ' title="' + key + (rec ? ' · ' + arcFmtPl(v) : '') + '">'
+      + '<span class="n">' + d.getDate() + (ends[key] ? ' <b>⬡</b>' : '') + '</span>'
+      + (has ? '<span class="v">' + (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(0) + '</span>'
+             : (rec ? '<span class="v w">·</span>' : (key === today ? '<span class="v dz">DZIŚ</span>' : ''))) + '</div>';
+  }
+  h += '</div>';
+  // podsumowanie: ten tydzień / poprzedni / zielone w miesiącu / koniec poziomu
+  const mon = new Date(now); mon.setHours(0, 0, 0, 0); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
+  const wkSum = function (from) { const to = new Date(from); to.setDate(to.getDate() + 6); const a = dcDayStr(from), b = dcDayStr(to);
+    return all.filter(function (d) { return d.date >= a && d.date <= b; }).reduce(function (s, d) { return s + ((d.stats && d.stats.totalPnL) || 0); }, 0); };
+  const prev = new Date(mon); prev.setDate(prev.getDate() - 7);
+  const inMonth = all.filter(function (d) { return d.date.slice(0, 7) === y + '-' + arcPad(m + 1) && d.stats && d.stats.total > 0; });
+  const green = inMonth.filter(function (d) { return d.stats.totalPnL > 0; }).length;
+  const endK = Object.keys(ends).filter(function (k) { return k.slice(0, 7) === y + '-' + arcPad(m + 1); }).sort().pop();
+  let endLbl = '—';
+  if (endK) { const kk = ends[endK].split('-'); try { endLbl = endK.slice(8, 10) + '.' + endK.slice(5, 7) + ' · ' + cycleLabel(kk[0], levelsData[kk[0]][+kk[1]]); } catch (e) {} }
+  const ws = wkSum(mon), ps = wkSum(prev);
+  h += '<div class="arch-wk">'
+    + '<span>ten tydzień <b style="color:' + (ws >= 0 ? 'var(--green)' : 'var(--red)') + '">' + arcFmtPl(ws) + '</b></span>'
+    + '<span>poprzedni <b style="color:' + (ps >= 0 ? 'var(--green)' : 'var(--red)') + '">' + arcFmtPl(ps) + '</b></span>'
+    + '<span>dni zielone w miesiącu <b>' + green + ' / ' + inMonth.length + '</b></span>'
+    + '<span>⬡ koniec poziomu <b>' + endLbl + '</b></span></div>';
+  el.innerHTML = h;
+};
+
+// ── LOG DNI ─────────────────────────────────────────────────────
+arcRenderList = function () {
+  const listEl = document.getElementById('arcList'); if (!listEl) return;
+  const all = arcAllDays(), days = arcApplyFilters(all);
+  arcRenderHud(all, days);
+  const cnt = document.getElementById('arcFCount');
+  if (cnt) cnt.textContent = days.length + ' z ' + all.length + ' dni';
+  const cbar = document.getElementById('arcCmpBar');
+  if (cbar) {
+    if (arcCompareSel.length) {
+      cbar.style.display = '';
+      cbar.innerHTML = '<span>⇄ wybrane: <b>' + arcCompareSel.join('</b> + <b>') + '</b></span>'
+        + (arcCompareSel.length === 2 ? '<button class="arc-cmp-go" onclick="arcOpenCompare()">PORÓWNAJ</button>' : '<span style="color:var(--dim2)">wybierz drugi dzień</span>')
+        + '<button class="arc-cmp-clear" onclick="arcCompareSel=[];arcRenderList();">wyczyść</button>';
+    } else cbar.style.display = 'none';
+  }
+  if (!days.length) {
+    listEl.innerHTML = '<div class="arc-empty">' + (all.length ? 'ŻADEN DZIEŃ NIE PASUJE DO FILTRÓW' : 'BRAK ZAPISANYCH DNI · ZAPIS AUTOMATYCZNY O 22:00') + '</div>';
+    return;
+  }
+  const allPnl = [];
+  days.forEach(function (d) { arcLive(d.trades).forEach(function (t) { allPnl.push(Math.abs(parseFloat(t.pnl) || 0)); }); });
+  const maxT = Math.max(1, Math.max.apply(null, allPnl.concat([1])));
+  const X = function (mn) { return Math.max(0, Math.min(100, (mn - ARC_T0) / (ARC_T1 - ARC_T0) * 100)); };
+  const slotCache = {};
+  // poziom każdego dnia; dzień bez pozycji i bez etykiety dziedziczy poziom sąsiada
+  const LV = days.map(arcDayLevel);
+  for (let q = 0; q < LV.length; q++) if (LV[q] === '—') LV[q] = (q > 0 && LV[q - 1] !== '—') ? LV[q - 1] : (LV.slice(q + 1).find(function (x) { return x !== '—'; }) || '—');
+  let h = '', lastLv = null;
+  days.forEach(function (d, di) {
+    const s = d.stats || {};
+    const lv = LV[di];
+    if (lv !== lastLv) {
+      lastLv = lv;
+      const I = arcLvlInfo(lv);
+      const cl = !I ? 'var(--dim2)' : (I.state === 'active' ? 'var(--green)' : (I.state === 'done' ? 'var(--cyan)' : 'var(--dim2)'));
+      let stTxt = '';
+      if (I) {
+        if (I.state === 'done') { const c = I.data.completedAt ? new Date(I.data.completedAt) : null; stTxt = '⬡ ZAKOŃCZONY' + (c ? ' ' + arcPad(c.getDate()) + '.' + arcPad(c.getMonth() + 1) : ''); }
+        else if (I.state === 'active') stTxt = '● AKTYWNY';
+        else stTxt = 'ZABLOKOWANY';
+      }
+      const lvDays = LV.filter(function (x) { return x === lv; }).length;
+      h += '<div class="arch-lv"><span class="tag" style="color:' + cl + ';border-color:' + cl + '">' + arcEsc(lv) + '</span>'
+        + (I ? '<span class="st" style="color:' + cl + '">' + stTxt + '</span>'
+          + '<span class="pips">' + Array.from({ length: I.pos }, function (_, k) { return '<i style="background:' + (k < I.n ? cl : 'rgba(118,158,205,.15)') + '"></i>'; }).join('') + '</span>'
+          + '<span class="m"><b>' + Math.min(I.n, 999) + '/' + I.pos + '</b> · <b style="color:' + (I.pnl >= 0 ? 'var(--green)' : 'var(--red)') + '">' + arcFmtPl(I.pnl) + '</b> · WR <b>' + I.wr + '%</b> · ' + lvDays + ' ' + (lvDays === 1 ? 'dzień' : 'dni') + '</span>' : '')
+        + '<span class="ln"></span></div>';
+      h += '<div class="arch-grp" style="--acc:' + cl + '">';
+    }
+    // oś dnia
+    const mode = d.dayMode || 'd13';
+    const slots = slotCache[mode] || (slotCache[mode] = arcSlots(mode));
+    const sess = Array.isArray(d.sessions) ? d.sessions : [];
+    let tl = '<div class="ax"></div>';
+    slots.forEach(function (sl, i) {
+      tl += '<div class="se ' + (sess[i] ? 'y' : 'n') + '" style="left:' + X(sl.s).toFixed(2) + '%;width:' + (X(sl.e) - X(sl.s)).toFixed(2) + '%"></div>';
+    });
+    [8, 12, 16, 20].forEach(function (hh) { tl += '<span class="hr" style="left:' + X(hh * 60) + '%">' + hh + ':00</span>'; });
+    const tr = arcLive(d.trades);
+    let best = null, nLate = 0;
+    tr.forEach(function (t) {
+      const v = parseFloat(t.pnl) || 0;
+      if (!best || v > (parseFloat(best.pnl) || 0)) best = t;
+      if (t.late) nLate++;
+      let mn = arcTimeMin(t.time); if (mn == null) return;
+      const early = mn < ARC_T0;
+      const c = v > 1 ? 'var(--green)' : (v < -1 ? 'var(--red)' : 'var(--cyan)');
+      const z = (6 + 8 * Math.abs(v) / maxT).toFixed(1);
+      tl += '<div class="pin" style="left:' + X(mn) + '%;--c:' + c + ';--z:' + z + 'px" title="' + arcEsc((t.time || '') + ' · ' + (t.token || '') + ' ' + (t.dir || '') + ' · ' + arcFmtPl(v)) + '"><b></b>'
+        + (early ? '<em>' + arcEsc(t.time) + '</em>' : '') + '</div>';
+    });
+    const W = s.wins || 0, L = s.losses || 0, pnl = s.totalPnL || 0;
+    const I2 = arcLvlInfo(lv);
+    const isEnd = I2 && I2.state === 'done' && I2.data.completedAt && dcDayStr(new Date(I2.data.completedAt)) === d.date;
+    const sel = arcCompareSel.indexOf(d.date) !== -1;
+    const krd = d.krdCounters || {}, krdN = (krd.low || 0) + (krd.med || 0) + (krd.high || 0);
+    const rs = d.riskState || 'STABLE';
+    const rsC = /CRIT|LOCK/.test(rs) ? 'var(--red)' : (/ALERT|WARN|CAUT/.test(rs) ? 'var(--orange)' : 'var(--green)');
+    h += '<div class="arch-day" id="arcd-' + d.date + '" onclick="arcOpenReport(\'' + d.date + '\')">'
+      + '<div class="dh"><span class="cmp' + (sel ? ' on' : '') + '" onclick="arcToggleCompare(\'' + d.date + '\', event)" title="Zaznacz do porównania">⇄</span>'
+      + '<span class="d">' + d.date.slice(8, 10) + '.' + d.date.slice(5, 7) + '</span><span class="w">' + ARC_DN[new Date(d.date + 'T12:00:00').getDay()] + '</span>'
+      + '<span class="chip">' + (mode === 'd6' ? 'D6' : mode === 'd9' ? 'D9' : 'D13') + '×33</span>'
+      + (isEnd ? '<span class="chip end">⬡ ' + (I2.n >= I2.pos ? I2.pos + '. POZYCJA · ' : '') + 'KONIEC POZIOMU</span>' : '')
+      + (nLate ? '<span class="chip late">↺ ' + nLate + ' DOPISAN' + (nLate === 1 ? 'A' : 'E') + '</span>' : '')
+      + ((s.total || 0) === 0 ? '<span class="chip">BEZ TRANSAKCJI</span>' : '')
+      + '<span class="pl" style="color:' + (pnl > 0 ? 'var(--green)' : pnl < 0 ? 'var(--red)' : 'var(--dim2)') + '">' + arcFmtPl(pnl) + '</span><span class="ar">▸</span></div>'
+      + '<div class="tl">' + tl + '</div>'
+      + '<div class="term"><span><i>TRANSAKCJE</i> ' + (s.total || 0) + '</span><span><i>W/L</i> ' + W + '/' + L + '</span><span><i>WR</i> ' + (s.winrate || 0) + '%</span>'
+      + '<span><i>SESJE</i> ' + sess.filter(Boolean).length + '/' + (s.maxSessions || slots.length || 13) + '</span>'
+      + '<span><i>KRD</i> <b style="color:' + rsC + '">' + arcEsc(rs) + '</b>' + (krdN ? ' · ' + krdN : '') + '</span>'
+      + (best ? '<span><i>NAJLEPSZA</i> ' + arcEsc(best.token || '—') + ' ' + arcFmtPl(parseFloat(best.pnl) || 0) + '</span>' : '')
+      + '</div></div>';
+    if (di === days.length - 1 || LV[di + 1] !== lv) h += '</div>';
+  });
+  listEl.innerHTML = h;
+};
+try { arcRender(); } catch (e) { console.error('[DYZMCRYPT] V270 archiwum:', e); }
+
+</script>
+<script>
+// ══════════════════════════════════════════════════════════════
 //  V264 · ZALEGŁA POZYCJA
 //  Pozycja, która była na giełdzie, ale nie trafiła do dziennika.
 //  Data i godziny idą z karty Bybita (albo wpisane ręcznie) — NIE z
@@ -38970,6 +39226,84 @@ body.dc-phone .sl-tb-g{font-size:10px !important;}
 body.dc-phone .sl-th-n{font-size:14px !important;}
 body.dc-phone .sl-th-m span{font-size:10.5px !important;}
 body.dc-phone .sl-th-x{font-size:11px !important;padding:7px 13px !important;}
+/* ═══ V270 · ARCHIWUM — LOG OPERACYJNY + KALENDARZ ═══ */
+#panel-archiwum .arch-hud{position:relative;border:1px solid rgba(0,200,240,.18);background:linear-gradient(180deg,rgba(0,200,240,.05),rgba(4,8,14,.6));padding:18px 22px 16px;margin-bottom:16px;}
+#panel-archiwum .arch-hud::before,#panel-archiwum .arch-hud::after,#panel-archiwum .arch-hud .c1,#panel-archiwum .arch-hud .c2{content:'';position:absolute;width:14px;height:14px;border-color:var(--cyan);border-style:solid;pointer-events:none;}
+#panel-archiwum .arch-hud::before{left:-1px;top:-1px;border-width:2px 0 0 2px;} #panel-archiwum .arch-hud::after{right:-1px;bottom:-1px;border-width:0 2px 2px 0;}
+#panel-archiwum .arch-hud .c1{right:-1px;top:-1px;border-width:2px 2px 0 0;} #panel-archiwum .arch-hud .c2{left:-1px;bottom:-1px;border-width:0 0 2px 2px;}
+.arch-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.arch-led{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);}
+.arch-t{font-family:'Orbitron',monospace;font-weight:800;font-size:15px;letter-spacing:3px;color:#eef4f8;}
+.arch-s{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:3px;color:var(--cyan);}
+.arch-sp{flex:1;}
+.arch-save{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:2px;color:var(--green);border:1px solid rgba(0,232,122,.35);padding:7px 12px;cursor:pointer;}
+.arch-save:hover{background:rgba(0,232,122,.08);}
+.arch-rd{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin-top:14px;border-top:1px solid rgba(118,158,205,.1);}
+.arch-rd div{padding:12px 0 0;min-width:0;}
+.arch-rd span{display:block;font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:2.5px;color:var(--dim2);}
+.arch-rd b{display:block;font-family:'Orbitron',monospace;font-size:18px;font-weight:800;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.arch-flt{display:flex;gap:6px;align-items:center;margin-top:14px;flex-wrap:wrap;}
+.arch-f{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:1.5px;padding:6px 11px;border:1px solid rgba(118,158,205,.22);color:var(--dim2);cursor:pointer;user-select:none;}
+.arch-f:hover{color:var(--text2);} .arch-f.on{color:var(--cyan);border-color:rgba(0,200,240,.45);background:rgba(0,200,240,.06);}
+.arch-cnt{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim2);letter-spacing:1px;}
+#panel-archiwum #arcMore{margin:-6px 0 14px;} #panel-archiwum #arcMore .arc-filters{gap:6px;}
+#panel-archiwum #arcMore .arc-f{border-radius:0;font-size:9px;}
+.arch-lay{display:grid;grid-template-columns:330px minmax(0,1fr);gap:16px;align-items:start;}
+.arch-calw{position:sticky;top:10px;background:#0a101b;border:1px solid rgba(118,158,205,.2);border-radius:4px;padding:16px 16px 14px;}
+.arch-ch{display:flex;align-items:center;gap:6px;margin-bottom:12px;}
+.arch-ch .t{font-family:'Orbitron',monospace;font-weight:800;font-size:11px;letter-spacing:2px;color:#eef4f8;}
+.arch-nav{font-size:10px;color:var(--dim2);padding:4px 9px;border:1px solid rgba(118,158,205,.2);cursor:pointer;}
+.arch-nav:hover{color:var(--cyan);border-color:rgba(0,200,240,.4);}
+.arch-cal{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;}
+.arch-cal .dh{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:var(--dim2);text-align:center;padding-bottom:3px;}
+.arch-cal .cd{height:50px;border:1px solid rgba(118,158,205,.1);padding:5px 7px;position:relative;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%);}
+.arch-cal .cd .n{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim2);} .arch-cal .cd .n b{color:#fff;font-weight:400;}
+.arch-cal .cd .v{position:absolute;right:7px;bottom:5px;font-family:'Orbitron',monospace;font-weight:800;font-size:10.5px;color:#fff;}
+.arch-cal .cd .v.w{color:var(--dim2);font-size:14px;} .arch-cal .cd .v.dz{font-family:'Share Tech Mono',monospace;font-weight:400;font-size:8px;color:var(--cyan);}
+.arch-cal .cd.has .n{color:rgba(255,255,255,.75);}
+.arch-cal .cd.has,.arch-cal .cd.work{cursor:pointer;} .arch-cal .cd.has:hover{filter:brightness(1.2);}
+.arch-cal .cd.off{opacity:.35;} .arch-cal .cd.today{box-shadow:inset 0 0 0 1.5px var(--cyan);} .arch-cal .cd.fut{border-style:dashed;opacity:.45;}
+.arch-wk{display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(118,158,205,.1);font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim2);}
+.arch-wk b{float:right;color:#eef4f8;font-weight:400;}
+.arch-lv{margin:4px 0 10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.arch-grp + .arch-lv{margin-top:20px;}
+.arch-lv .tag{font-family:'Orbitron',monospace;font-weight:800;font-size:12px;letter-spacing:2px;padding:6px 12px;border:1px solid;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);}
+.arch-lv .st{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:2px;}
+.arch-lv .pips{display:flex;gap:3px;} .arch-lv .pips i{width:12px;height:6px;display:block;transform:skewX(-20deg);}
+.arch-lv .m{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim2);} .arch-lv .m b{color:#eef4f8;font-weight:400;}
+.arch-lv .ln{flex:1;min-width:20px;height:1px;background:linear-gradient(90deg,rgba(118,158,205,.25),transparent);}
+.arch-day{position:relative;background:rgba(10,16,27,.92);border:1px solid rgba(118,158,205,.14);border-left:3px solid var(--acc);margin-bottom:8px;padding:12px 18px;cursor:pointer;transition:border-color .15s,background .15s;}
+.arch-day:hover{background:rgba(14,22,36,.95);border-color:rgba(118,158,205,.3);border-left-color:var(--acc);}
+.arch-day.flash{animation:archFlash 1.4s ease-out;}
+@keyframes archFlash{0%{box-shadow:0 0 0 2px var(--cyan);}100%{box-shadow:0 0 0 0 transparent;}}
+.arch-day .dh{display:flex;align-items:center;gap:11px;flex-wrap:wrap;}
+.arch-day .cmp{font-size:11px;color:var(--dim);border:1px solid rgba(118,158,205,.2);padding:2px 6px;cursor:pointer;}
+.arch-day .cmp:hover{color:var(--cyan);} .arch-day .cmp.on{color:var(--cyan);border-color:rgba(0,200,240,.5);background:rgba(0,200,240,.1);}
+.arch-day .d{font-family:'Orbitron',monospace;font-weight:800;font-size:15px;letter-spacing:2px;color:#eef4f8;}
+.arch-day .w{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:2px;color:var(--dim2);}
+.arch-day .chip{font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:1.5px;padding:3px 7px;border:1px solid rgba(118,158,205,.25);color:var(--dim2);}
+.arch-day .chip.end{color:var(--cyan);border-color:rgba(0,200,240,.4);} .arch-day .chip.late{color:var(--gold);border:1px dashed rgba(240,180,41,.5);}
+.arch-day .pl{margin-left:auto;font-family:'Orbitron',monospace;font-weight:800;font-size:18px;letter-spacing:1px;text-shadow:0 0 14px currentColor;}
+.arch-day .ar{color:var(--dim2);font-size:10px;}
+.arch-day .tl{position:relative;height:44px;margin:10px 0 6px;}
+.arch-day .ax{position:absolute;left:0;right:0;top:27px;height:1px;background:rgba(118,158,205,.18);}
+.arch-day .se{position:absolute;top:22px;height:11px;border:1px solid rgba(0,200,240,.35);}
+.arch-day .se.y{background:rgba(0,200,240,.55);border-color:var(--cyan);box-shadow:0 0 6px rgba(0,200,240,.45);}
+.arch-day .se.n{border-color:rgba(255,58,92,.3);background:repeating-linear-gradient(135deg,rgba(255,58,92,.16) 0 2px,transparent 2px 4px);}
+.arch-day .hr{position:absolute;top:36px;font-family:'Share Tech Mono',monospace;font-size:7.5px;color:var(--dim);transform:translateX(-50%);}
+.arch-day .pin{position:absolute;top:2px;width:2px;height:20px;margin-left:-1px;background:linear-gradient(var(--c),transparent);}
+.arch-day .pin b{position:absolute;top:-2px;left:calc(1px - var(--z) / 2);width:var(--z);height:var(--z);transform:rotate(45deg);background:var(--c);box-shadow:0 0 8px var(--c);}
+.arch-day .pin em{position:absolute;left:8px;top:-3px;font-style:normal;font-family:'Share Tech Mono',monospace;font-size:7.5px;color:var(--dim2);white-space:nowrap;}
+.arch-day .term{display:flex;gap:20px;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size:9px;border-top:1px dashed rgba(118,158,205,.14);padding-top:8px;color:var(--text2);}
+.arch-day .term i{font-style:normal;color:var(--dim2);} .arch-day .term b{font-weight:400;}
+.arch-leg{display:flex;gap:18px;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim2);margin:12px 0 4px;}
+.arch-leg i{display:inline-block;vertical-align:middle;margin-right:6px;}
+@media (max-width:900px){
+  .arch-lay{grid-template-columns:1fr;} .arch-calw{position:static;}
+  .arch-rd{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:6px;}
+  .arch-day{padding:11px 12px;} .arch-day .pl{font-size:15px;} .arch-day .term{gap:12px;}
+}
+
 /* ═══ V267 · WYKRES POZYCJI ═══ */
 .tv-btn{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:1.4px;color:var(--cyan);border:1px solid rgba(0,200,240,.4);background:rgba(0,200,240,.06);border-radius:14px;padding:6px 12px;cursor:pointer;margin:2px 0 10px;}
 .tv-btn:hover{background:rgba(0,200,240,.13);}
