@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v272 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v273 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v272 · EXECUTION OS</div>
+    <div class="splash-ver">v273 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v272</div>
+      <div class="sb-logo-sub">EXECUTION OS · v273</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v272';
+window.DC_VERSION = 'v273';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -8321,28 +8321,68 @@ function dcMsg(t, c) {
 }
 
 // ── Session refresh ──
-async function _sbRefreshSession() {
-  if (!_sbRefresh) return false;
+// ══ V273: 401 PRZY ZAPISIE — WYGASŁA SESJA, KTÓREJ NIE DAŁO SIĘ ODŚWIEŻYĆ ══
+// Supabase daje token na godzinę i jednorazowy "refresh token". Po odświeżeniu
+// stary refresh token przestaje działać. Dwie karty z appką (albo dwa zapytania
+// naraz w jednej karcie) odświeżały TYM SAMYM tokenem: pierwsza dostawała nowy,
+// druga odmowę — i od tej chwili każdy zapis kończył się 401, co minutę toast.
+// Teraz: (1) jedno odświeżanie naraz (wspólna obietnica), (2) zanim odświeżymy,
+// sprawdzamy, czy inna karta już tego nie zrobiła — wtedy bierzemy jej token,
+// (3) karty słyszą się nawzajem (zdarzenie 'storage'), (4) gdy sesja naprawdę
+// wygasła, mówimy to wprost zamiast liczby 401.
+let _sbRefreshing = null;
+function _sbAdoptStored() {
   try {
-    const r = await fetch(_SB_URL + '/auth/v1/token?grant_type=refresh_token', {
-      method: 'POST',
-      headers: { 'apikey': _SB_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: _sbRefresh })
-    });
-    const d = await r.json();
-    if (r.ok && d.access_token) {
-      _sbTok = d.access_token;
-      _sbRefresh = d.refresh_token;
-      _sbUid = d.user.id;
-      localStorage.setItem(_SB_SESS, JSON.stringify({ access_token: d.access_token, refresh_token: d.refresh_token, uid: d.user.id }));
+    const st = JSON.parse(localStorage.getItem(_SB_SESS) || 'null');
+    if (st && st.access_token && st.access_token !== _sbTok) {
+      _sbTok = st.access_token; _sbRefresh = st.refresh_token || _sbRefresh; _sbUid = st.uid || _sbUid;
       return true;
     }
-  } catch(e) {}
+  } catch (e) {}
   return false;
 }
+async function _sbRefreshSession() {
+  if (_sbRefreshing) return _sbRefreshing;                 // ktoś już odświeża — czekamy na niego
+  _sbRefreshing = (async function () {
+    if (_sbAdoptStored()) return true;                     // inna karta była szybsza
+    if (!_sbRefresh) return false;
+    try {
+      const r = await fetch(_SB_URL + '/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        headers: { 'apikey': _SB_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: _sbRefresh })
+      });
+      const d = await r.json().catch(function () { return {}; });
+      if (r.ok && d.access_token) {
+        _sbTok = d.access_token;
+        _sbRefresh = d.refresh_token;
+        _sbUid = d.user.id;
+        localStorage.setItem(_SB_SESS, JSON.stringify({ access_token: d.access_token, refresh_token: d.refresh_token, uid: d.user.id }));
+        window._sbExpired = false;
+        return true;
+      }
+      // odmowa — może inna karta zużyła ten refresh token sekundę temu
+      if (_sbAdoptStored()) return true;
+      window._sbExpired = true;
+      console.warn('[DYZMCRYPT] Odświeżenie sesji odrzucone:', r.status, d && (d.error_description || d.msg || d.error));
+    } catch (e) {}
+    return false;
+  })();
+  try { return await _sbRefreshing; } finally { _sbRefreshing = null; }
+}
+window.addEventListener('storage', function (ev) {
+  if (ev.key === _SB_SESS && ev.newValue) { if (_sbAdoptStored()) window._sbExpired = false; }
+});
+// odświeżaj z wyprzedzeniem co 45 min — token żyje 60 min, nie czekamy na 401
+setInterval(function () { if (_sbTok && _sbRefresh && !document.hidden) _sbRefreshSession(); }, 45 * 60 * 1000);
+document.addEventListener('visibilitychange', function () {
+  // powrót do karty po długiej przerwie: weź świeży token z innej karty, jeśli jest
+  if (!document.hidden) _sbAdoptStored();
+});
 
 async function _sbFetch(path, opts) {
   const h = { 'apikey': _SB_KEY, 'Content-Type': 'application/json', ...(opts.headers||{}) };
+  _sbAdoptStored();                                        // zawsze najświeższy token z tej przeglądarki
   if (_sbTok) h['Authorization'] = 'Bearer ' + _sbTok;
   const r = await fetch(_SB_URL + path, { ...opts, headers: h });
   if (r.status === 401) {
@@ -8654,6 +8694,22 @@ async function dcPushDirty() {
             const errTxt = await r.text().catch(function(){ return ''; });
             console.error('[DYZMCRYPT] Cloud save failed for key="' + k + '":', r.status, errTxt);
             _dcLastErr = k + ' HTTP ' + r.status;
+            if (r.status === 401 && window._sbExpired) {
+              // V273: sesja wygasła na dobre — zapisy czekają lokalnie, nic nie ginie
+              _dcLastErr = 'sesja wygasła';
+              if (typeof dcToast === 'function' && Date.now() - _dcLastErrToast > 10 * 60000) {
+                _dcLastErrToast = Date.now();
+                dcToast('🔒 Sesja chmury wygasła — zaloguj się ponownie. Zmiany czekają w tym urządzeniu.', 'toast-red');
+              }
+              if (!window._sbAuthShown) {
+                window._sbAuthShown = true;
+                try {
+                  const au = document.getElementById('dc-auth'); if (au) au.style.display = '';
+                  if (typeof dcMsg === 'function') dcMsg('Sesja wygasła — zaloguj się ponownie. Zmiany z tego urządzenia nie zginą.', 'dc-err');
+                } catch (e) {}
+              }
+              break;
+            }
             if (typeof dcToast === 'function' && Date.now() - _dcLastErrToast > 60000) {
               _dcLastErrToast = Date.now();
               dcToast('❌ BRAK ZAPISU (' + k + ') — ' + r.status, 'toast-red');
