@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v268 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v269 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v268 · EXECUTION OS</div>
+    <div class="splash-ver">v269 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v268</div>
+      <div class="sb-logo-sub">EXECUTION OS · v269</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v268';
+window.DC_VERSION = 'v269';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -21290,9 +21290,76 @@ function cycleLabel(cycle, lvl) {
   return cycle.toUpperCase().replace('C33','C3.3')+'-L'+lvl.n.replace(' ⭐','').padStart(2,'0');
 }
 
+// ══ V269: DATĘ UKOŃCZENIA POZIOMU USTALAJĄ POZYCJE, NIE KLIK ══
+// Poziom kończy się ostatnią pozycją, która do niego należy — nie chwilą,
+// w której ktoś kliknął kafel. Przypadkowe podwójne kliknięcie (ACTIVE →
+// COMPLETED → LOCKED → …) potrafiło przestemplować C1-L01 z 15.10 na 19.10.
+// Teraz: (1) data = ostatnia pozycja poziomu z listy pozycji (archiwum +
+// dziś), (2) aktywny poziom z kompletem pozycji (13/13) zamyka się sam,
+// (3) cofnięcie ukończonego i przełączenie aktywnego wymagają potwierdzenia.
+function lvlLastTrade(cycle, i) {
+  const lvl = (levelsData[cycle] || [])[i];
+  if (!lvl || typeof getTradesForLevel !== 'function') return null;
+  const list = getTradesForLevel(cycle, lvl.n) || [];
+  if (!list.length) return null;
+  let best = null;
+  list.forEach(function (t) {
+    const d = String(t.date || t._day || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    const h = String(t.time || '').match(/(\d{1,2}):(\d{2})/);
+    if (!d) return;
+    const ts = new Date(+d[1], +d[2] - 1, +d[3], h ? +h[1] : 12, h ? +h[2] : 0).getTime();
+    if (!best || ts > best.ts) best = { ts: ts, t: t };
+  });
+  return best ? { ts: best.ts, t: best.t, n: list.length } : null;
+}
+function lvlSyncDone(quiet) {
+  let changed = false;
+  const touched = {};
+  ['c1', 'c2', 'c3', 'c33'].forEach(function (cycle) {
+    (levelsData[cycle] || []).forEach(function (lvl, i) {
+      const key = getLevelKey(cycle, i), st = getLevelState(cycle, i);
+      if (st !== 'done' && st !== 'active') return;
+      const last = lvlLastTrade(cycle, i);
+      if (!last) return;
+      if (st === 'done') {
+        const d = levelState[key] || {};
+        if (d.completedAt !== last.ts) { levelState[key] = Object.assign({}, d, { state: 'done', completedAt: last.ts }); changed = true; touched[cycle] = 1; }
+      } else if (last.n >= (lvl.pos || 13)) {
+        levelState[key] = { state: 'done', completedAt: last.ts, auto: true };
+        if (activeState && activeState.cycle === cycle && String(activeState.level) === String(lvl.n))
+          activeState = { cycle: null, level: null, risk: null, wr: null, profit: null, label: null };
+        changed = true; touched[cycle] = 1;
+        if (!quiet && typeof dcToast === 'function') {
+          const dd = new Date(last.ts);
+          dcToast('⬡ ' + cycleLabel(cycle, lvl) + ' ukończony — ' + last.n + '. pozycja ' + String(dd.getDate()).padStart(2, '0') + '.' + String(dd.getMonth() + 1).padStart(2, '0') + ' · aktywuj następny poziom', 'toast-green');
+        }
+      }
+    });
+  });
+  if (changed) {
+    Object.keys(touched).forEach(function (c) { buildLevels(c); buildPathway(c); });
+    updateActiveStateBars();
+    dcSave('levelState', levelState);
+    dcSave('activeState', activeState);
+    try { syncSurplusCalc(); } catch (e) {}
+    if (typeof syncKRDActiveLevel === 'function') { try { syncKRDActiveLevel(); } catch (e) {} }
+  }
+  return changed;
+}
+window.lvlSyncDone = lvlSyncDone;
+
 function cycleLevel(cycle, i) {
   const key = getLevelKey(cycle, i);
   const cur = getLevelState(cycle, i);
+  const _lbl = cycleLabel(cycle, levelsData[cycle][i]);
+  if (cur === 'done') {
+    const last = lvlLastTrade(cycle, i);
+    if (!confirm('Cofnąć ukończenie poziomu ' + _lbl + '?\n\n' + (last ? 'Ma ' + last.n + ' pozycji — jeśli to komplet, poziom i tak zamknie się z powrotem sam.' : '') + '\nAnuluj = zostaw COMPLETED.')) return;
+  }
+  if (cur === 'locked') {
+    const other = levelsData[cycle].findIndex(function (_, j) { return j !== i && getLevelState(cycle, j) === 'active'; });
+    if (other >= 0 && !confirm('Aktywny jest ' + cycleLabel(cycle, levelsData[cycle][other]) + '.\nPrzełączyć na ' + _lbl + '? ' + cycleLabel(cycle, levelsData[cycle][other]) + ' wróci do LOCKED.')) return;
+  }
   if(cur === 'locked') {
     // Clear any existing active in this cycle
     levelsData[cycle].forEach((_,j) => {
@@ -21305,7 +21372,8 @@ function cycleLevel(cycle, i) {
     activeState = { cycle, level: lvl.n, risk: lvl.r, wr: lvl.wr, profit: lvl.profit, label,
                     pos: lvl.pos || 13, since: Date.now() };
   } else if(cur === 'active') {
-    levelState[key] = { state:'done', completedAt: Date.now() };
+    const _last = lvlLastTrade(cycle, i);                          // V269: data z ostatniej pozycji
+    levelState[key] = { state:'done', completedAt: _last ? _last.ts : Date.now() };
     activeState = { cycle: null, level: null, risk: null, wr: null, profit: null, label: null };
   } else {
     levelState[key] = { state:'locked' };
@@ -21533,6 +21601,9 @@ function buildLevels(cycle) {
 
 ['c1','c2','c3','c33'].forEach(c => { buildLevels(c); buildPathway(c); });
 updateActiveStateBars();
+// V269: daty ukończenia z pozycji + auto-zamknięcie pełnego poziomu (po danych z chmury)
+(function _lvlFirst(){ if (window._dcCloudReady || window._dcLocalMode) { try { lvlSyncDone(true); } catch (e) {} } else setTimeout(_lvlFirst, 1000); })();
+setInterval(function () { if (window._dcCloudReady || window._dcLocalMode) { try { lvlSyncDone(false); } catch (e) {} } }, 20000);
 
 // ── LEVEL DETAIL MODAL ──
 let lvlModalState = { cycle: 'c1', index: 0 };
