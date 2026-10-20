@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v271 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v272 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v271 · EXECUTION OS</div>
+    <div class="splash-ver">v272 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v271</div>
+      <div class="sb-logo-sub">EXECUTION OS · v272</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v271';
+window.DC_VERSION = 'v272';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -32303,6 +32303,98 @@ arcRenderList = function () {
   });
   listEl.innerHTML = h;
 };
+// ══════════════════════════════════════════════════════════════
+//  V272 · RAPORT DNIA — te same sekcje, styl logu operacyjnego
+//  (nagłówek z nawigacją · 5 liczb · oś dnia · podsumowanie ·
+//  transakcje · usuń dzień). Dane i nawigacja bez zmian.
+// ══════════════════════════════════════════════════════════════
+function arcRepAxis(d) {
+  const X = function (mn) { return Math.max(0, Math.min(100, (mn - ARC_T0) / (ARC_T1 - ARC_T0) * 100)); };
+  const slots = arcSlots(d.dayMode || 'd13'), sess = Array.isArray(d.sessions) ? d.sessions : [];
+  const tr = arcLive(d.trades);
+  const mx = Math.max(1, Math.max.apply(null, tr.map(function (t) { return Math.abs(parseFloat(t.pnl) || 0); }).concat([1])));
+  let h = '<div class="ax"></div>';
+  slots.forEach(function (sl, i) { h += '<div class="se ' + (sess[i] ? 'y' : 'n') + '" style="left:' + X(sl.s).toFixed(2) + '%;width:' + (X(sl.e) - X(sl.s)).toFixed(2) + '%"></div>'; });
+  [8, 12, 16, 20].forEach(function (hh) { h += '<span class="hr" style="left:' + X(hh * 60) + '%">' + hh + ':00</span>'; });
+  tr.forEach(function (t) {
+    const v = parseFloat(t.pnl) || 0, mn = arcTimeMin(t.time); if (mn == null) return;
+    const c = v > 1 ? 'var(--green)' : (v < -1 ? 'var(--red)' : 'var(--cyan)');
+    h += '<div class="pin" style="left:' + X(mn) + '%;--c:' + c + ';--z:' + (6 + 8 * Math.abs(v) / mx).toFixed(1) + 'px" title="' + arcEsc((t.time || '') + ' · ' + (t.token || '') + ' · ' + arcFmtPl(v)) + '"><b></b>' + (mn < ARC_T0 ? '<em>' + arcEsc(t.time) + '</em>' : '') + '</div>';
+  });
+  return h;
+}
+arcOpenReport = function (date) {
+  let days = arcApplyFilters(arcAllDays());
+  let idx = days.findIndex(function (d) { return d.date === date; });
+  if (idx === -1) { days = arcAllDays(); idx = days.findIndex(function (d) { return d.date === date; }); }
+  if (idx === -1) return;
+  const d = days[idx], s = d.stats || {};
+  let modal = document.getElementById('arcReportModal');
+  if (!modal) {
+    modal = document.createElement('div'); modal.id = 'arcReportModal'; modal.className = 'arcm-overlay';
+    modal.onclick = function (e) { if (e.target === modal) modal.classList.remove('open'); };
+    document.body.appendChild(modal);
+  }
+  const lv = arcDayLevel(d), I = arcLvlInfo(lv);
+  const lvC = !I ? 'var(--dim2)' : (I.state === 'active' ? 'var(--green)' : (I.state === 'done' ? 'var(--cyan)' : 'var(--dim2)'));
+  const mode = d.dayMode || 'd13';
+  const krd = d.krdCounters || {}, krdN = (krd.low || 0) + (krd.med || 0) + (krd.high || 0);
+  const sessN = (d.sessions || []).filter(Boolean).length, sessMax = s.maxSessions || arcSlots(mode).length || 13;
+  const pnl = s.totalPnL || 0;
+  const tr = d.trades || [];
+  const rev = d.review || ((dcLoad('dayReview', {}) || {})[d.date] || null);
+  let stars = '';
+  if (rev && rev.rating) for (let i = 1; i <= 5; i++) stars += '<b class="' + (i <= rev.rating ? 'on' : '') + '">★</b>';
+  const close = 'document.getElementById(\'arcReportModal\').classList.remove(\'open\')';
+  const isEnd = I && I.state === 'done' && I.data.completedAt && dcDayStr(new Date(I.data.completedAt)) === d.date;
+  const nLate = tr.filter(function (t) { return t && t.late; }).length;
+  const cell = function (k, v, sub, c) { return '<div><span>' + k + '</span><b style="color:' + c + '">' + v + '</b><i>' + sub + '</i></div>'; };
+
+  const rows = tr.map(function (t) {
+    const v = parseFloat(t.pnl) || 0, c = v > 1 ? 'var(--green)' : (v < -1 ? 'var(--red)' : 'var(--cyan)');
+    let ach = null; try { if (typeof anTradeR === 'function') ach = anTradeR(t); } catch (e) {}
+    const plan = (t.plannedRR != null && ach !== null) ? parseFloat(t.plannedRR).toFixed(1) + 'R → ' + ach.toFixed(1) + 'R' : (t.rr || '—');
+    const L = String(t.dir || '').toUpperCase() === 'LONG';
+    return '<div class="rp-tr" style="--c:' + c + '"><span class="t">' + arcEsc(t.time || '—') + '</span><span class="k">' + arcEsc(String(t.token || '—').toUpperCase()) + '</span>'
+      + '<span class="dr" style="color:' + (L ? 'var(--green)' : 'var(--red)') + '">' + (L ? '▲ LONG' : '▼ SHORT') + '</span>'
+      + '<span class="pl">' + arcEsc(plan) + (t.late ? ' <span class="lt-tag">↺ DOPISANA</span>' : '') + '</span>'
+      + '<span class="v">' + arcFmtPl(v) + '</span>'
+      + (typeof tvOpen === 'function' ? '<span class="ch" onclick="event.stopPropagation();tvOpen(' + JSON.stringify(t.id) + ')" title="Wykres pozycji z Bybita">📈</span>' : '<span></span>')
+      + '</div>';
+  }).join('');
+
+  modal.innerHTML = '<div class="rp-box"><i class="c1"></i><i class="c2"></i>'
+    + '<div class="rp-hd">'
+    +   '<span class="rp-nav' + (idx < days.length - 1 ? '' : ' off') + '" ' + (idx < days.length - 1 ? 'onclick="arcOpenReport(\'' + days[idx + 1].date + '\')"' : '') + ' title="dzień wcześniej">◂</span>'
+    +   '<div class="rp-ti"><div class="d">' + d.date.slice(8, 10) + '.' + d.date.slice(5, 7) + '.' + d.date.slice(0, 4) + '</div>'
+    +   '<div class="s">' + arcDow(d.date) + ' · <b style="color:' + lvC + '">' + arcEsc(lv) + '</b> · ' + (mode === 'd6' ? 'D6' : mode === 'd9' ? 'D9' : 'D13') + '×33</div></div>'
+    +   '<span class="rp-nav' + (idx > 0 ? '' : ' off') + '" ' + (idx > 0 ? 'onclick="arcOpenReport(\'' + days[idx - 1].date + '\')"' : '') + ' title="dzień później">▸</span>'
+    +   '<span class="rp-x" onclick="' + close + '">✕</span>'
+    + '</div>'
+    + ((isEnd || nLate) ? '<div class="rp-chips">' + (isEnd ? '<span class="chip end">⬡ ' + (I.n >= I.pos ? I.pos + '. POZYCJA · ' : '') + 'KONIEC POZIOMU ' + arcEsc(lv) + '</span>' : '') + (nLate ? '<span class="chip late">↺ ' + nLate + ' DOPISAN' + (nLate === 1 ? 'A' : 'E') + '</span>' : '') + '</div>' : '')
+    + '<div class="rp-rd">'
+    +   cell('P&amp;L', arcFmtPl(pnl), 'wynik dnia', pnl > 0 ? 'var(--green)' : pnl < 0 ? 'var(--red)' : 'var(--dim2)')
+    +   cell('WIN RATE', (s.winrate || 0) + '%', (s.wins || 0) + ' W · ' + (s.losses || 0) + ' L · ' + (s.be || 0) + ' BE', '#eef4f8')
+    +   cell('TRANSAKCJE', s.total || 0, tr.length ? 'najlepsza ' + arcEsc(String((tr.slice().sort(function (a, b) { return (parseFloat(b.pnl) || 0) - (parseFloat(a.pnl) || 0); })[0] || {}).token || '—').toUpperCase()) : 'brak', '#eef4f8')
+    +   cell('SESJE', sessN + ' / ' + sessMax, 'z Planu Dnia', 'var(--cyan)')
+    +   cell('KRD', krdN ? krdN : arcEsc(d.riskState || 'STABLE'), 'L' + (krd.low || 0) + ' · M' + (krd.med || 0) + ' · H' + (krd.high || 0), krdN ? 'var(--red)' : 'var(--green)')
+    + '</div>'
+    + '<div class="rp-sec"><div class="rp-st">OŚ DNIA</div><div class="arch-day rp-axis"><div class="tl">' + arcRepAxis(d) + '</div></div></div>'
+    + '<div class="rp-sec"><div class="rp-st">PODSUMOWANIE DNIA' + (stars ? ' <span class="rp-stars">' + stars + '</span>' : '') + '</div>'
+    +   (rev ? (rev.good ? '<div class="rp-rev g"><i>✓</i>' + arcEsc(rev.good) + '</div>' : '') + (rev.bad ? '<div class="rp-rev r"><i>✗</i>' + arcEsc(rev.bad) + '</div>' : '')
+               + (rev.lesson ? '<div class="rp-rev y"><i>⚡</i>' + arcEsc(rev.lesson) + '</div>' : '') + (rev.note ? '<div class="rp-rev"><i>·</i>' + arcEsc(rev.note) + '</div>' : '')
+         : '<div class="rp-rev"><i>·</i><span style="color:var(--dim2)">brak — nie wypełniono w Dzienniku</span></div>')
+    + '</div>'
+    + '<div class="rp-sec"><div class="rp-st">TRANSAKCJE · ' + tr.length + '</div>'
+    +   (tr.length ? '<div class="rp-th"><span>CZAS</span><span>TOKEN</span><span>KIER.</span><span>PLAN → WYNIK</span><span style="text-align:right">P&amp;L</span><span></span></div>' + rows
+                   : '<div class="rp-rev"><i>·</i><span style="color:var(--dim2)">brak transakcji tego dnia</span></div>')
+    + '</div>'
+    + '<div class="rp-ft"><span class="rp-del" onclick="archiveDeleteDay(\'' + d.date + '\');if(!arcAllDays().some(function(x){return x.date===\'' + d.date + '\'}))' + close + ';">🗑 USUŃ DZIEŃ</span>'
+    +   '<span class="arch-sp"></span><span class="rp-sv">zapis · ' + (d.savedAt ? new Date(d.savedAt).toLocaleString('pl-PL') : '—') + '</span></div>'
+    + '</div>';
+  modal.classList.add('open');
+};
+
 try { arcRender(); } catch (e) { console.error('[DYZMCRYPT] V270 archiwum:', e); }
 
 </script>
@@ -40516,6 +40608,52 @@ body.dc-phone #sidebar .sb-group[data-sec]{padding-left:10px;}
 .db-bar{height:4px;border-radius:3px;background:rgba(118,158,205,.1);margin-top:10px;overflow:hidden;} .db-bar i{display:block;height:100%;border-radius:3px;transition:width .4s;}
 @media (max-width:760px){ #panel-start .tele-center-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;} #panel-start .db-pips i{width:10px;} }
 body.dc-phone #panel-start .tele-center-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
+
+
+/* ═══ V272 · RAPORT DNIA ═══ */
+#arcReportModal .rp-box{position:relative;width:min(760px,96vw);background:#0a101b;border:1px solid rgba(0,200,240,.2);padding:20px 22px 16px;box-shadow:0 14px 60px rgba(0,0,0,.6);}
+#arcReportModal .rp-box > .c1,#arcReportModal .rp-box > .c2,#arcReportModal .rp-box::before,#arcReportModal .rp-box::after{content:'';position:absolute;width:14px;height:14px;border-color:var(--cyan);border-style:solid;pointer-events:none;}
+#arcReportModal .rp-box::before{left:-1px;top:-1px;border-width:2px 0 0 2px;} #arcReportModal .rp-box::after{right:-1px;bottom:-1px;border-width:0 2px 2px 0;}
+#arcReportModal .rp-box > .c1{right:-1px;top:-1px;border-width:2px 2px 0 0;} #arcReportModal .rp-box > .c2{left:-1px;bottom:-1px;border-width:0 0 2px 2px;}
+.rp-hd{display:flex;align-items:center;gap:12px;}
+.rp-nav{font-size:11px;color:var(--dim2);border:1px solid rgba(118,158,205,.22);padding:7px 12px;cursor:pointer;user-select:none;}
+.rp-nav:hover{color:var(--cyan);border-color:rgba(0,200,240,.45);} .rp-nav.off{opacity:.2;cursor:default;pointer-events:none;}
+.rp-ti{flex:1;text-align:center;} .rp-ti .d{font-family:'Orbitron',monospace;font-weight:800;font-size:18px;letter-spacing:3px;color:#eef4f8;}
+.rp-ti .s{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:2.5px;color:var(--dim2);margin-top:6px;} .rp-ti .s b{font-weight:400;}
+.rp-x{cursor:pointer;color:var(--dim2);font-size:14px;padding:4px 8px;} .rp-x:hover{color:var(--red);}
+.rp-chips{display:flex;gap:8px;justify-content:center;margin-top:12px;}
+.rp-chips .chip{font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:1.5px;padding:3px 8px;border:1px solid rgba(118,158,205,.25);color:var(--dim2);}
+.rp-chips .chip.end{color:var(--cyan);border-color:rgba(0,200,240,.4);} .rp-chips .chip.late{color:var(--gold);border:1px dashed rgba(240,180,41,.5);}
+.rp-rd{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin-top:16px;border-top:1px solid rgba(118,158,205,.1);border-bottom:1px solid rgba(118,158,205,.1);}
+.rp-rd div{padding:12px 6px 12px 0;min-width:0;}
+.rp-rd span{display:block;font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:2.2px;color:var(--dim2);}
+.rp-rd b{display:block;font-family:'Orbitron',monospace;font-weight:800;font-size:18px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rp-rd i{display:block;font-style:normal;font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--dim2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rp-sec{margin-top:16px;}
+.rp-st{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:2.5px;color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.rp-st::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(118,158,205,.2),transparent);}
+.rp-stars b{font-weight:400;color:rgba(255,255,255,.15);font-size:12px;} .rp-stars b.on{color:var(--gold);}
+#arcReportModal .rp-axis{cursor:default;margin:0;padding:6px 12px 2px;border-left:1px solid rgba(118,158,205,.14);}
+#arcReportModal .rp-axis .tl{margin:4px 0 2px;}
+.rp-rev{display:flex;gap:10px;font-family:'Share Tech Mono',monospace;font-size:10px;line-height:1.6;color:var(--text2);border-left:2px solid rgba(118,158,205,.25);background:rgba(0,0,0,.2);padding:8px 12px;margin-bottom:5px;}
+.rp-rev i{font-style:normal;color:var(--dim2);} .rp-rev.g{border-left-color:var(--green);} .rp-rev.g i{color:var(--green);}
+.rp-rev.r{border-left-color:var(--red);} .rp-rev.r i{color:var(--red);} .rp-rev.y{border-left-color:var(--gold);} .rp-rev.y i{color:var(--gold);}
+.rp-th,.rp-tr{display:grid;grid-template-columns:54px 70px 84px minmax(0,1fr) 92px 26px;gap:10px;align-items:center;}
+.rp-th{font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:2px;color:var(--dim2);padding:0 12px 6px 15px;}
+.rp-tr{background:rgba(10,16,27,.8);border:1px solid rgba(118,158,205,.14);border-left:3px solid var(--c);padding:9px 12px;margin-bottom:5px;font-family:'Share Tech Mono',monospace;font-size:10px;}
+.rp-tr .t{color:var(--dim2);} .rp-tr .k{color:#eef4f8;letter-spacing:1px;} .rp-tr .dr{font-size:9px;} .rp-tr .pl{color:var(--dim2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rp-tr .v{text-align:right;font-family:'Orbitron',monospace;font-weight:800;font-size:12px;color:var(--c);}
+.rp-tr .ch{cursor:pointer;text-align:center;opacity:.6;} .rp-tr .ch:hover{opacity:1;}
+.rp-ft{display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:12px;border-top:1px dashed rgba(118,158,205,.14);}
+.rp-del{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:1.5px;color:rgba(255,90,90,.7);border:1px solid rgba(255,90,90,.25);padding:7px 12px;cursor:pointer;}
+.rp-del:hover{color:var(--red);border-color:rgba(255,58,92,.5);}
+.rp-sv{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--dim2);letter-spacing:1px;}
+@media (max-width:640px){
+  .rp-rd{grid-template-columns:repeat(3,minmax(0,1fr));}
+  .rp-th{display:none;} .rp-tr{grid-template-columns:44px 1fr auto 22px;row-gap:3px;}
+  .rp-tr .dr{grid-column:2;grid-row:2;} .rp-tr .pl{grid-column:3;grid-row:2;text-align:right;} .rp-tr .v{grid-column:3;grid-row:1;} .rp-tr .ch{grid-column:4;grid-row:1 / 3;}
+  #arcReportModal .rp-box{padding:16px 14px 12px;}
+}
 
 </style>
 
