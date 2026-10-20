@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v267 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v268 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v267 · EXECUTION OS</div>
+    <div class="splash-ver">v268 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v267</div>
+      <div class="sb-logo-sub">EXECUTION OS · v268</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v267';
+window.DC_VERSION = 'v268';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -31401,23 +31401,95 @@ setTimeout(initSupp, 500);
 
 <script>
 // ══════════════════════════════════════════════════════════════
-//  V266 · SESJE "INSTRUMENT"
-//  Wygląd od nowa, logika bez zmian: zegar (timerSecs/timerRunning),
-//  tablica 'sessions', auto-start z planu i synchronizacja zostają.
-//  Ten blok tylko CZYTA stan i rysuje: pierścień, 33 kreski, boki.
+//  V266 · SESJE "INSTRUMENT"  ·  V268 · SESJE PRZYPIĘTE DO PLANU DNIA
+//
+//  V268: sesja to OKNO CZASU z planu dnia, nie "kolejny wolny numer".
+//  Sesja 3 = 9:49–10:22. Jeśli o 10:22 nie jest zrobiona — jest
+//  POMINIĘTA i zostaje pominięta; bieżąca jest ta, której okno trwa
+//  teraz. Prawdą o zrobieniu jest odhaczenie w Planie Dnia (zadanie
+//  "Sesja N" = ✓). Kafel, DOMKNIJ i plan to jedno i to samo pole —
+//  klik tutaj odhacza w planie, odhaczenie w planie zapala kafel.
+//  Tablica 'sessions' dalej istnieje (archiwum, statystyki), ale jest
+//  już tylko lustrem planu.
+//  Bez planu z oknami sesji (np. pusty tryb) — zachowanie jak w V266.
 // ══════════════════════════════════════════════════════════════
 const SS_C = 590.6;                               // 2π · 94
 function ssPad(n) { return String(n).padStart(2, '0'); }
 function ssHm(min) { min = ((Math.round(min) % 1440) + 1440) % 1440; return ssPad(Math.floor(min / 60)) + ':' + ssPad(min % 60); }
 function ssFmt(m) { const h = Math.floor(m / 60), r = m % 60; return h ? h + 'h ' + ssPad(r) + 'm' : r + 'm'; }
 function ssMins() { try { const s = dcLoad('settings', null); return (s && s.sessionMins) ? s.sessionMins : 33; } catch (e) { return 33; } }
-function ssSlots() { try { return (typeof atSlots === 'function') ? atSlots() : []; } catch (e) { return []; } }
 function ssTotal() { return (typeof TOTAL !== 'undefined' && TOTAL > 0) ? TOTAL : 1980; }
 function ssSet(id, v) { const el = document.getElementById(id); if (el && el.textContent !== v) el.textContent = v; }
+function ssNowMin() { const d = new Date(); return d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60; }
+function ssPl(n, a, b, c) { return n === 1 ? a : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? b : c); }
 
-function ssCurIdx(maxS) {
-  for (let c = 0; c < maxS; c++) if (!sessions[c]) return c;
-  return -1;
+// ── okna sesji z planu, w trybie, w którym LICZY SIĘ dzień ─────
+function ssMode() {
+  try { if (typeof dayModeEffective === 'function') return dayModeEffective(); } catch (e) {}
+  return (typeof currentPlanMode !== 'undefined') ? currentPlanMode : 'd13';
+}
+function ssPlan() {
+  const mode = ssMode();
+  let blocks = null;
+  try {
+    if (mode === 'd6' && typeof buildBlocksD6 === 'function') blocks = buildBlocksD6();
+    else if (mode === 'd9') blocks = (typeof buildBlocksD9 === 'function') ? buildBlocksD9() : (typeof blocksD9 !== 'undefined' ? blocksD9 : null);
+    else if (typeof blocksD13 !== 'undefined') blocks = blocksD13;
+  } catch (e) { blocks = null; }
+  if (!Array.isArray(blocks)) return { mode: mode, blocks: [], slots: [] };
+  const out = [];
+  blocks.forEach(function (b) {
+    if (!b || (typeof TYPE !== 'undefined' && b.type !== TYPE.TRADING) || !Array.isArray(b.tasks)) return;
+    b.tasks.forEach(function (t, ti) {
+      if (!t || !t.label || !/sesja/i.test(t.label)) return;
+      const m = String(t.time || '').split(/[–-]/);
+      if (m.length < 2 || typeof toMin !== 'function') return;
+      const s = toMin(m[0].trim()), e = toMin(m[1].trim());
+      if (isNaN(s) || isNaN(e) || e <= s) return;
+      out.push({ start: s, end: e, label: t.label, blockId: b.id, ti: ti, total: b.tasks.length });
+    });
+  });
+  out.sort(function (a, b) { return a.start - b.start; });
+  return { mode: mode, blocks: blocks, slots: out };
+}
+function ssTaskState(mode, sl) {
+  try { return (typeof pbcGetTaskState === 'function') ? pbcGetTaskState(mode, sl.blockId, sl.ti) : '0'; } catch (e) { return '0'; }
+}
+function ssBlockSkip(mode, sl) {
+  try { return (typeof pbcGetState === 'function') && pbcGetState(mode, sl.blockId) === '2'; } catch (e) { return false; }
+}
+// stan każdego okna: done · cur · miss · med · future
+function ssStates(P) {
+  const nm = ssNowMin();
+  return P.slots.map(function (sl, i) {
+    const ts = ssTaskState(P.mode, sl);
+    let st;
+    if (ts === '1') st = 'done';
+    else if (ts === '2') st = 'med';
+    else if (nm >= sl.start && nm < sl.end) st = ssBlockSkip(P.mode, sl) ? 'miss' : 'cur';
+    else if (nm >= sl.end) st = 'miss';
+    else st = 'future';
+    return { i: i, sl: sl, st: st, now: nm >= sl.start && nm < sl.end };
+  });
+}
+// lustro: sessions[i] = czy okno i jest odhaczone w planie
+function ssMirror(S) {
+  if (typeof sessions === 'undefined') return;
+  let ch = false;
+  S.forEach(function (x) { const v = x.st === 'done'; if (!!sessions[x.i] !== v) { sessions[x.i] = v; ch = true; } });
+  for (let k = S.length; k < sessions.length; k++) if (sessions[k]) { sessions[k] = false; ch = true; }
+  if (ch && typeof dcSave === 'function') dcSave('sessions', sessions);
+}
+// odhacz / cofnij w planie — przez toggleSubtask, żeby blok liczył się sam (60%) i karta planu się przerysowała
+function ssPlanSet(P, sl, wantDone) {
+  if (typeof toggleSubtask !== 'function') return;
+  let guard = 0;
+  while (guard++ < 3) {
+    const cur = ssTaskState(P.mode, sl);
+    if (wantDone ? cur === '1' : cur === '0') break;
+    toggleSubtask(P.mode, sl.blockId, sl.ti, sl.total);
+  }
+  try { if (typeof buildBlockCards === 'function' && P.blocks.length) buildBlockCards(P.mode, P.blocks); } catch (e) {}
 }
 
 function ssTicks(lit, cls) {
@@ -31435,39 +31507,125 @@ function ssTicks(lit, cls) {
   for (let i = 0; i < ls.length; i++) ls[i].setAttribute('class', i < lit ? 'on ' + cls : '');
 }
 
+// ── kafle dnia (V268: z planu) ──────────────────────────────────
+function ssRailPlan(P, S) {
+  const t = document.getElementById('sessionTrack'); if (!t) return;
+  const live = (typeof timerRunning !== 'undefined' && timerRunning);
+  const sig = S.map(function (x) { return x.st + (x.now ? '*' : ''); }).join(',') + '|' + live;
+  if (t._ssSig === sig && t.childNodes.length === S.length && t.firstChild && t.firstChild._ss) return;      // nic się nie zmieniło — nie migaj
+  t._ssSig = sig;
+  t.innerHTML = '';
+  S.forEach(function (x) {
+    const el = document.createElement('div');
+    el.setAttribute('role', 'button'); el.setAttribute('tabindex', '0'); el._ss = true;
+    const n = x.i + 1, win = ssHm(x.sl.start) + '–' + ssHm(x.sl.end);
+    if (x.st === 'done') {
+      el.className = 'st2-node nd-done';
+      el.innerHTML = '<span class="st2-node-check">✓</span>';
+      el.title = 'Sesja ' + n + ' · ' + win + ' — zrobiona · klik = cofnij w planie';
+    } else if (x.st === 'cur') {
+      el.className = 'st2-node nd-current' + (live ? ' nd-live' : '');
+      el.innerHTML = '<div class="st2-node-cur-line"><span class="st2-node-cur-num">' + n + '</span><span class="st2-node-state" id="st2CurState"></span></div>';
+      el.title = 'Sesja ' + n + ' · ' + win + ' — trwa teraz · klik = odhacz';
+    } else if (x.st === 'miss') {
+      el.className = 'st2-node nd-miss';
+      el.innerHTML = '<span class="st2-node-num">' + n + '</span><span class="ss-x">✕</span>';
+      el.title = 'Sesja ' + n + ' · ' + win + ' — pominięta · klik = jednak zrobiona';
+    } else if (x.st === 'med') {
+      el.className = 'st2-node nd-med';
+      el.innerHTML = '<span class="st2-node-num">🧘</span>';
+      el.title = 'Sesja ' + n + ' · ' + win + ' — w planie jako medytacja';
+    } else {
+      el.className = 'st2-node nd-future';
+      el.innerHTML = '<span class="st2-node-num">' + n + '</span>';
+      el.title = 'Sesja ' + n + ' · ' + win;
+    }
+    const tt = document.createElement('i'); tt.className = 'ss-tt' + (x.now ? ' now' : ''); tt.textContent = ssHm(x.sl.start);
+    el.appendChild(tt);
+    const toggle = function () {
+      const P2 = ssPlan(), sl = P2.slots[x.i]; if (!sl) return;
+      ssPlanSet(P2, sl, ssTaskState(P2.mode, sl) !== '1');
+      t._ssSig = null; ssRefresh();
+    };
+    el.onclick = toggle;
+    el.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } };
+    t.appendChild(el);
+  });
+}
+
 function ssRefresh() {
   if (typeof sessions === 'undefined' || typeof timerSecs === 'undefined') return;
   const box = document.getElementById('st2TimerBlock'); if (!box) return;
-  const maxS = window._maxSessions || 13, mins = ssMins(), tot = ssTotal();
-  const done = sessions.slice(0, maxS).filter(Boolean).length;
-  const cur = ssCurIdx(maxS);
+  const mins = ssMins(), tot = ssTotal();
   const live = (typeof timerRunning !== 'undefined' && timerRunning);
-  const slots = ssSlots();
-  const nowM = new Date().getHours() * 60 + new Date().getMinutes();
+  const nowM = ssNowMin();
+  const P = ssPlan();
+  const usePlan = P.slots.length > 0;
+  window._ssPlanMode = usePlan;
 
-  // ── lewa strona
-  ssSet('ssNum', String(cur >= 0 ? cur + 1 : maxS)); ssSet('ssMax', String(maxS));
-  // okno planu, które trwa TERAZ (numer sesji w planie nie musi się zgadzać z liczbą domkniętych)
-  let nowSlot = -1;
-  slots.forEach(function (x, k) { if (nowM >= x.start && nowM < x.end) nowSlot = k; });
-  ssSet('ssWin', cur < 0 ? 'dzień domknięty'
-    : (nowSlot >= 0 ? 'plan: S' + (nowSlot + 1) + ' · ' + ssHm(slots[nowSlot].start) + ' → ' + ssHm(slots[nowSlot].end) : 'poza oknem planu'));
-  document.querySelectorAll('#sessionTrack .ss-tt').forEach(function (t, k) { t.classList.toggle('now', k === nowSlot); });
-  const cs = document.getElementById('st2CurState');
-  if (cs) cs.textContent = live ? ssPad(Math.floor(timerSecs / 60)) + ':' + ssPad(timerSecs % 60) : '';
-  ssSet('ssFocus', ssFmt(done * mins));
-  ssSet('ssFocusSub', done ? done + ' sesj' + (done === 1 ? 'a domknięta' : (done < 5 ? 'e domknięte' : 'i domkniętych')) : 'jeszcze żadnej');
+  if (usePlan) {
+    ssMigrate(P, nowM);
+    const S = ssStates(P);
+    ssMirror(S);
+    ssRailPlan(P, S);
+    const n = S.length;
+    const nDone = S.filter(function (x) { return x.st === 'done'; }).length;
+    const nMiss = S.filter(function (x) { return x.st === 'miss'; }).length;
+    const curX = S.find(function (x) { return x.now; }) || null;
+    const nextX = S.find(function (x) { return x.sl.start > nowM; }) || null;
+    const left = S.filter(function (x) { return x.st === 'future' || x.st === 'cur'; }).length;
+    const last = S[n - 1].sl;
 
-  // ── prawa strona
+    // lewa strona
+    const showX = curX || nextX;
+    ssSet('ssNum', showX ? String(showX.i + 1) : String(n)); ssSet('ssMax', String(n));
+    ssSet('ssWin', curX ? ssHm(curX.sl.start) + ' → ' + ssHm(curX.sl.end) + (curX.st === 'done' ? ' · zrobiona' : '')
+      : (nextX ? 'przerwa · start ' + ssHm(nextX.sl.start) : 'po ostatniej sesji'));
+    ssSet('ssFocus', ssFmt(nDone * mins));
+    ssSet('ssFocusSub', nDone + ' ' + ssPl(nDone, 'zrobiona', 'zrobione', 'zrobionych') + (nMiss ? ' · ' + nMiss + ' ' + ssPl(nMiss, 'pominięta', 'pominięte', 'pominiętych') : ''));
+    // prawa strona: koniec dnia = koniec OSTATNIEGO okna planu, nie "teraz + reszta"
+    ssSet('ssEnd', nowM >= last.end ? '✓' : ssHm(last.end));
+    ssSet('ssEndSub', left ? 'zostało ' + left + ' ' + ssPl(left, 'sesja', 'sesje', 'sesji') + ' · ' + ssFmt(left * mins) : (nMiss ? 'dzień za tobą · ' + nMiss + ' pominięte' : 'wszystkie zrobione'));
+    // nagłówek dnia
+    ssSet('sessDone', String(nDone)); ssSet('sessMaxLabel', String(n));
+    ssSet('st2FocusDone', ssFmt(nDone * mins));
+    ssSet('rpSessionsDone', nDone + ' / ' + n);                     // karta boczna DZIEŃ LIVE
+    const badge = document.getElementById('st2DayBadge');
+    if (badge) {
+      let tx, cl = 'st2-day-badge';
+      if (!left) { tx = 'DZIEŃ ZAMKNIĘTY · ' + nDone + '/' + n; cl += ' db-done'; }
+      else if (curX && curX.st !== 'done') { tx = 'SESJA ' + (curX.i + 1) + (live ? ' W TOKU' : ' · TERAZ'); cl += ' db-live'; }
+      else if (nextX) tx = 'PRZERWA · S' + (nextX.i + 1) + ' O ' + ssHm(nextX.sl.start);
+      else tx = 'POZOSTAŁO ' + ssFmt(left * mins);
+      if (nMiss) tx += ' · ' + nMiss + ' ✕';
+      if (badge.textContent !== tx) badge.textContent = tx;
+      badge.className = cl;
+    }
+    const mode = document.getElementById('st2ModeLabel'); if (mode) mode.textContent = 'D' + n + '×' + mins;
+    const rail = document.getElementById('sessionTrack'); if (rail) rail.style.setProperty('--ssn', String(n));
+    box.setAttribute('data-slot', curX ? curX.st : 'none');
+  } else {
+    // ── bez planu: jak w V266 (pierwszy wolny numer)
+    const maxS = window._maxSessions || 13;
+    const done = sessions.slice(0, maxS).filter(Boolean).length;
+    let cur = -1; for (let c = 0; c < maxS; c++) if (!sessions[c]) { cur = c; break; }
+    ssSet('ssNum', String(cur >= 0 ? cur + 1 : maxS)); ssSet('ssMax', String(maxS));
+    ssSet('ssWin', cur < 0 ? 'dzień domknięty' : 'bez planu · ręcznie');
+    ssSet('ssFocus', ssFmt(done * mins));
+    ssSet('ssFocusSub', done ? done + ' ' + ssPl(done, 'zrobiona', 'zrobione', 'zrobionych') : 'jeszcze żadnej');
+    const left = maxS - done;
+    if (left > 0) {
+      ssSet('ssEnd', '~' + ssHm(nowM + (live ? Math.ceil(timerSecs / 60) + (left - 1) * mins : left * mins)));
+      ssSet('ssEndSub', 'zostało ' + left + ' ' + ssPl(left, 'sesja', 'sesje', 'sesji') + ' · ' + ssFmt(left * mins));
+    } else { ssSet('ssEnd', '✓'); ssSet('ssEndSub', 'wszystkie ' + maxS + ' zrobione'); }
+    const rail = document.getElementById('sessionTrack'); if (rail) rail.style.setProperty('--ssn', String(maxS));
+    box.removeAttribute('data-slot');
+  }
+
+  // prawa strona: co teraz w planie (lustro karty bocznej)
   const pl = String((document.getElementById('rpCurrentBlock') || {}).textContent || '—').trim();
   const parts = pl.split(/\s+[—–-]\s+/);
   ssSet('ssPlan', parts[0] || '—'); ssSet('ssPlanSub', parts.slice(1).join(' — ') || ' ');
-  const left = maxS - done;
-  if (left > 0) {
-    const endM = nowM + (live ? Math.ceil(timerSecs / 60) + (left - 1) * mins : left * mins);
-    ssSet('ssEnd', '~' + ssHm(endM));
-    ssSet('ssEndSub', 'zostało ' + left + ' sesj' + (left === 1 ? 'a' : (left < 5 ? 'e' : 'i')) + ' · ' + ssFmt(left * mins));
-  } else { ssSet('ssEnd', '✓'); ssSet('ssEndSub', 'wszystkie ' + maxS + ' domknięte'); }
 
   // ── zegar
   let st, cls, sub;
@@ -31477,7 +31635,7 @@ function ssRefresh() {
   else if (live) { st = '● W TOKU'; cls = 'run'; }
   else if (timerSecs < tot) { st = '❚❚ PAUZA'; cls = 'pause'; sub = 'ZEGAR STOI'; }
   else { st = 'GOTOWA'; cls = 'ready'; sub = Math.round(tot / 60) + ' MIN'; }
-  if (live) sub = 'Z ' + ssPad(Math.floor(tot / 60)) + ':' + ssPad(tot % 60) + ' · KONIEC ' + ssHm(nowM + Math.ceil(timerSecs / 60));
+  if (live) sub = 'Z ' + ssPad(Math.floor(tot / 60)) + ':' + ssPad(tot % 60) + ' · KONIEC ' + ssHm(Math.floor(nowM) + Math.ceil(timerSecs / 60));
   ssSet('ssState', st); ssSet('ssSub', sub);
   box.setAttribute('data-ss', cls);
   const pct = Math.max(0, Math.min(1, timerSecs / tot));
@@ -31485,29 +31643,46 @@ function ssRefresh() {
   if (arc) arc.style.strokeDashoffset = (SS_C * (1 - pct)).toFixed(1);
   ssTicks(Math.ceil(pct * 33 - 1e-9), cls);
 
-  const rail = document.getElementById('sessionTrack'); if (rail) rail.style.setProperty('--ssn', String(maxS));
-  // ── wypełnienie bieżącego kafla
+  const cs = document.getElementById('st2CurState');
+  if (cs) cs.textContent = live ? ssPad(Math.floor(timerSecs / 60)) + ':' + ssPad(timerSecs % 60) : '';
   const curEl = document.querySelector('#sessionTrack .nd-current');
   if (curEl) curEl.style.setProperty('--p', ((timerSecs < tot && timerSecs > 0) ? (1 - pct) * 100 : 0).toFixed(1) + '%');
 }
 window.ssRefresh = ssRefresh;
 
-// godziny pod kaflami (z okien planu, gdy są)
+// Jednorazowo na dzień (V268): sesje odhaczone po staremu (kafel, bez planu)
+// przenieś do Planu Dnia — ale TYLKO te, których okno już się zaczęło.
+// "Zrobione" sesje z przyszłości to pomyłkowe kliki — te przepadają.
+// Czekamy na dane z chmury, żeby nie przenosić nieświeżego stanu.
+const _ssT0 = Date.now();
+function ssMigrate(P, nowM) {
+  if (window._ssMigDone) return;
+  if (!(window._dcCloudReady || window._dcLocalMode || Date.now() - _ssT0 > 8000)) return;
+  window._ssMigDone = true;
+  try {
+    const day = (typeof dcDayStr === 'function') ? dcDayStr() : '';
+    if (localStorage.getItem('dc_ss268_mig') === day) return;
+    let moved = 0;
+    P.slots.forEach(function (sl, i) {
+      if (sessions[i] && sl.start <= nowM && ssTaskState(P.mode, sl) === '0' && typeof pbcSetTaskState === 'function') {
+        pbcSetTaskState(P.mode, sl.blockId, sl.ti, '1'); moved++;
+      }
+    });
+    localStorage.setItem('dc_ss268_mig', day);
+    if (moved) {
+      try { if (typeof buildBlockCards === 'function') buildBlockCards(P.mode, P.blocks); } catch (e) {}
+      console.log('[DYZMCRYPT] V268: przeniesiono do Planu Dnia ' + moved + ' sesji odhaczonych kaflem');
+    }
+  } catch (e) {}
+}
+
+// stary rysownik szyny działa tylko bez planu; z planem rysuje ssRailPlan
 function ssWrapRail() {
   if (typeof window.st2RebuildDots !== 'function' || window.st2RebuildDots._ss) return;
   const orig = window.st2RebuildDots;
   const w = function () {
+    if (ssPlan().slots.length) { const t = document.getElementById('sessionTrack'); if (t) t._ssSig = null; ssRefresh(); return; }
     const r = orig.apply(this, arguments);
-    try {
-      const slots = ssSlots();
-      const nodes = document.querySelectorAll('#sessionTrack .st2-node');
-      nodes.forEach(function (n, i) {
-        if (n.querySelector('.ss-tt')) return;
-        const t = document.createElement('i'); t.className = 'ss-tt';
-        t.textContent = slots[i] ? ssHm(slots[i].start) : '';
-        n.appendChild(t);
-      });
-    } catch (e) {}
     ssRefresh();
     return r;
   };
@@ -31518,16 +31693,30 @@ function ssWrapRail() {
 
 function ssCloseSession() {
   if (typeof sessions === 'undefined') return;
-  const maxS = window._maxSessions || 13, cur = ssCurIdx(maxS);
-  if (cur < 0) { if (typeof dcToast === 'function') dcToast('Wszystkie sesje dnia są już domknięte', 'toast-gold'); return; }
   const live = (typeof timerRunning !== 'undefined' && timerRunning);
-  if (live && timerSecs > 60 && !confirm('Sesja ' + (cur + 1) + ' trwa jeszcze ' + Math.ceil(timerSecs / 60) + ' min.\nDomknąć ją teraz?')) return;
-  sessions[cur] = true;
-  if (typeof dcSave === 'function') dcSave('sessions', sessions);
+  const P = ssPlan();
+  let label;
+  if (P.slots.length) {
+    const S = ssStates(P), curX = S.find(function (x) { return x.now; });
+    if (!curX) { if (typeof dcToast === 'function') dcToast('Teraz nie trwa żadna sesja z planu — pominiętą odhaczysz klikiem w jej kafel', 'toast-gold'); return; }
+    if (curX.st === 'done') { if (typeof dcToast === 'function') dcToast('Sesja ' + (curX.i + 1) + ' jest już odhaczona', 'toast-gold'); return; }
+    if (live && timerSecs > 60 && !confirm('Sesja ' + (curX.i + 1) + ' trwa jeszcze ' + Math.ceil(timerSecs / 60) + ' min.\nOdhaczyć ją teraz?')) return;
+    ssPlanSet(P, curX.sl, true);
+    label = curX.i + 1;
+  } else {
+    const maxS = window._maxSessions || 13;
+    let cur = -1; for (let c = 0; c < maxS; c++) if (!sessions[c]) { cur = c; break; }
+    if (cur < 0) { if (typeof dcToast === 'function') dcToast('Wszystkie sesje dnia są już zrobione', 'toast-gold'); return; }
+    if (live && timerSecs > 60 && !confirm('Sesja ' + (cur + 1) + ' trwa jeszcze ' + Math.ceil(timerSecs / 60) + ' min.\nDomknąć ją teraz?')) return;
+    sessions[cur] = true;
+    if (typeof dcSave === 'function') dcSave('sessions', sessions);
+    label = cur + 1;
+  }
   if (live && typeof timerAction === 'function') timerAction();
   if (typeof timerReset === 'function') timerReset();
+  const t = document.getElementById('sessionTrack'); if (t) t._ssSig = null;
   if (typeof window.st2RebuildDots === 'function') window.st2RebuildDots();
-  if (typeof dcToast === 'function') dcToast('✓ Sesja ' + (cur + 1) + ' domknięta', 'toast-green');
+  if (typeof dcToast === 'function') dcToast('✓ Sesja ' + label + ' zrobiona' + (P.slots.length ? ' — odhaczona też w Planie Dnia' : ''), 'toast-green');
   ssRefresh();
 }
 window.ssCloseSession = ssCloseSession;
@@ -38809,8 +38998,8 @@ body.dc-phone .sl-th-x{font-size:11px !important;padding:7px 13px !important;}
 #panel-sesje .st2-node.nd-done{background:rgba(0,232,122,.13) !important;border-color:rgba(0,232,122,.35) !important;}
 #panel-sesje .st2-node.nd-done .st2-node-num{display:none;}
 #panel-sesje .st2-node-check{font-size:11px !important;color:var(--green) !important;opacity:1 !important;}
-#panel-sesje .st2-node.nd-current{border-color:var(--cyan) !important;overflow:hidden;}
-#panel-sesje .st2-node.nd-current::before{content:'';position:absolute;left:0;top:0;bottom:0;width:var(--p,0%);background:linear-gradient(90deg,rgba(0,200,240,.3),rgba(0,200,240,.12));transition:width .5s linear;}
+#panel-sesje .st2-node.nd-current{border-color:var(--cyan) !important;overflow:visible !important;}
+#panel-sesje .st2-node.nd-current::before{content:'';position:absolute;left:0;top:0;bottom:0;border-radius:6px 0 0 6px;width:var(--p,0%);background:linear-gradient(90deg,rgba(0,200,240,.3),rgba(0,200,240,.12));transition:width .5s linear;}
 #panel-sesje .st2-node-tag{display:none !important;}
 #panel-sesje .st2-node-cur-line{position:relative;gap:6px !important;align-items:center !important;}
 #panel-sesje .st2-node-cur-num{font-family:'Share Tech Mono',monospace !important;font-size:11px !important;font-weight:400 !important;color:#eef4f8 !important;}
@@ -38819,6 +39008,12 @@ body.dc-phone .sl-th-x{font-size:11px !important;padding:7px 13px !important;}
 #panel-sesje .ss-tt{position:absolute;left:1px;top:calc(100% + 6px);font-style:normal;font-family:'Share Tech Mono',monospace;font-size:7.5px;color:var(--dim);white-space:nowrap;pointer-events:none;}
 #panel-sesje .st2-node.nd-current .ss-tt{color:var(--dim2);}
 #panel-sesje .st2-track-bar{display:none !important;}
+#panel-sesje .st2-node.nd-miss{background:rgba(255,58,92,.05) !important;border-color:rgba(255,58,92,.3) !important;}
+#panel-sesje .st2-node.nd-miss .st2-node-num{color:rgba(255,90,110,.75) !important;}
+#panel-sesje .ss-x{font-size:8px;color:rgba(255,58,92,.65);}
+#panel-sesje .st2-node.nd-med{background:rgba(160,120,255,.08) !important;border-color:rgba(160,120,255,.3) !important;}
+#panel-sesje .st2-node.nd-future .st2-node-num{color:var(--dim2) !important;}
+#panel-sesje .st2-day-badge.db-done{color:var(--green);border-color:rgba(0,232,122,.35);background:rgba(0,232,122,.06);}
 #panel-sesje .st2-bottom{display:flex;align-items:center;gap:18px;margin-top:4px;}
 #panel-sesje .st2-rules{display:flex;gap:20px;flex-wrap:wrap;}
 #panel-sesje .ss-rule{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim2);}
