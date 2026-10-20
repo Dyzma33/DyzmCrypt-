@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v270 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v271 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v270 · EXECUTION OS</div>
+    <div class="splash-ver">v271 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v270</div>
+      <div class="sb-logo-sub">EXECUTION OS · v271</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v270';
+window.DC_VERSION = 'v271';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -11335,6 +11335,7 @@ window.dcTodayTrades = function() {
           <div class="tele-grid-key">SESSIONS</div>
           <div class="tele-grid-val green" id="rpSessionsHero">0 / 13</div>
           <div class="tele-sess-dots" id="heroSessionDots"></div>
+          <div class="db-stiles" id="dbSesTiles"></div>
         </div>
 
         <!-- Current block phase strip — ukryty, zastąpiony przez bloki poniżej -->
@@ -11364,11 +11365,11 @@ window.dcTodayTrades = function() {
       <!-- V106: STREFA POZIOMU -->
       <div class="tele-grid-sep sep-gold"><span>POZIOM · PARAMETRY AKTYWNEGO LEVELU</span></div>
 
-      <!-- Phase + Level -->
-      <div class="tele-grid-cell tgc-phase">
-        <div class="tele-grid-key">PHASE</div>
-        <div class="tele-grid-val gold" id="hmPhase">C1</div>
-        <div class="tele-grid-sub" id="rpActiveLevelHero">—</div>
+      <!-- V271: nagłówek poziomu zamiast samotnej karty PHASE (ID zostają dla starego kodu) -->
+      <div class="db-lvh" id="dbLvlHead">
+        <span class="db-tag" id="dbLvlTag">—</span><span class="db-st" id="dbLvlSt">aktywuj poziom w Progresji</span>
+        <span class="db-pips" id="dbLvlPips"></span><span class="db-pn" id="dbLvlPn"></span>
+        <span id="hmPhase" style="display:none">C1</span><span id="rpActiveLevelHero" style="display:none">—</span>
       </div>
 
       <!-- MIN TARGET -->
@@ -11400,6 +11401,11 @@ window.dcTodayTrades = function() {
         <div class="tele-grid-key">Transakcje Poziomu</div>
         <div class="tele-grid-val gold" id="tgcLvlTrades">—</div>
         <div class="tele-grid-sub" id="tgcLvlTradesSub">—</div>
+      </div>
+      <div class="tele-grid-cell tgc-lavg">
+        <div class="tele-grid-key">Średnio na pozycję</div>
+        <div class="tele-grid-val" id="dbAvgPos">—</div>
+        <div class="tele-grid-sub" id="dbAvgPosSub">—</div>
       </div>
 
       <!-- V106: STREFA DNIA -->
@@ -24349,7 +24355,7 @@ function syncCommandCenter() {
   const mmRTLbl  = document.getElementById('mmRiskTradeLabel');
   if (typeof activeState !== 'undefined' && activeState && activeState.risk) {
     if (mmRTVal) {
-      mmRTVal.textContent = activeState.risk + '$';
+      mmRTVal.textContent = String(activeState.risk).replace(/\s*\$+\s*$/, '') + '$';
       mmRTVal.className = 'micro-mod-primary gold';
     }
     if (mmRTLbl) {
@@ -24400,7 +24406,7 @@ function syncCommandCenter() {
   var tcMRT = document.getElementById('tcMinRiskTier');
   if (tcMR) {
     if (typeof activeState !== 'undefined' && activeState && activeState.risk) {
-      tcMR.textContent = activeState.risk + '$';
+      tcMR.textContent = String(activeState.risk).replace(/\s*\$+\s*$/, '') + '$';   // V271: bez podwójnego $
       var rnum = activeState.rnum || parseFloat((activeState.risk || '0').replace(',','.')) || 0;
       var tier = rnum <= 10 ? 'C1 LOW' : rnum <= 50 ? 'C1 MED' : rnum <= 100 ? 'C2 LOW' : rnum <= 250 ? 'C2 MED' : 'C3';
       if (tcMRT) tcMRT.textContent = tier;
@@ -32298,6 +32304,94 @@ arcRenderList = function () {
   listEl.innerHTML = h;
 };
 try { arcRender(); } catch (e) { console.error('[DYZMCRYPT] V270 archiwum:', e); }
+
+</script>
+<script>
+// ══════════════════════════════════════════════════════════════
+//  V271 · DASHBOARD — TEN SAM UKŁAD, NOWY WYGLĄD
+//  Nic nie przestawiamy: zegar, trzy bloki, timer, POZIOM, DZISIAJ
+//  zostają na swoich miejscach i liczą się tym samym kodem. Ten blok
+//  tylko dorysowuje: kreski na pierścieniu, nagłówek poziomu z 13
+//  kreskami, paski do celu, średnią na pozycję i kafle sesji z planu.
+// ══════════════════════════════════════════════════════════════
+function dbNum(s) { const v = parseFloat(String(s || '').replace(/[^\d,.\-−+]/g, '').replace('−', '-').replace(',', '.')); return isFinite(v) ? v : null; }
+function dbFmt(v) { return (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2).replace('.', ',') + '$'; }
+function dbBar(cell, id, pct, col) {
+  if (!cell) return;
+  let b = document.getElementById(id);
+  if (!b) { b = document.createElement('div'); b.className = 'db-bar'; b.id = id; b.innerHTML = '<i></i>'; cell.appendChild(b); }
+  const i = b.firstChild; i.style.width = Math.max(0, Math.min(100, pct)).toFixed(1) + '%'; i.style.background = col;
+}
+function dbRefresh() {
+  const root = document.getElementById('panel-start'); if (!root) return;
+  const A = (typeof activeState !== 'undefined' && activeState && activeState.label) ? activeState : null;
+  // ── nagłówek poziomu
+  const tag = document.getElementById('dbLvlTag'), st = document.getElementById('dbLvlSt'), pp = document.getElementById('dbLvlPips'), pn = document.getElementById('dbLvlPn');
+  let list = [], pos = 13;
+  if (A) {
+    try { list = (typeof getTradesForLevel === 'function') ? (getTradesForLevel(A.cycle, A.level) || []) : []; } catch (e) {}
+    pos = A.pos || 13;
+    if (tag) tag.textContent = A.label;
+    const days = {}; list.forEach(function (t) { if (t._day) days[t._day] = 1; });
+    const nd = Object.keys(days).length;
+    if (st) st.textContent = '● AKTYWNY' + (nd ? ' · ' + nd + ' ' + (nd === 1 ? 'DZIEŃ' : 'DNI') : '');
+    if (pp) { let h = ''; for (let k = 0; k < pos; k++) h += '<i class="' + (k < list.length ? 'on' : '') + '"></i>'; if (pp.innerHTML !== h) pp.innerHTML = h; }
+    if (pn) pn.textContent = list.length + '/' + pos;
+    root.classList.add('db-has-lvl');
+  } else {
+    if (tag) tag.textContent = '—'; if (st) st.textContent = 'aktywuj poziom w Progresji'; if (pp) pp.innerHTML = ''; if (pn) pn.textContent = '';
+    root.classList.remove('db-has-lvl');
+  }
+  // ── średnio na pozycję
+  const av = document.getElementById('dbAvgPos'), avs = document.getElementById('dbAvgPosSub');
+  if (av) {
+    if (A && list.length) {
+      const sum = list.reduce(function (a, t) { return a + (parseFloat(t.pnl) || 0); }, 0), m = sum / list.length;
+      const r1 = A.rnum || dbNum(A.risk);
+      av.textContent = dbFmt(m); av.style.color = m >= 0 ? 'var(--green)' : 'var(--red)';
+      if (avs) avs.textContent = r1 ? '≈ ' + (m / r1).toFixed(1).replace('.', ',') + 'R na pozycję' : list.length + ' pozycji';
+    } else { av.textContent = '—'; av.style.color = ''; if (avs) avs.textContent = 'brak pozycji na poziomie'; }
+  }
+  // ── paski do celu: poziom i dziś
+  const tgt = A ? dbNum(A.profit) : null;
+  const lp = dbNum((document.getElementById('tgcLvlPnl') || {}).textContent);
+  dbBar(root.querySelector('.tgc-lpnl'), 'dbLvlBar', (tgt && lp != null) ? lp / tgt * 100 : 0, 'linear-gradient(90deg,rgba(0,232,122,.35),var(--green))');
+  const dp = dbNum((document.getElementById('rpPnLHero') || {}).textContent);
+  dbBar(root.querySelector('.tgc-pnl'), 'dbDayBar', (tgt && dp != null && dp > 0) ? dp / tgt * 100 : 0, 'linear-gradient(90deg,rgba(0,200,240,.35),var(--cyan))');
+  // ── kafle sesji z Planu Dnia (ten sam stan co moduł Sesje)
+  const tiles = document.getElementById('dbSesTiles');
+  if (tiles && typeof ssPlan === 'function' && typeof ssStates === 'function') {
+    let S = [];
+    try { const P = ssPlan(); if (P.slots.length) S = ssStates(P); } catch (e) {}
+    if (S.length) {
+      const h = S.map(function (x) { return '<i class="' + (x.st === 'done' ? 'y' : x.st === 'miss' ? 'n' : x.st === 'cur' ? 'c' : x.st === 'med' ? 'm' : '') + '" title="Sesja ' + (x.i + 1) + '"></i>'; }).join('');
+      if (tiles.innerHTML !== h) tiles.innerHTML = h;
+      root.classList.add('db-plan-ses');
+    } else root.classList.remove('db-plan-ses');
+  }
+  // ── kreski na pierścieniu timera (33 = 33 minuty)
+  const svg = root.querySelector('.orb-ring-svg');
+  if (svg && typeof heroTimer !== 'undefined') {
+    let g = svg.querySelector('#dbTicks');
+    if (!g) {
+      g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.id = 'dbTicks';
+      let h = '';
+      for (let i = 0; i < 33; i++) {
+        const a = (i / 33) * 2 * Math.PI - Math.PI / 2, r1 = 94, r2 = (i % 11 === 0) ? 100 : 98;
+        h += '<line x1="' + (100 + r1 * Math.cos(a)).toFixed(2) + '" y1="' + (100 + r1 * Math.sin(a)).toFixed(2) + '" x2="' + (100 + r2 * Math.cos(a)).toFixed(2) + '" y2="' + (100 + r2 * Math.sin(a)).toFixed(2) + '"/>';
+      }
+      g.innerHTML = h; svg.insertBefore(g, svg.firstChild);
+    }
+    const tot = heroTimer.total || 1980, lit = Math.ceil((heroTimer.remaining / tot) * 33 - 1e-9);
+    const cls = heroTimer.running ? (heroTimer.remaining <= 120 ? 'urg' : heroTimer.remaining <= 300 ? 'warn' : 'run') : (heroTimer.remaining < tot ? 'pause' : 'ready');
+    root.setAttribute('data-db', cls);
+    const ls = g.childNodes;
+    for (let i = 0; i < ls.length; i++) { const c = i < lit ? 'on' : ''; if (ls[i].getAttribute('class') !== c) ls[i].setAttribute('class', c); }
+  }
+}
+window.dbRefresh = dbRefresh;
+setInterval(dbRefresh, 1000);
+setTimeout(dbRefresh, 600);
 
 </script>
 <script>
@@ -40354,5 +40448,74 @@ body.dc-phone .ob-pnl{font-size:15px !important;}
 #sidebar .sb-group[data-sec] .sb-item[data-tier="background"]:hover .sb-icon{opacity:.9 !important;}
 
 body.dc-phone #sidebar .sb-group[data-sec]{padding-left:10px;}
+
+/* ═══ V271 · DASHBOARD — ten sam układ, nowy wygląd ═══ */
+#panel-start #v23Header{background:radial-gradient(120% 90% at 50% 0%,rgba(0,200,240,.05),transparent 70%) !important;border:none !important;box-shadow:none !important;}
+#panel-start #v23HeaderDate{font-family:'Share Tech Mono',monospace !important;font-size:9px !important;letter-spacing:4px !important;color:var(--dim2) !important;text-shadow:none !important;}
+#panel-start #v23HeaderClock{font-family:'Orbitron',monospace !important;font-weight:500 !important;color:#eef4f8 !important;text-shadow:none !important;letter-spacing:4px !important;animation:none !important;}
+#panel-start .tele-center-blocks{gap:12px !important;}
+#panel-start .tele-block{background:rgba(10,16,27,.7) !important;border:1px solid rgba(118,158,205,.2) !important;border-radius:12px !important;box-shadow:none !important;position:relative;overflow:hidden;}
+#panel-start .tele-block::before,#panel-start .tele-block::after{display:none !important;}
+#panel-start .tele-block.current{border-color:rgba(0,232,122,.42) !important;background:rgba(0,232,122,.05) !important;}
+#panel-start .tele-block-tag{font-family:'Share Tech Mono',monospace !important;font-size:8.5px !important;letter-spacing:2.5px !important;text-shadow:none !important;}
+#panel-start .tele-block-name{font-family:'Orbitron',monospace !important;font-weight:700 !important;font-size:13px !important;color:#eef4f8 !important;text-shadow:none !important;opacity:1 !important;}
+#panel-start .tele-block-time{font-family:'Share Tech Mono',monospace !important;font-size:9px !important;color:var(--dim2) !important;}
+#panel-start .tele-block-cd{font-family:'Orbitron',monospace !important;font-weight:800 !important;font-size:22px !important;text-shadow:none !important;opacity:1 !important;}
+#panel-start .tele-block.current .tele-block-cd{color:var(--green) !important;}
+#panel-start .tele-block.next .tele-block-cd{color:var(--cyan) !important;}
+#panel-start .tele-block-prog{position:absolute !important;left:0;right:0;bottom:0;height:3px !important;margin:0 !important;border-radius:0 !important;background:rgba(118,158,205,.1) !important;}
+#panel-start .tele-block-prog-fill{background:var(--green) !important;box-shadow:none !important;}
+/* timer: jeden pierścień i 33 kreski, bez poświaty */
+#panel-start .v8-center-glow,#panel-start .orb-glow{display:none !important;}
+#panel-start .orb-ring-outer,#panel-start .orb-ring-track{display:none !important;}
+#panel-start .orb-ring-svg{overflow:visible;}
+#panel-start .orb-ring-bg{stroke:rgba(118,158,205,.09) !important;stroke-width:1.5 !important;filter:none !important;}
+#panel-start .orb-ring-fill{stroke:var(--cyan) !important;stroke-width:2.6 !important;filter:drop-shadow(0 0 5px rgba(0,200,240,.5)) !important;stroke-linecap:round;}
+#panel-start[data-db="warn"] .orb-ring-fill{stroke:var(--orange) !important;} #panel-start[data-db="urg"] .orb-ring-fill{stroke:var(--red) !important;}
+#panel-start[data-db="pause"] .orb-ring-fill{stroke:var(--gold) !important;filter:none !important;} #panel-start[data-db="ready"] .orb-ring-fill{stroke:rgba(0,200,240,.45) !important;filter:none !important;}
+#dbTicks line{stroke:rgba(118,158,205,.16);stroke-width:1.5;stroke-linecap:round;} #dbTicks line.on{stroke:rgba(0,200,240,.75);}
+#panel-start[data-db="ready"] #dbTicks line.on{stroke:rgba(0,200,240,.45);} #panel-start[data-db="pause"] #dbTicks line.on{stroke:rgba(240,180,41,.7);}
+#panel-start[data-db="warn"] #dbTicks line.on{stroke:rgba(255,150,0,.8);} #panel-start[data-db="urg"] #dbTicks line.on{stroke:rgba(255,58,92,.85);}
+#panel-start #heroTimerDisplay{font-family:'Orbitron',monospace !important;font-weight:500 !important;color:#eef4f8 !important;text-shadow:none !important;opacity:1 !important;animation:none !important;}
+#panel-start .orb-phase-label,#panel-start #heroTimerSecondary{font-family:'Share Tech Mono',monospace !important;letter-spacing:2px !important;color:var(--dim2) !important;text-shadow:none !important;opacity:1 !important;}
+#panel-start #heroTimerBtn{all:unset;box-sizing:border-box !important;cursor:pointer;font-family:'Share Tech Mono',monospace !important;font-size:10px !important;letter-spacing:2.5px !important;font-weight:700 !important;padding:12px 30px !important;border-radius:30px !important;border:none !important;background:var(--cyan) !important;color:#041018 !important;box-shadow:0 0 22px rgba(0,200,240,.22) !important;text-shadow:none !important;min-width:0 !important;height:auto !important;}
+#panel-start .orb-controls .v8-btn-ghost{all:unset;box-sizing:border-box !important;cursor:pointer;font-family:'Share Tech Mono',monospace !important;font-size:10px !important;letter-spacing:2px !important;color:var(--dim2) !important;background:transparent !important;border:1px solid rgba(118,158,205,.22) !important;border-radius:30px !important;padding:11px 22px !important;box-shadow:none !important;min-width:0 !important;height:auto !important;}
+#panel-start .orb-timer-wrap > .tele-grid-cell{width:100% !important;max-width:280px !important;box-sizing:border-box !important;align-self:center;}
+#panel-start .orb-controls{gap:10px !important;}
+#panel-start .orb-timer-wrap > .tele-grid-cell{background:transparent !important;border:1px solid rgba(118,158,205,.12) !important;border-radius:10px !important;box-shadow:none !important;text-align:left !important;padding:10px 12px !important;}
+#panel-start .orb-timer-wrap > .tele-grid-cell .tele-grid-key{display:inline-block;}
+#panel-start .orb-timer-wrap > .tele-grid-cell #rpSessionsHero{float:right;font-size:12px !important;margin:0 !important;color:#eef4f8 !important;text-shadow:none !important;}
+#panel-start.db-plan-ses #heroSessionDots{display:none !important;}
+.db-stiles{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:3px;margin-top:9px;clear:both;}
+.db-stiles i{display:block;height:12px;border-radius:3px;border:1px solid rgba(118,158,205,.2);}
+.db-stiles i.y{background:rgba(0,232,122,.35);border-color:rgba(0,232,122,.5);} .db-stiles i.n{background:rgba(255,58,92,.12);border-color:rgba(255,58,92,.35);}
+.db-stiles i.c{border-color:var(--cyan);box-shadow:0 0 6px rgba(0,200,240,.4);} .db-stiles i.m{background:rgba(160,120,255,.2);border-color:rgba(160,120,255,.4);}
+/* siatka: nagłówek poziomu + 6 kart + 3 karty dnia */
+#panel-start .tele-center-grid{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:10px !important;}
+#panel-start .tele-grid-sep{grid-column:1/-1 !important;}
+#panel-start .tele-grid-sep span{font-family:'Share Tech Mono',monospace !important;font-size:9px !important;letter-spacing:2.5px !important;text-shadow:none !important;}
+#panel-start .db-lvh{grid-column:1/-1;display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;padding:2px 2px 4px;}
+#panel-start .db-tag,#panel-start .db-st{white-space:nowrap;}
+#panel-start .db-tag{font-family:'Orbitron',monospace;font-weight:800;font-size:15px;letter-spacing:2px;color:var(--gold);}
+#panel-start .db-st{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:2px;color:var(--green);}
+#panel-start:not(.db-has-lvl) .db-st{color:var(--dim2);}
+#panel-start .db-pips{display:flex;gap:4px;margin-left:auto;} #panel-start .db-pips i{display:block;width:16px;height:7px;border-radius:2px;background:rgba(118,158,205,.15);} #panel-start .db-pips i.on{background:var(--green);}
+#panel-start .db-pn{font-family:'Orbitron',monospace;font-weight:700;font-size:11px;color:#eef4f8;}
+#panel-start .tele-center-grid > .tele-grid-cell{grid-column:auto !important;background:rgba(10,16,27,.55) !important;border:1px solid rgba(118,158,205,.14) !important;border-radius:12px !important;box-shadow:none !important;padding:12px 14px !important;min-height:0 !important;}
+#panel-start .tele-center-grid > .tele-grid-cell::before,#panel-start .tele-center-grid > .tele-grid-cell::after{display:none !important;}
+#panel-start .tele-grid-key{font-family:'Share Tech Mono',monospace !important;font-size:8px !important;letter-spacing:2.2px !important;color:var(--dim2) !important;text-shadow:none !important;opacity:1 !important;}
+#panel-start .tele-center-grid .tele-grid-val{font-family:'Orbitron',monospace !important;font-weight:800 !important;font-size:22px !important;text-shadow:none !important;margin-top:8px !important;}
+#panel-start .tele-center-grid .tele-grid-sub{font-family:'Share Tech Mono',monospace !important;font-size:8.5px !important;letter-spacing:.5px !important;text-transform:none !important;color:var(--dim2) !important;margin-top:5px !important;text-shadow:none !important;}
+#panel-start .tgc-target{order:1;} #panel-start .tgc-risk{order:2;} #panel-start .tgc-ltrades{order:3;}
+#panel-start .tgc-lpnl{order:4;} #panel-start .tgc-lwr{order:5;} #panel-start .tgc-lavg{order:6;}
+#panel-start .tele-grid-sep.sep-gold{order:0;} #panel-start .db-lvh{order:0;}
+#panel-start .tele-grid-sep.sep-cyan{order:7;} #panel-start .tgc-pnl{order:8;} #panel-start .tgc-winrate{order:9;} #panel-start .tgc-positions{order:10;}
+#panel-start #tcMinTarget{color:var(--green) !important;} #panel-start #tcMinRisk{color:var(--gold) !important;}
+#panel-start #rpPnLHero{font-size:30px !important;}
+#panel-start .tgc-pnl{grid-column:span 1 !important;}
+.db-bar{height:4px;border-radius:3px;background:rgba(118,158,205,.1);margin-top:10px;overflow:hidden;} .db-bar i{display:block;height:100%;border-radius:3px;transition:width .4s;}
+@media (max-width:760px){ #panel-start .tele-center-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;} #panel-start .db-pips i{width:10px;} }
+body.dc-phone #panel-start .tele-center-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
+
 </style>
 
