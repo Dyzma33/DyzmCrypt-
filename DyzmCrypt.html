@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v274 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v275 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v274 · EXECUTION OS</div>
+    <div class="splash-ver">v275 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v274</div>
+      <div class="sb-logo-sub">EXECUTION OS · v275</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v274';
+window.DC_VERSION = 'v275';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -19045,6 +19045,7 @@ function opzOpenAddModal() {
   opzSelectedDir = 'LONG';
   opzSelectDir('LONG');
   window._opzThread = null;                           // V263: pozycja z wątku ustawia to PO otwarciu modala
+  window._slPendLink = null;                          // V275: zlecenie z Session Logu też
   document.getElementById('opzAddTitle').textContent = '+ NOWA POZYCJA';
   document.getElementById('opzAddConfirmBtn').textContent = 'OTWÓRZ POZYCJĘ';
   document.getElementById('opzAddConfirmBtn').onclick = opzConfirmAdd;
@@ -19192,6 +19193,17 @@ function opzConfirmAdd() {
     fills: [], beMoved: false, beAfter: null,
     thread: (window._opzThread != null ? window._opzThread : null) });   // V263: wątek tygodnia
   window._opzThread = null;
+  // V275: pozycja otwarta ze zlecenia z Session Logu — zapisz numer przy zleceniu,
+  // żeby karta wpisu pokazała potem wynik tej pozycji
+  if (window._slPendLink) {
+    try {
+      const L = window._slPendLink, list = slAll();
+      const en = list.find(function (x) { return x && x.id === L.entryId; });
+      const pl = en && en.linkedTrades ? en.linkedTrades[L.idx] : null;
+      if (pl && pl.role === 'pending') { pl.posId = _newId; if (!pl.token) pl.token = token; slSave(list); }
+    } catch (err) {}
+    window._slPendLink = null;
+  }
   opzSave();
   opzRenderPositions();
   opzCloseModals();
@@ -33838,6 +33850,65 @@ function slPendSetStatus(entryId, idx, status) {
     status === 'filled' ? '✓ Zlecenie zrealizowane' : (status === null ? '↩ Zlecenie znów aktywne' : '✕ Zlecenie anulowane'),
     status === 'filled' ? 'toast-green' : 'toast-gold');
 }
+// ══ V275: ZREALIZOWANE ZLECENIE POKAZUJE, ILE ZAROBIŁO ══
+// Zlecenie z wpisu → "zrealizowane" → pozycja → zamknięcie. Dotąd karta wpisu
+// kończyła na słowie ZREALIZOWANE, bo pozycja nie wiedziała, z którego zlecenia
+// jest. Teraz zlecenie trzyma numer pozycji (posId) i karta pokazuje: na rynku
+// albo wynik po zamknięciu. Zlecenia sprzed tej wersji dopasowujemy raz:
+// ten sam token i kierunek, wejście w pobliżu ceny limitu, po czasie wpisu.
+function slPendRef(l) { return { posId: l.posId, tradeId: l.tradeId, token: l.token, role: 'opened' }; }
+function slPendOutcome(l, e) {
+  if (l.posId == null && l.tradeId == null) return '<span class="sl-dim" style="font-size:8px;">· brak pozycji do pokazania</span>';
+  let R = null; try { R = slResolve(slPendRef(l), e); } catch (err) {}
+  if (!R) return '<span class="sl-dim">· #' + slEsc(l.posId != null ? l.posId : l.tradeId) + ' poza zasięgiem</span>';
+  if (R.kind === 'pos') return '<span style="color:var(--cyan);font-size:8px;letter-spacing:1px;">→ NA RYNKU</span>'
+    + '<span class="sl-jump" onclick="navTo(\'pozycje\', document.querySelector(\'.sb-item[onclick*=pozycje]\'))">→ pozycja</span>';
+  const t = R.f.t, v = parseFloat(t.pnl) || 0, c = v > 1 ? 'var(--green)' : (v < -1 ? 'var(--red)' : 'var(--cyan)');
+  let rTxt = '';
+  try { const r = (typeof anTradeR === 'function') ? anTradeR(t) : null; if (r != null && isFinite(r)) rTxt = ' · ' + (r >= 0 ? '+' : '') + r.toFixed(1) + 'R'; } catch (err) {}
+  return '<span style="color:var(--dim2);font-size:8px;">→</span><span style="font-family:Orbitron,monospace;font-weight:800;color:' + c + '">' + (v >= 0 ? '+' : '') + v.toFixed(2) + '$</span>'
+    + '<span style="color:var(--dim2);font-size:7.5px;letter-spacing:1px;">ZAMKN.' + rTxt + '</span>'
+    + '<span class="sl-jump" onclick="navTo(\'journal\', document.querySelector(\'.sb-item[onclick*=journal]\'))">→ zobacz trade</span>';
+}
+function slPendAutoLink(list) {
+  let changed = false;
+  const used = {};
+  list.forEach(function (e) { (e && e.linkedTrades || []).forEach(function (l) { if (l && l.posId != null) used['p' + l.posId] = 1; if (l && l.tradeId != null) used['t' + l.tradeId] = 1; }); });
+  const today = (typeof dcDayStr === 'function') ? dcDayStr() : '';
+  const pool = [];
+  try { (typeof opzPositions !== 'undefined' ? opzPositions : []).forEach(function (p) { if (p) pool.push({ token: p.token, dir: p.dir, entry: parseFloat(p.entry), ts: p.openedAt || 0, posId: p.id }); }); } catch (err) {}
+  const addT = function (t, day) {
+    if (!t) return;
+    const close = slRecTs(t.date || day, t.time || '12:00');
+    const open = t.openedAt || (close - (parseFloat(t.opzDuration) || 0) * 60000);
+    pool.push({ token: t.token, dir: t.dir, entry: parseFloat(t.entry), ts: open, posId: t.posId, tradeId: t.id });
+  };
+  try { (typeof trades !== 'undefined' ? trades : []).forEach(function (t) { addT(t, today); }); } catch (err) {}
+  try { (dcLoad('archive', []) || []).forEach(function (d) { (d && d.trades || []).forEach(function (t) { addT(t, d.date); }); }); } catch (err) {}
+  list.forEach(function (e) {
+    (e && e.linkedTrades || []).forEach(function (l) {
+      if (!l || l.role !== 'pending' || l.status !== 'filled' || l.posId != null || l.tradeId != null || l._noMatch) return;
+      const price = parseFloat(String(l.price || '').replace(',', '.'));
+      const ref = e.ts ? new Date(e.ts).getTime() : slRecTs(e.date, '00:00');
+      const cand = pool.filter(function (c) {
+        if (String(c.token || '').toUpperCase() !== String(l.token || '').toUpperCase()) return false;
+        if (l.dir && String(c.dir || '').toUpperCase() !== String(l.dir).toUpperCase()) return false;
+        if (c.posId != null && used['p' + c.posId]) return false;
+        if (c.posId == null && c.tradeId != null && used['t' + c.tradeId]) return false;
+        if (c.ts && c.ts < ref - 5 * 60000) return false;
+        if (price > 0 && isFinite(c.entry) && c.entry > 0 && Math.abs(c.entry - price) / price > 0.005) return false;
+        return true;
+      }).sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
+      if (!cand.length) return;
+      const c = cand[0];
+      if (c.posId != null) { l.posId = c.posId; used['p' + c.posId] = 1; } else { l.tradeId = c.tradeId; used['t' + c.tradeId] = 1; }
+      l.autoLinked = true;
+      changed = true;
+    });
+  });
+  return changed;
+}
+
 function slPendDrop(entryId, idx) {
   if (!confirm('Usunąć to zlecenie z wpisu?')) return;
   const list = slAll();
@@ -33856,6 +33927,7 @@ function slPendGoOpen(entryId, idx) {
   if (typeof navTo === 'function') navTo('pozycje', document.querySelector('.sb-item[onclick*=pozycje]'));
   setTimeout(function() {
     if (typeof opzOpenAddModal === 'function') opzOpenAddModal();
+    window._slPendLink = l ? { entryId: entryId, idx: idx, token: l.token || '' } : null;   // V275
     setTimeout(function() {
       if (!l) return;
       try {
@@ -34404,6 +34476,7 @@ function slRender() {
   if (!listEl) return;
   // V237: raz na sesje przestempluj stare linki, zanim cokolwiek narysujemy
   if (!window._slLinksRepaired) { window._slLinksRepaired = true; try { slRepairLinks(); } catch(e) {} }
+  try { const _pl = slAll(); if (slPendAutoLink(_pl)) slSave(_pl); } catch(e) {}   // V275
   const all = slAll();
   const today = (typeof dcDayStr === 'function') ? dcDayStr() : '';
 
@@ -34508,6 +34581,7 @@ function slRender() {
         +   '<span class="sl-pc-st" style="color:' + col + ';border-color:' + col + '">' + lbl + '</span>'
         +   '<span class="sl-pc-tok">' + slEsc(l.token || '—') + '</span>'
         +   '<span class="sl-pc-dir" style="color:' + (l.dir === 'LONG' ? 'var(--green)' : 'var(--red)') + '">' + slEsc(l.dir || '') + '</span>'
+        +   (st === 'filled' ? '<span class="sl-pc-out">' + slPendOutcome(l, e) + '</span>' : '')
         + '</div>'
         + '<div class="sl-pt-grid">'
         +   tile('Limit', l.price ? slEsc(l.price) : '—', 'var(--gold)')
@@ -34567,6 +34641,7 @@ function slRender() {
             mid = '<span style="color:var(--text)">' + slEsc(l.token || '—') + '</span>'
               + '<span style="color:' + (l.dir === 'LONG' ? 'var(--green)' : 'var(--red)') + '">' + slEsc(l.dir || '') + '</span>'
               + '<span style="color:' + col + ';font-size:8px;letter-spacing:1px;">' + (l.price ? 'LIMIT ' + slEsc(l.price) + ' · ' : '') + _sTxt + '</span>'
+              + (l.status === 'filled' ? slPendOutcome(l, e) : '')
               + (l.note ? '<span class="sl-dim">' + slEsc(l.note) + '</span>' : '');
           } else if (R && R.kind === 'trade') {
             const f = R.f;
@@ -40759,5 +40834,7 @@ body.dc-phone #panel-start .tele-center-grid{grid-template-columns:repeat(2,minm
   #arcReportModal .rp-box{padding:16px 14px 12px;}
 }
 
+
+.sl-pc-out{margin-left:auto;display:inline-flex;gap:8px;align-items:center;font-family:'Share Tech Mono',monospace;font-size:10px;}
 </style>
 
