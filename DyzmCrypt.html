@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v273 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v274 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v273 · EXECUTION OS</div>
+    <div class="splash-ver">v274 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v273</div>
+      <div class="sb-logo-sub">EXECUTION OS · v274</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v273';
+window.DC_VERSION = 'v274';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -17836,9 +17836,57 @@ function byParse(labTxt, rawTxt) {
   if (!Number.isFinite(d.feeClose)) d.feeClose = null;
   if (!Number.isFinite(d.feeFund))  d.feeFund  = null;
 
-  const ts = (lab.join('\n').match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/g) || []);
-  d.openTime = ts[0] || null;
-  d.closeTime = ts[1] || null;
+  // V274: godziny odporne na błędy odczytu. Silnik potrafi przeczytać 0 jako O,
+  // 1 jako l/I/|, zgubić spację albo dać kropkę zamiast dwukropka — wtedy sztywny
+  // wzorzec nie widział "Close Time" i pole zostawało puste (ICNT 22.10: zamknięcie
+  // 00:01:11 przepadło). Teraz: (1) szukamy w etykietach i w cyfrach, po linii
+  // z "Open/Close Time", (2) poprawiamy typowe pomyłki cyfr, (3) gdy jednej godziny
+  // brak, liczymy ją z czasu trwania z karty ("3 Hour(s) 16 Minute(s)").
+  const tsFix = function (t) { return String(t).replace(/[Oo]/g, '0').replace(/[lI|!]/g, '1'); };
+  const tsRe = /(\d{4})\s*[-–.]\s*(\d{2})\s*[-–.]\s*(\d{2})\s*(\d{2})\s*[:.;]\s*(\d{2})\s*[:.;]?\s*(\d{2})?/;
+  const tsFrom = function (line) {
+    const m = tsFix(line).match(tsRe);
+    if (!m || +m[2] < 1 || +m[2] > 12 || +m[3] < 1 || +m[3] > 31 || +m[4] > 23 || +m[5] > 59) return null;
+    return m[1] + '-' + m[2] + '-' + m[3] + ' ' + m[4] + ':' + m[5] + ':' + (m[6] && +m[6] < 60 ? m[6] : '00');
+  };
+  const tsByLabel = function (re) {
+    for (const src of [lab, raw]) {
+      for (let i = 0; i < src.length; i++) {
+        if (!re.test(src[i])) continue;
+        const v = tsFrom(src[i]) || (src[i + 1] ? tsFrom(src[i + 1]) : null);
+        if (v) return v;
+      }
+    }
+    return null;
+  };
+  d.openTime = tsByLabel(/op[e3]n\s*t[il1]m/i);
+  d.closeTime = tsByLabel(/c[l1I]os[e3]\s*t[il1]m/i);
+  if (!d.openTime || !d.closeTime) {                     // bez etykiet: kolejność na karcie
+    const all = [];
+    lab.concat(raw).forEach(function (l) { const v = tsFrom(l); if (v && all.indexOf(v) === -1) all.push(v); });
+    all.sort();
+    if (!d.openTime && all.length) d.openTime = all.find(function (v) { return v !== d.closeTime; }) || null;
+    if (!d.closeTime && all.length > 1) d.closeTime = all.filter(function (v) { return v !== d.openTime; }).pop() || null;
+    if (d.openTime && d.closeTime && d.openTime > d.closeTime) { const x = d.openTime; d.openTime = d.closeTime; d.closeTime = x; }
+  }
+  const durM = (function () {
+    const t = lab.slice(0, 4).concat(raw.slice(0, 4)).map(tsFix).join(' ');
+    const m = t.match(/(\d+)\s*H[o0]ur[^\d]{0,8}(\d+)\s*M[i1]nut/i);
+    if (m) return (+m[1]) * 60 + (+m[2]);
+    const m2 = t.match(/(\d+)\s*M[i1]nut/i);
+    return m2 ? +m2[1] : null;
+  })();
+  d.durMin = durM;
+  const tsAdd = function (str, min) {
+    const q = str.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
+    const t = new Date(+q[1], +q[2] - 1, +q[3], +q[4], +q[5], +q[6]); t.setMinutes(t.getMinutes() + min);
+    const p2 = function (n) { return String(n).padStart(2, '0'); };
+    return t.getFullYear() + '-' + p2(t.getMonth() + 1) + '-' + p2(t.getDate()) + ' ' + p2(t.getHours()) + ':' + p2(t.getMinutes()) + ':' + p2(t.getSeconds());
+  };
+  if (durM != null) {
+    if (d.openTime && !d.closeTime) { d.closeTime = tsAdd(d.openTime, durM); d.notes.push('zamknięcie z czasu trwania (±1 min)'); }
+    else if (d.closeTime && !d.openTime) { d.openTime = tsAdd(d.closeTime, -durM); d.notes.push('otwarcie z czasu trwania (±1 min)'); }
+  }
 
   // odtwarzanie brakującej wartości z pozostałych
   if (d.qty) {
@@ -32652,7 +32700,7 @@ async function ltFromFile(file) {
   if (!d.openTime) miss.push('godzina otwarcia'); if (!d.closeTime) miss.push('godzina zamknięcia');
   if (d.pnl == null) miss.push('wynik');
   ltSay(d.ok && !miss.length
-    ? '✓ Karta odczytana — sprawdź liczby z ekranem i dopisz'
+    ? '✓ Karta odczytana — sprawdź liczby z ekranem i dopisz' + ((d.notes || []).filter(function (n) { return /czasu trwania/.test(n); }).map(function (n) { return ' · ⚠ ' + n; }).join(''))
     : '⚠ ' + (d.ok ? '' : (typeof obWhyBad === 'function' ? obWhyBad(d) : 'odczyt niepełny')) + (miss.length ? (d.ok ? '' : ' · ') + 'brak: ' + miss.join(', ') : '') + ' — uzupełnij ręcznie',
     d.ok && !miss.length ? 'ok' : 'warn');
   ltCalc();
