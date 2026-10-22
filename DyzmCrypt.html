@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v275 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v276 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v275 · EXECUTION OS</div>
+    <div class="splash-ver">v276 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v275</div>
+      <div class="sb-logo-sub">EXECUTION OS · v276</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v275';
+window.DC_VERSION = 'v276';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -33857,10 +33857,12 @@ function slPendSetStatus(entryId, idx, status) {
 // albo wynik po zamknięciu. Zlecenia sprzed tej wersji dopasowujemy raz:
 // ten sam token i kierunek, wejście w pobliżu ceny limitu, po czasie wpisu.
 function slPendRef(l) { return { posId: l.posId, tradeId: l.tradeId, token: l.token, role: 'opened' }; }
-function slPendOutcome(l, e) {
-  if (l.posId == null && l.tradeId == null) return '<span class="sl-dim" style="font-size:8px;">· brak pozycji do pokazania</span>';
+function slTokN(t) { return String(t || '').toUpperCase().replace(/\.P$/, '').replace(/USDT$/, '').trim(); }
+function slPendOutcome(l, e, li) {
+  const pick = (li != null) ? '<span class="sl-jump" onclick="event.stopPropagation();slPendPick(' + e.id + ',' + li + ')">🔗 wybierz pozycję</span>' : '';
+  if (l.posId == null && l.tradeId == null) return '<span class="sl-dim" style="font-size:8px;">· nie znalazłem pozycji</span>' + pick;
   let R = null; try { R = slResolve(slPendRef(l), e); } catch (err) {}
-  if (!R) return '<span class="sl-dim">· #' + slEsc(l.posId != null ? l.posId : l.tradeId) + ' poza zasięgiem</span>';
+  if (!R) return '<span class="sl-dim">· #' + slEsc(l.posId != null ? l.posId : l.tradeId) + ' poza zasięgiem</span>' + pick;
   if (R.kind === 'pos') return '<span style="color:var(--cyan);font-size:8px;letter-spacing:1px;">→ NA RYNKU</span>'
     + '<span class="sl-jump" onclick="navTo(\'pozycje\', document.querySelector(\'.sb-item[onclick*=pozycje]\'))">→ pozycja</span>';
   const t = R.f.t, v = parseFloat(t.pnl) || 0, c = v > 1 ? 'var(--green)' : (v < -1 ? 'var(--red)' : 'var(--cyan)');
@@ -33891,12 +33893,12 @@ function slPendAutoLink(list) {
       const price = parseFloat(String(l.price || '').replace(',', '.'));
       const ref = e.ts ? new Date(e.ts).getTime() : slRecTs(e.date, '00:00');
       const cand = pool.filter(function (c) {
-        if (String(c.token || '').toUpperCase() !== String(l.token || '').toUpperCase()) return false;
+        if (slTokN(c.token) !== slTokN(l.token)) return false;
         if (l.dir && String(c.dir || '').toUpperCase() !== String(l.dir).toUpperCase()) return false;
         if (c.posId != null && used['p' + c.posId]) return false;
         if (c.posId == null && c.tradeId != null && used['t' + c.tradeId]) return false;
         if (c.ts && c.ts < ref - 5 * 60000) return false;
-        if (price > 0 && isFinite(c.entry) && c.entry > 0 && Math.abs(c.entry - price) / price > 0.005) return false;
+        if (price > 0 && isFinite(c.entry) && c.entry > 0 && Math.abs(c.entry - price) / price > 0.015) return false;
         return true;
       }).sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
       if (!cand.length) return;
@@ -33908,6 +33910,65 @@ function slPendAutoLink(list) {
   });
   return changed;
 }
+
+// V276: ręczny wybór, gdy dopasowanie nie trafi (inna cena wejścia, wpis po fakcie…)
+function slPendCands(l, e) {
+  const out = [], seen = {};
+  const ref = e.ts ? new Date(e.ts).getTime() : slRecTs(e.date, '00:00');
+  const today = (typeof dcDayStr === 'function') ? dcDayStr() : '';
+  const push = function (o) { const k = (o.posId != null ? 'p' + o.posId : 't' + o.tradeId); if (seen[k]) return; seen[k] = 1; out.push(o); };
+  try { (typeof opzPositions !== 'undefined' ? opzPositions : []).forEach(function (p) { if (p && slTokN(p.token) === slTokN(l.token)) push({ posId: p.id, token: p.token, dir: p.dir, entry: p.entry, ts: p.openedAt || 0, open: true }); }); } catch (err) {}
+  const addT = function (t, day) {
+    if (!t || slTokN(t.token) !== slTokN(l.token)) return;
+    const close = slRecTs(t.date || day, t.time || '12:00');
+    push({ posId: t.posId, tradeId: t.id, token: t.token, dir: t.dir, entry: t.entry, ts: t.openedAt || close, close: close, pnl: parseFloat(t.pnl) || 0, day: t.date || day, time: t.time });
+  };
+  try { (typeof trades !== 'undefined' ? trades : []).forEach(function (t) { addT(t, today); }); } catch (err) {}
+  try { (dcLoad('archive', []) || []).forEach(function (d) { (d && d.trades || []).forEach(function (t) { addT(t, d.date); }); }); } catch (err) {}
+  out.forEach(function (o) { o.dist = Math.abs((o.ts || 0) - ref); });
+  out.sort(function (a, b) { return a.dist - b.dist; });
+  return out.slice(0, 12);
+}
+function slPendPick(entryId, idx) {
+  const e = slAll().find(function (x) { return x && x.id === entryId; });
+  const l = e && e.linkedTrades ? e.linkedTrades[idx] : null;
+  if (!l) return;
+  const C = slPendCands(l, e);
+  window._slPickC = C;
+  let ov = document.getElementById('spOv');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'spOv'; ov.className = 'arcm-overlay'; ov.onclick = function (ev) { if (ev.target === ov) ov.classList.remove('open'); }; document.body.appendChild(ov); }
+  const price = parseFloat(String(l.price || '').replace(',', '.'));
+  ov.innerHTML = '<div class="rp-box" style="width:min(560px,96vw)"><div class="rp-hd"><div class="rp-ti" style="text-align:left"><div class="d" style="font-size:14px">🔗 KTÓRA POZYCJA JEST Z TEGO ZLECENIA?</div>'
+    + '<div class="s">' + slEsc(l.token || '') + ' ' + slEsc(l.dir || '') + ' · LIMIT ' + slEsc(l.price || '—') + ' · wpis ' + slEsc(e.date) + '</div></div>'
+    + '<span class="rp-x" onclick="document.getElementById(\'spOv\').classList.remove(\'open\')">✕</span></div>'
+    + (C.length ? '<div class="rp-sec">' + C.map(function (c, k) {
+        const v = c.pnl || 0, col = c.open ? 'var(--cyan)' : (v > 1 ? 'var(--green)' : (v < -1 ? 'var(--red)' : 'var(--cyan)'));
+        const dd = new Date(c.ts || c.close || 0);
+        const diff = (price > 0 && c.entry) ? ((parseFloat(c.entry) - price) / price * 100) : null;
+        return '<div class="rp-tr" style="--c:' + col + ';cursor:pointer;grid-template-columns:96px 60px 70px minmax(0,1fr) 90px" onclick="slPendSet(' + entryId + ',' + idx + ',' + k + ')">'
+          + '<span class="t">' + String(dd.getDate()).padStart(2, '0') + '.' + String(dd.getMonth() + 1).padStart(2, '0') + ' ' + String(dd.getHours()).padStart(2, '0') + ':' + String(dd.getMinutes()).padStart(2, '0') + '</span>'
+          + '<span class="k">' + slEsc(slTokN(c.token)) + '</span><span class="dr" style="color:' + (String(c.dir).toUpperCase() === 'LONG' ? 'var(--green)' : 'var(--red)') + '">' + slEsc(c.dir || '') + '</span>'
+          + '<span class="pl">wejście ' + slEsc(c.entry != null ? c.entry : '—') + (diff != null ? ' (' + (diff >= 0 ? '+' : '') + diff.toFixed(2) + '%)' : '') + '</span>'
+          + '<span class="v">' + (c.open ? 'NA RYNKU' : (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2) + '$') + '</span></div>';
+      }).join('') + '</div>'
+      : '<div class="rp-rev"><i>·</i><span style="color:var(--dim2)">Brak pozycji ' + slEsc(slTokN(l.token)) + ' w dzienniku ani w otwartych. Zapisz ją najpierw (np. ↺ DOPISZ ZALEGŁĄ z karty Bybita).</span></div>')
+    + '<div class="rp-ft"><span class="rp-sv">najbliższe w czasie od wpisu są na górze</span></div></div>';
+  ov.classList.add('open');
+}
+window.slPendPick = slPendPick;
+function slPendSet(entryId, idx, k) {
+  const c = (window._slPickC || [])[k]; if (!c) return;
+  const list = slAll(), e = list.find(function (x) { return x && x.id === entryId; });
+  const l = e && e.linkedTrades ? e.linkedTrades[idx] : null; if (!l) return;
+  delete l.posId; delete l.tradeId;
+  if (c.posId != null) l.posId = c.posId; else l.tradeId = c.tradeId;
+  l.autoLinked = false;
+  slSave(list);
+  const ov = document.getElementById('spOv'); if (ov) ov.classList.remove('open');
+  slRender();
+  if (typeof dcToast === 'function') dcToast('🔗 Zlecenie połączone z pozycją', 'toast-green');
+}
+window.slPendSet = slPendSet;
 
 function slPendDrop(entryId, idx) {
   if (!confirm('Usunąć to zlecenie z wpisu?')) return;
@@ -34581,7 +34642,7 @@ function slRender() {
         +   '<span class="sl-pc-st" style="color:' + col + ';border-color:' + col + '">' + lbl + '</span>'
         +   '<span class="sl-pc-tok">' + slEsc(l.token || '—') + '</span>'
         +   '<span class="sl-pc-dir" style="color:' + (l.dir === 'LONG' ? 'var(--green)' : 'var(--red)') + '">' + slEsc(l.dir || '') + '</span>'
-        +   (st === 'filled' ? '<span class="sl-pc-out">' + slPendOutcome(l, e) + '</span>' : '')
+        +   (st === 'filled' ? '<span class="sl-pc-out">' + slPendOutcome(l, e, x.i) + '</span>' : '')
         + '</div>'
         + '<div class="sl-pt-grid">'
         +   tile('Limit', l.price ? slEsc(l.price) : '—', 'var(--gold)')
@@ -34629,7 +34690,7 @@ function slRender() {
       + (e.editedAt ? ' · edyt.' : '');
     const hasShot = slHasShot(e.shotId);
     const linksHtml = (e.linkedTrades && e.linkedTrades.length)
-      ? '<div class="sl-links">' + e.linkedTrades.map(l => {
+      ? '<div class="sl-links">' + e.linkedTrades.map((l, li) => {
           const rc = roleCfg[l.role] || ['?', 'var(--dim2)'];
           const R = (l.role === 'pending') ? null : ((typeof slResolve === 'function') ? slResolve(l, e) : null);
           let col = rc[1], mid;
@@ -34641,7 +34702,7 @@ function slRender() {
             mid = '<span style="color:var(--text)">' + slEsc(l.token || '—') + '</span>'
               + '<span style="color:' + (l.dir === 'LONG' ? 'var(--green)' : 'var(--red)') + '">' + slEsc(l.dir || '') + '</span>'
               + '<span style="color:' + col + ';font-size:8px;letter-spacing:1px;">' + (l.price ? 'LIMIT ' + slEsc(l.price) + ' · ' : '') + _sTxt + '</span>'
-              + (l.status === 'filled' ? slPendOutcome(l, e) : '')
+              + (l.status === 'filled' ? slPendOutcome(l, e, li) : '')
               + (l.note ? '<span class="sl-dim">' + slEsc(l.note) + '</span>' : '');
           } else if (R && R.kind === 'trade') {
             const f = R.f;
@@ -40836,5 +40897,7 @@ body.dc-phone #panel-start .tele-center-grid{grid-template-columns:repeat(2,minm
 
 
 .sl-pc-out{margin-left:auto;display:inline-flex;gap:8px;align-items:center;font-family:'Share Tech Mono',monospace;font-size:10px;}
+
+#spOv .rp-box{position:relative;background:#0a101b;border:1px solid rgba(0,200,240,.25);padding:18px 20px 14px;box-shadow:0 14px 60px rgba(0,0,0,.6);}
 </style>
 
