@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v276 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v279 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v276 · EXECUTION OS</div>
+    <div class="splash-ver">v279 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v276</div>
+      <div class="sb-logo-sub">EXECUTION OS · v279</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v276';
+window.DC_VERSION = 'v280';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -19325,6 +19325,7 @@ function opzConfirmClose() {
       id: Date.now(),
       cycle: (typeof activeState !== 'undefined' && activeState) ? activeState.cycle : null,
       level: (typeof activeState !== 'undefined' && activeState) ? activeState.level : null,
+      att: (typeof activeState !== 'undefined' && activeState && activeState.att) ? activeState.att : 1,   // V278
       risk: (typeof activeState !== 'undefined' && activeState) ? activeState.risk : pos.risk,
       label: (typeof activeState !== 'undefined' && activeState) ? activeState.label : null,
       source: 'pozycje',
@@ -20146,6 +20147,7 @@ function addTrade() {
     id: Date.now(),
     cycle: activeState.cycle,
     level: activeState.level,
+    att: activeState.att || 1,                                      // V278
     risk: activeState.risk,
     label: activeState.label
   });
@@ -21413,6 +21415,170 @@ function lvlLastTrade(cycle, i) {
   });
   return best ? { ts: best.ts, t: best.t, n: list.length } : null;
 }
+// ══ V277: AUTO-ZAMKNIĘCIE TYLKO PRZY SPEŁNIONYCH WARUNKACH ══
+// V269 zamykało poziom po samej liczbie pozycji (13/13). To omijało podwójną
+// bramkę awansu systemu: WR ≥ wymagany I P&L ≥ cel poziomu (metWr && metPnl).
+// Teraz: 13/13 + oba warunki → COMPLETED sam; 13/13 bez warunków → poziom
+// zostaje AKTYWNY i dostajesz komunikat, czego brakuje. Decyzja jest Twoja.
+// Liczone tak samo jak drabina w Analizie: WR = W / (W + L), BE poza mianownikiem.
+function lvlGates(cycle, i) {
+  const lvl = (levelsData[cycle] || [])[i];
+  if (!lvl || typeof getTradesForLevel !== 'function') return null;
+  const list = getTradesForLevel(cycle, lvl.n) || [];
+  const w = list.filter(function (t) { return t.pnl > 1; }).length, l = list.filter(function (t) { return t.pnl < -1; }).length;
+  const wr = (w + l) ? Math.round(w / (w + l) * 100) : 0;
+  const pnl = list.reduce(function (a, t) { return a + (parseFloat(t.pnl) || 0); }, 0);
+  const num = function (x) { return parseFloat(String(x || '').replace(',', '.').replace(/[^0-9.]/g, '')) || 0; };
+  const wrReq = num(lvl.wr), tgt = num(lvl.profit);
+  const metWr = wrReq > 0 ? wr >= wrReq : true, metPnl = tgt > 0 ? pnl >= tgt : true;
+  const why = [];
+  if (!metWr) why.push('WR ' + wr + '% < ' + lvl.wr);
+  if (!metPnl) why.push('P&L ' + (pnl >= 0 ? '+' : '') + pnl.toFixed(2) + '$ < ' + lvl.profit);
+  return { n: list.length, pos: lvl.pos || 13, wr: wr, pnl: pnl, metWr: metWr, metPnl: metPnl, met: metWr && metPnl, why: why };
+}
+window.lvlGates = lvlGates;
+function lvlActivate(cycle, i, att, why) {
+  const lvl = levelsData[cycle][i], key = getLevelKey(cycle, i), prev = levelState[key] || {};
+  const A = att || prev.att || 1;
+  levelState[key] = { state: 'active', completedAt: null, att: A, hist: prev.hist || [], why: why || prev.why || null };
+  activeState = { cycle: cycle, level: lvl.n, risk: lvl.r, rnum: lvl.rnum, wr: lvl.wr, profit: lvl.profit, label: cycleLabel(cycle, lvl), pos: lvl.pos || 13, since: Date.now(), att: A };
+}
+// następny numer podejścia na poziomie = najwyższy z historii + 1
+function lvlNextAtt(cycle, i) {
+  // najwyższy numer z historii ORAZ z samych transakcji (poziomy grane przed V278
+  // nie mają historii, ale mają transakcje podejścia #1) — nowe podejście = max + 1
+  const st = levelState[getLevelKey(cycle, i)] || {}, lvl = levelsData[cycle][i];
+  let mx = 0;
+  (st.hist || []).forEach(function (x) { mx = Math.max(mx, x.att || 1); });
+  const scan = function (t) { if (t && t.cycle === cycle && String(t.level) === String(lvl.n)) mx = Math.max(mx, tAtt(t)); };
+  try { (typeof trades !== 'undefined' ? trades : []).forEach(scan); } catch (e) {}
+  try { (dcLoad('archive', []) || []).forEach(function (d) { (d && d.trades || []).forEach(scan); }); } catch (e) {}
+  return mx + 1;
+}
+const LVL_CYC = ['c1', 'c2', 'c3', 'c33'];
+// ══ V278: SILNIK DECYZJI PO KOMPLECIE POZYCJI ══
+// 2 warunki (WR i P&L) → AWANS na następny poziom
+// 1 warunek            → ZOSTAJESZ: nowe podejście na tym samym poziomie
+// 0 warunków           → SPADEK o poziom niżej (nowe podejście tam)
+//   · C1-L01: niżej nie ma — powtarzasz L01
+//   · L01 kolejnego cyklu: powtarzasz; dopiero 3. takie podejście z rzędu
+//     (0 warunków) spycha na ostatni poziom poprzedniego cyklu
+function lvlAttemptsHtml(cycle, i) {
+  // V279: podejścia jako oś drogi — nad kartą SKĄD przyszedłeś (z trasą poziomów
+  // przy awansie i spadku), na karcie 13 kresek pozycji, P&L i WR do progów,
+  // po prawej JAK się skończyło. Najnowsze na górze.
+  const lvl = levelsData[cycle][i], lbl = cycleLabel(cycle, lvl), st = levelState[getLevelKey(cycle, i)] || {}, state = getLevelState(cycle, i);
+  let hist = (st.hist || []).slice();
+  if (!hist.length && state === 'done') {                    // zaliczony przed V278 — jedno podejście z transakcji
+    const G = lvlGates(cycle, i), L = lvlLastTrade(cycle, i);
+    if (G && L) hist = [{ att: 1, n: G.n, pnl: G.pnl, wr: G.wr, metWr: G.metWr, metPnl: G.metPnl, met: 2, result: 'up', to: L.ts }];
+  }
+  const num = function (x) { return parseFloat(String(x || '').replace(',', '.').replace(/[^0-9.]/g, '')) || 0; };
+  const tgt = num(lvl.profit), wrReq = num(lvl.wr), pos = lvl.pos || 13;
+  const d2 = function (x) { if (!x) return '—'; const d = new Date(typeof x === 'number' ? x : String(x) + 'T12:00:00'); return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0'); };
+  const days = function (a, b) { if (!a || !b) return ''; const x = new Date(typeof a === 'number' ? a : String(a) + 'T12:00:00'), y = new Date(typeof b === 'number' ? b : String(b) + 'T12:00:00'); x.setHours(0, 0, 0, 0); y.setHours(0, 0, 0, 0); const n = Math.round((y - x) / 864e5) + 1; return ' · ' + n + ' ' + (n === 1 ? 'dzień' : 'dni'); };
+  const chip = function (t, c) { return '<span class="la-lv" style="--lc:' + c + '">' + lvEsc(t) + '</span>'; };
+  const entry = function (w, attNo) {
+    if (!w) return attNo === 1 ? '<div class="la-in" style="--ic:var(--cyan)">◆ START POZIOMU</div>' : '';
+    if (typeof w === 'string') {                               // zapis z V278
+      const m = w.match(/^(awans|spadek) z (.+)$/);
+      if (m) w = { kind: m[1] === 'awans' ? 'up' : 'down', from: m[2] };
+      else if (/zostajesz/.test(w)) w = { kind: 'stay', fromAtt: attNo - 1 };
+      else if (/powt/.test(w)) w = { kind: 'repeat', fromAtt: attNo - 1 };
+      else return '<div class="la-in" style="--ic:var(--dim2)">' + lvEsc(w) + '</div>';
+    }
+    if (w.kind === 'down') return '<div class="la-in dn" style="--ic:var(--red)"><b>⬇ SPADEK</b>' + chip(w.from, 'var(--red)') + '<i>⟶</i>' + chip(lbl, 'var(--cyan)') + '</div>'
+      + (w.miss && w.miss.length ? '<div class="la-why">na ' + lvEsc(w.from) + (w.fromAtt ? ' (podejście #' + w.fromAtt + ')' : '') + ': <b>' + lvEsc(w.miss.join(' · ')) + '</b> — 0 z 2 warunków</div>' : '');
+    if (w.kind === 'up') return '<div class="la-in" style="--ic:var(--green)"><b>⬆ AWANS</b>' + chip(w.from, 'var(--green)') + '<i>⟶</i>' + chip(lbl, 'var(--cyan)') + '</div>';
+    return '<div class="la-in" style="--ic:var(--gold)"><b>' + (w.kind === 'repeat' ? '↻ POWTÓRKA' : '↻ ZOSTAJESZ') + '</b><span class="la-t">ponownie po #' + (w.fromAtt || attNo - 1) + '</span></div>'
+      + (w.miss && w.miss.length ? '<div class="la-why">zabrakło: <b>' + lvEsc(w.miss.join(' · ')) + '</b></div>' : '');
+  };
+  const card = function (o) {
+    const tr = getTradesForLevel(cycle, lvl.n, o.att) || [];
+    let pips = '';
+    for (let k = 0; k < pos; k++) { const t = tr[k]; const v = t ? (parseFloat(t.pnl) || 0) : null; pips += '<i style="background:' + (v == null ? 'rgba(118,158,205,.12)' : v > 1 ? 'var(--green)' : v < -1 ? 'var(--red)' : 'var(--cyan)') + '"></i>'; }
+    const pOk = tgt > 0 ? o.pnl >= tgt : true, wOk = wrReq > 0 ? o.wr >= wrReq : true;
+    const pc = pOk ? 'var(--green)' : (o.cur ? 'var(--gold)' : 'var(--red)'), wc = wOk ? 'var(--green)' : (o.cur ? 'var(--gold)' : 'var(--red)');
+    const R = { up: ['⬆ AWANS' + (o.toLvl ? ' → ' + o.toLvl : ''), 'var(--green)'], stay: ['↻ ZOSTAJESZ', 'var(--gold)'], repeat: ['↻ POWTÓRKA', 'var(--gold)'], down: ['⬇ SPADEK' + (o.toLvl ? ' → ' + o.toLvl : ''), 'var(--red)'] }[o.result] || ['W TOKU', 'var(--cyan)'];
+    return '<div class="la-at' + (o.cur ? ' cur' : '') + '" style="--c:' + R[1] + '"><span class="la-dot"></span>' + entry(o.why, o.att)
+      + '<div class="la-card"><div class="la-top"><span class="la-n">#' + o.att + '</span><span class="la-d">' + (o.from ? d2(o.from) + ' → ' : 'od ') + (o.cur ? 'teraz' : d2(o.to)) + (o.cur ? '' : days(o.from, o.to)) + '</span><span class="la-res">' + lvEsc(R[0]) + '</span></div>'
+      + '<div class="la-pips" style="grid-template-columns:repeat(' + pos + ',minmax(0,1fr))">' + pips + '</div>'
+      + '<div class="la-g"><div><div class="la-k"><span>P&amp;L</span><b style="color:' + pc + '">' + (o.pnl >= 0 ? '+' : '') + Number(o.pnl).toFixed(2).replace('.', ',') + '$ / ' + lvEsc(String(tgt).replace('.', ',')) + '$</b></div><div class="la-bar"><i style="width:' + (tgt ? Math.max(0, Math.min(100, o.pnl / tgt * 100)) : 0) + '%;background:' + pc + '"></i></div></div>'
+      + '<div><div class="la-k"><span>WIN RATE</span><b style="color:' + wc + '">' + o.wr + '% / ' + wrReq + '%</b></div><div class="la-bar"><i style="width:' + Math.min(100, o.wr) + '%;background:' + wc + '"></i><u style="left:' + wrReq + '%"></u></div></div></div>'
+      + (o.cur ? '<div class="la-note">' + (tr.length) + '/' + pos + ' pozycji · awans: oba warunki · zostajesz: jeden · spadek: żaden</div>' : '')
+      + '</div></div>';
+  };
+  const items = [];
+  if (state === 'active') {
+    const G = lvlGates(cycle, i), tr = getTradesForLevel(cycle, lvl.n) || [];
+    items.push({ att: st.att || 1, cur: true, why: st.why, from: tr[0] ? (tr[0].date || tr[0]._day) : null, pnl: G ? G.pnl : 0, wr: G ? G.wr : 0 });
+  }
+  hist.slice().reverse().forEach(function (r) { items.push(r); });
+  const cnt = { up: 0, stay: 0, repeat: 0, down: 0 }; hist.forEach(function (r) { if (cnt[r.result] != null) cnt[r.result]++; });
+  const inDown = items.filter(function (x) { return x.why && (x.why.kind === 'down' || /^spadek/.test(String(x.why))); }).length;
+  let h = '<div class="la"><div class="la-h"><span class="la-ht">▸ PODEJŚCIA · ' + lvEsc(lbl) + '</span><span class="la-sum">'
+    + (cnt.up ? '<span style="--sc:var(--green)">' + cnt.up + ' ⬆ awans</span>' : '') + (cnt.stay ? '<span style="--sc:var(--gold)">' + cnt.stay + ' ↻ zostajesz</span>' : '') + (cnt.repeat ? '<span style="--sc:var(--gold)">' + cnt.repeat + ' ↻ powtórka</span>' : '')
+    + (cnt.down ? '<span style="--sc:var(--red)">' + cnt.down + ' ⬇ spadek stąd</span>' : '') + (inDown ? '<span style="--sc:var(--red)">' + inDown + ' ⬇ spadek tutaj</span>' : '') + '</span></div>';
+  if (!items.length) return h + '<div class="la-empty">jeszcze nie grany</div></div>';
+  return h + '<div class="la-tl">' + items.map(card).join('') + '</div></div>';
+}
+function lvEsc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+window.lvlAttemptsHtml = lvlAttemptsHtml;
+
+function lvlDecide(cycle, i, G, last) {
+  const lvl = levelsData[cycle][i], key = getLevelKey(cycle, i), st = levelState[key] || {};
+  const A = st.att || 1, lbl = cycleLabel(cycle, lvl);
+  const list = getTradesForLevel(cycle, lvl.n, A) || [];
+  const met = (G.metWr ? 1 : 0) + (G.metPnl ? 1 : 0);
+  const rec = { att: A, from: (list[0] && (list[0].date || list[0]._day)) || null, to: last.ts, n: G.n, pnl: +G.pnl.toFixed(2), wr: G.wr,
+                metWr: G.metWr, metPnl: G.metPnl, met: met, why: st.why || null, at: Date.now() };
+  const hist = (st.hist || []).concat([]);
+  let msg, cls = 'toast-gold';
+  if (met === 2) {
+    rec.result = 'up'; hist.push(rec);
+    levelState[key] = { state: 'done', completedAt: last.ts, att: A, hist: hist, why: st.why || null };
+    let nc = cycle, ni = i + 1;
+    if (ni >= levelsData[cycle].length) { const k = LVL_CYC.indexOf(cycle); nc = LVL_CYC[k + 1]; ni = 0; }
+    if (nc && levelsData[nc] && levelsData[nc][ni]) {
+      lvlActivate(nc, ni, lvlNextAtt(nc, ni), { kind: 'up', from: lbl, fromAtt: A });
+      rec.toLvl = cycleLabel(nc, levelsData[nc][ni]);
+      msg = '⬆ AWANS · ' + lbl + ' zaliczony (WR ' + G.wr + '% · ' + (G.pnl >= 0 ? '+' : '') + G.pnl.toFixed(2) + '$) → ' + cycleLabel(nc, levelsData[nc][ni]);
+    } else {
+      activeState = { cycle: null, level: null, risk: null, wr: null, profit: null, label: null };
+      msg = '⬆ ' + lbl + ' zaliczony — to był ostatni poziom';
+    }
+    cls = 'toast-green';
+  } else {
+    let down = met === 0;
+    let tc = cycle, ti = i, kind;
+    if (down && i > 0) { ti = i - 1; kind = 'down'; }
+    else if (down && i === 0 && cycle !== 'c1') {
+      // ile podejść z rzędu na tym L01 skończyło się zerem warunków (z bieżącym)
+      let streak = 1;
+      for (let q = hist.length - 1; q >= 0; q--) { if (hist[q].met === 0 && hist[q].result !== 'up') streak++; else break; }
+      if (streak >= 3) { tc = LVL_CYC[LVL_CYC.indexOf(cycle) - 1]; ti = levelsData[tc].length - 1; kind = 'down'; }
+      else { kind = 'repeat'; rec.streak = streak; }
+    } else kind = down ? 'repeat' : 'stay';
+    rec.result = kind; hist.push(rec);
+    if (kind === 'down') {
+      levelState[key] = { state: 'locked', att: A, hist: hist, why: st.why || null };
+      rec.toLvl = cycleLabel(tc, levelsData[tc][ti]);
+      levelState[key].hist[levelState[key].hist.length - 1].toLvl = rec.toLvl;
+      lvlActivate(tc, ti, lvlNextAtt(tc, ti), { kind: 'down', from: lbl, fromAtt: A, miss: G.why.slice() });
+      msg = '⬇ SPADEK · ' + lbl + ': ' + (G.why.join(' · ') || 'warunki niespełnione') + ' → ' + cycleLabel(tc, levelsData[tc][ti]) + ', podejście #' + activeState.att;
+      cls = 'toast-red';
+    } else {
+      levelState[key] = { state: 'active', completedAt: null, att: A + 1, hist: hist, why: { kind: kind, from: lbl, fromAtt: A, miss: G.why.slice() } };
+      lvlActivate(cycle, i, A + 1);
+      msg = (kind === 'stay' ? '↻ ZOSTAJESZ · ' : '↻ POWTÓRKA · ') + lbl + ': spełniony ' + met + ' z 2 warunków (' + G.why.join(' · ') + ') → podejście #' + (A + 1)
+        + (rec.streak ? ' · ' + rec.streak + '/3 do spadku cyklu' : '');
+    }
+  }
+  if (typeof dcToast === 'function') dcToast(msg, cls);
+  try { localStorage.setItem('dc_lvl_last_verdict', JSON.stringify({ msg: msg, at: Date.now() })); } catch (e) {}
+}
+window.lvlDecide = lvlDecide;
+
 function lvlSyncDone(quiet) {
   let changed = false;
   const touched = {};
@@ -21422,18 +21588,27 @@ function lvlSyncDone(quiet) {
       if (st !== 'done' && st !== 'active') return;
       const last = lvlLastTrade(cycle, i);
       if (!last) return;
+      if (st === 'done' && (levelState[key] || {}).auto) {
+        const G = lvlGates(cycle, i);
+        const otherActive = (levelsData[cycle] || []).some(function (_, j) { return j !== i && getLevelState(cycle, j) === 'active'; });
+        if (G && !G.met && !otherActive) {
+          lvlActivate(cycle, i);
+          changed = true; touched[cycle] = 1;
+          if (typeof dcToast === 'function') dcToast('↩ ' + cycleLabel(cycle, lvl) + ' przywrócony jako AKTYWNY — zamknął się po 13 pozycjach bez spełnionych warunków (' + G.why.join(' · ') + ')', 'toast-gold');
+          return;
+        }
+      }
       if (st === 'done') {
         const d = levelState[key] || {};
         if (d.completedAt !== last.ts) { levelState[key] = Object.assign({}, d, { state: 'done', completedAt: last.ts }); changed = true; touched[cycle] = 1; }
       } else if (last.n >= (lvl.pos || 13)) {
-        levelState[key] = { state: 'done', completedAt: last.ts, auto: true };
-        if (activeState && activeState.cycle === cycle && String(activeState.level) === String(lvl.n))
-          activeState = { cycle: null, level: null, risk: null, wr: null, profit: null, label: null };
+        const G = lvlGates(cycle, i);                     // V278: werdykt awans / zostajesz / spadek
+        if (!G) return;
+        const _st = levelState[key] || {};
+        if ((_st.hist || []).some(function (x) { return (x.att || 1) === (_st.att || 1); })) return;   // to podejście już ocenione
+        lvlDecide(cycle, i, G, last);
         changed = true; touched[cycle] = 1;
-        if (!quiet && typeof dcToast === 'function') {
-          const dd = new Date(last.ts);
-          dcToast('⬡ ' + cycleLabel(cycle, lvl) + ' ukończony — ' + last.n + '. pozycja ' + String(dd.getDate()).padStart(2, '0') + '.' + String(dd.getMonth() + 1).padStart(2, '0') + ' · aktywuj następny poziom', 'toast-green');
-        }
+        LVL_CYC.forEach(function (c) { touched[c] = 1; });
       }
     });
   });
@@ -21457,6 +21632,10 @@ function cycleLevel(cycle, i) {
     const last = lvlLastTrade(cycle, i);
     if (!confirm('Cofnąć ukończenie poziomu ' + _lbl + '?\n\n' + (last ? 'Ma ' + last.n + ' pozycji — jeśli to komplet, poziom i tak zamknie się z powrotem sam.' : '') + '\nAnuluj = zostaw COMPLETED.')) return;
   }
+  if (cur === 'active') {
+    const G = lvlGates(cycle, i);
+    if (G && !G.met && !confirm(_lbl + ': warunki awansu niespełnione (' + G.why.join(' · ') + ', pozycje ' + G.n + '/' + G.pos + ').\n\nZamknąć poziom mimo to?')) return;
+  }
   if (cur === 'locked') {
     const other = levelsData[cycle].findIndex(function (_, j) { return j !== i && getLevelState(cycle, j) === 'active'; });
     if (other >= 0 && !confirm('Aktywny jest ' + cycleLabel(cycle, levelsData[cycle][other]) + '.\nPrzełączyć na ' + _lbl + '? ' + cycleLabel(cycle, levelsData[cycle][other]) + ' wróci do LOCKED.')) return;
@@ -21464,20 +21643,25 @@ function cycleLevel(cycle, i) {
   if(cur === 'locked') {
     // Clear any existing active in this cycle
     levelsData[cycle].forEach((_,j) => {
-      if(getLevelState(cycle,j)==='active') levelState[getLevelKey(cycle,j)] = {state:'locked'};
+      if(getLevelState(cycle,j)==='active') levelState[getLevelKey(cycle,j)] = Object.assign({}, levelState[getLevelKey(cycle,j)] || {}, {state:'locked'});
     });
-    levelState[key] = { state:'active', completedAt: null };
+    // V278: ręczna aktywacja zachowuje historię podejść i numer bieżącego
+    const _prev = levelState[key] || {};
+    // podejście już ocenione (np. ponowna aktywacja zaliczonego poziomu) → zaczynasz nowe
+    let _att = _prev.att || 1;
+    if ((_prev.hist || []).some(function (x) { return (x.att || 1) === _att; })) _att = lvlNextAtt(cycle, i);
+    levelState[key] = { state:'active', completedAt: null, att: _att, hist: _prev.hist || [], why: _prev.why || null };
     const lvl = levelsData[cycle][i];
     const label = cycleLabel(cycle, lvl);
     // V171: pos = ile pozycji przewiduje poziom, since = kiedy aktywowany
     activeState = { cycle, level: lvl.n, risk: lvl.r, wr: lvl.wr, profit: lvl.profit, label,
-                    pos: lvl.pos || 13, since: Date.now() };
+                    pos: lvl.pos || 13, since: Date.now(), att: _att };
   } else if(cur === 'active') {
     const _last = lvlLastTrade(cycle, i);                          // V269: data z ostatniej pozycji
-    levelState[key] = { state:'done', completedAt: _last ? _last.ts : Date.now() };
+    levelState[key] = Object.assign({}, levelState[key] || {}, { state:'done', completedAt: _last ? _last.ts : Date.now() });
     activeState = { cycle: null, level: null, risk: null, wr: null, profit: null, label: null };
   } else {
-    levelState[key] = { state:'locked' };
+    levelState[key] = Object.assign({}, levelState[key] || {}, { state:'locked' });
   }
   buildLevels(cycle);
   buildPathway(cycle);
@@ -21623,7 +21807,7 @@ function buildLevels(cycle) {
     // Badge
     let badgeHtml = '';
     if(st==='active') {
-      badgeHtml = `<div class="lc-badge active">● ACTIVE</div>`;
+      badgeHtml = `<div class="lc-badge active">● ACTIVE${(data.att || 1) > 1 ? ' · PODEJŚCIE #' + data.att : ''}</div>`;
     } else if(st==='done') {
       const dateStr = formatDate(data.completedAt);
       badgeHtml = `<div class="lc-badge done">⬡ COMPLETED${dateStr ? ' · '+dateStr : ''}</div>`;
@@ -21715,8 +21899,16 @@ let lvlModalState = { cycle: 'c1', index: 0 };
 // 2/13 i +15.22$, kafelek 7/13 i +40.34$ dla tego samego poziomu.
 // Dzisiejszy wpis w archiwum (auto-zapis 22:00) pomijany, zeby nie dublowac
 // zywych trades. Paper poza bramka awansu (dcLiveOnly), jak w tgcLevelStats.
-function getTradesForLevel(cycle, levelN) {
-  const match = function(t) { return t && t.cycle === cycle && t.level === levelN; };
+// V278: PODEJŚCIA. Ten sam poziom można robić kilka razy (zostajesz albo spadasz
+// i wracasz). Każda transakcja niesie numer podejścia (att, brak = 1), a postęp
+// poziomu liczy się tylko z BIEŻĄCEGO podejścia — po "zostajesz" licznik wraca do 0/13.
+function lvlIdx(cycle, levelN) { return (levelsData[cycle] || []).findIndex(function (l) { return String(l.n) === String(levelN); }); }
+function lvlCurAtt(cycle, levelN) { const i = lvlIdx(cycle, levelN); return i < 0 ? 1 : ((levelState[getLevelKey(cycle, i)] || {}).att || 1); }
+function tAtt(t) { return (t && t.att) ? t.att : 1; }
+window.lvlCurAtt = lvlCurAtt;
+function getTradesForLevel(cycle, levelN, att) {
+  const _A = (att != null) ? att : lvlCurAtt(cycle, levelN);
+  const match = function(t) { return t && t.cycle === cycle && t.level === levelN && tAtt(t) === _A; };
   const liveOnly = function(arr) { return (typeof dcLiveOnly === 'function' ? dcLiveOnly(arr) : arr); };
   const today = (typeof dcDayStr === 'function') ? dcDayStr() : '';
   const src = (typeof window.dcTodayTrades === 'function') ? window.dcTodayTrades()
@@ -21817,7 +22009,7 @@ function renderLvlModal() {
     <div class="lvl-progress-card">
       <div class="lvl-progress-head">
         <div class="lvl-progress-title">▸ Postęp do awansu</div>
-        <div class="lvl-progress-tag">${cycleLabel(cycle, lvl)}${lvlDni ? ' · ' + lvlDni + (lvlDni === 1 ? ' dzień' : ' dni') : ''}</div>
+        <div class="lvl-progress-tag">${cycleLabel(cycle, lvl)} · PODEJŚCIE #${(levelState[getLevelKey(cycle, index)] || {}).att || 1}${lvlDni ? ' · ' + lvlDni + (lvlDni === 1 ? ' dzień' : ' dni') : ''}</div>
       </div>
 
       <div class="lvl-prog-row">
@@ -21845,6 +22037,8 @@ function renderLvlModal() {
       </div>
     </div>
   `;
+  // V278: karty podejść — historia + bieżące
+  try { document.getElementById('lvlStatusGrid').insertAdjacentHTML('beforeend', lvlAttemptsHtml(cycle, index)); } catch (e) {}
 
 
   const container = document.getElementById('lvlModalTrades');
@@ -24750,7 +24944,8 @@ let _tgcLvlCache = { key: null, res: null };
 function tgcLevelStats() {
   const as = (typeof activeState !== 'undefined') ? activeState : null;
   if (!as || !as.cycle || !as.level) return null;
-  const match = function(t) { return t && t.cycle === as.cycle && t.level === as.level; };
+  const _att = as.att || 1;                                       // V278: tylko bieżące podejście
+  const match = function(t) { return t && t.cycle === as.cycle && t.level === as.level && tAtt(t) === _att; };
   // V143 FIX: żywa składowa liczona WYŁĄCZNIE z dzisiejszych transakcji (filtr po
   // stemplu daty). Wcześniej: surowa tablica trades — gdy pamięć urządzenia po
   // północy trzymała jeszcze wczorajszy trade, liczył się PODWÓJNIE (raz z wpisu
@@ -24762,7 +24957,7 @@ function tgcLevelStats() {
   const livePnl = live.reduce(function(a, t) { return a + (parseFloat(t.pnl) || 0); }, 0);
   let archTs = '';
   try { archTs = localStorage.getItem('dyzmcrypt_v34_ts_archive') || ''; } catch(e) {}
-  const key = as.cycle + '|' + as.level + '|' + archTs + '|' + live.length + '|' + livePnl.toFixed(2);
+  const key = as.cycle + '|' + as.level + '|' + _att + '|' + archTs + '|' + live.length + '|' + livePnl.toFixed(2);
   if (_tgcLvlCache.key === key) return _tgcLvlCache.res;
 
   let all = live.slice();
@@ -25263,7 +25458,18 @@ var arcCompareSel = [];     // wybrane daty do porównania (max 2)
 
 function arcAllDays() {
   var a = dcLoad('archive', []);
-  return (Array.isArray(a) ? a : []).slice().sort(function(x, y){ return x.date < y.date ? 1 : -1; }); // najnowsze pierwsze
+  // V280: paper nie wchodzi do liczb — dzień z paperem dostaje statystyki liczone tylko z LIVE
+  // (zapis ręczny wliczał paper, automatyczny nie; tu oba wyglądają tak samo). Oryginał w _rawStats.
+  a = (Array.isArray(a) ? a : []).map(function (d) {
+    if (!d || !d.stats || !Array.isArray(d.trades) || !d.trades.some(function (t) { return t && t.paper; })) return d;
+    var lv = d.trades.filter(function (t) { return t && !t.paper; });
+    var w = lv.filter(function (t) { return t.pnl > 1; }).length, l = lv.filter(function (t) { return t.pnl < -1; }).length;
+    var st = Object.assign({}, d.stats, { total: lv.length, wins: w, losses: l, be: lv.length - w - l,
+      totalPnL: parseFloat(lv.reduce(function (x, t) { return x + (parseFloat(t.pnl) || 0); }, 0).toFixed(2)),
+      winrate: (w + l) > 0 ? Math.round(w / (w + l) * 100) : 0 });
+    return Object.assign({}, d, { stats: st, _rawStats: d.stats });
+  });
+  return a.slice().sort(function(x, y){ return x.date < y.date ? 1 : -1; }); // najnowsze pierwsze
 }
 function arcEsc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
@@ -32163,6 +32369,15 @@ function arcFmtPl(v) { return (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2).re
 function arcTimeMin(s) { const m = String(s || '').match(/(\d{1,2}):(\d{2})/); return m ? (+m[1]) * 60 + (+m[2]) : null; }
 function arcLive(arr) { return (typeof dcLiveOnly === 'function') ? dcLiveOnly(arr || []) : (arr || []); }
 const ARC_DN = ['ND', 'PON', 'WT', 'ŚR', 'CZW', 'PT', 'SB'];
+// V280: paper w archiwum — liczy się do dnia, ale ma być WIDAĆ, że to paper
+function arcPaperInfo(d) {
+  const tr = (d && Array.isArray(d.trades)) ? d.trades : [], pp = tr.filter(function (t) { return t && t.paper; });
+  return { n: pp.length, all: tr.length, pnl: pp.reduce(function (a, t) { return a + (parseFloat(t.pnl) || 0); }, 0), only: pp.length > 0 && pp.length === tr.length };
+}
+function arcPaperChip(d) {
+  const P = arcPaperInfo(d); if (!P.n) return '';
+  return '<span class="chip pap" title="Transakcje papierowe — widoczne w dniu, NIE liczą się do P&L, WR ani statystyk">◌ PAPER' + (P.only ? '' : ' ' + P.n + '/' + P.all) + ' · ' + (P.pnl >= 0 ? '+' : '−') + Math.abs(P.pnl).toFixed(2) + '$</span>';
+}
 
 // okna sesji dla trybu dnia (d13 / d9 / d6) — te same bloki co Plan Dnia
 function arcSlots(mode) {
@@ -32297,8 +32512,8 @@ arcRenderTrends = function () {
     let st = '', cls = 'cd' + (inM ? '' : ' off') + (key === today ? ' today' : '') + (key > today ? ' fut' : '');
     if (has) { const a = 0.16 + 0.5 * Math.abs(v) / maxAbs; st = 'background:' + (v >= 0 ? 'rgba(0,232,122,' : 'rgba(255,58,92,') + a.toFixed(2) + ');border-color:transparent;'; cls += ' has'; }
     else if (rec) cls += ' work';
-    h += '<div class="' + cls + '" style="' + st + '"' + (rec ? ' onclick="arcJump(\'' + key + '\')"' : '') + ' title="' + key + (rec ? ' · ' + arcFmtPl(v) : '') + '">'
-      + '<span class="n">' + d.getDate() + (ends[key] ? ' <b>⬡</b>' : '') + '</span>'
+    h += '<div class="' + cls + '" style="' + st + '"' + (rec ? ' onclick="arcJump(\'' + key + '\')"' : '') + ' title="' + key + (rec ? ' · ' + arcFmtPl(v) + (arcPaperInfo(rec).n ? ' · PAPER' : '') : '') + '">'
+      + '<span class="n">' + d.getDate() + (ends[key] ? ' <b>⬡</b>' : '') + (rec && arcPaperInfo(rec).n ? ' <b class="pp" title="paper">◌</b>' : '') + '</span>'
       + (has ? '<span class="v">' + (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(0) + '</span>'
              : (rec ? '<span class="v w">·</span>' : (key === today ? '<span class="v dz">DZIŚ</span>' : ''))) + '</div>';
   }
@@ -32343,7 +32558,7 @@ arcRenderList = function () {
     return;
   }
   const allPnl = [];
-  days.forEach(function (d) { arcLive(d.trades).forEach(function (t) { allPnl.push(Math.abs(parseFloat(t.pnl) || 0)); }); });
+  days.forEach(function (d) { (d.trades || []).forEach(function (t) { allPnl.push(Math.abs(parseFloat(t.pnl) || 0)); }); });
   const maxT = Math.max(1, Math.max.apply(null, allPnl.concat([1])));
   const X = function (mn) { return Math.max(0, Math.min(100, (mn - ARC_T0) / (ARC_T1 - ARC_T0) * 100)); };
   const slotCache = {};
@@ -32381,7 +32596,7 @@ arcRenderList = function () {
       tl += '<div class="se ' + (sess[i] ? 'y' : 'n') + '" style="left:' + X(sl.s).toFixed(2) + '%;width:' + (X(sl.e) - X(sl.s)).toFixed(2) + '%"></div>';
     });
     [8, 12, 16, 20].forEach(function (hh) { tl += '<span class="hr" style="left:' + X(hh * 60) + '%">' + hh + ':00</span>'; });
-    const tr = arcLive(d.trades);
+    const tr = (d.trades || []).filter(Boolean);
     let best = null, nLate = 0;
     tr.forEach(function (t) {
       const v = parseFloat(t.pnl) || 0;
@@ -32391,7 +32606,7 @@ arcRenderList = function () {
       const early = mn < ARC_T0;
       const c = v > 1 ? 'var(--green)' : (v < -1 ? 'var(--red)' : 'var(--cyan)');
       const z = (6 + 8 * Math.abs(v) / maxT).toFixed(1);
-      tl += '<div class="pin" style="left:' + X(mn) + '%;--c:' + c + ';--z:' + z + 'px" title="' + arcEsc((t.time || '') + ' · ' + (t.token || '') + ' ' + (t.dir || '') + ' · ' + arcFmtPl(v)) + '"><b></b>'
+      tl += '<div class="pin' + (t.paper ? ' pp' : '') + '" style="left:' + X(mn) + '%;--c:' + c + ';--z:' + z + 'px" title="' + (t.paper ? 'PAPER · ' : '') + arcEsc((t.time || '') + ' · ' + (t.token || '') + ' ' + (t.dir || '') + ' · ' + arcFmtPl(v)) + '"><b></b>'
         + (early ? '<em>' + arcEsc(t.time) + '</em>' : '') + '</div>';
     });
     const W = s.wins || 0, L = s.losses || 0, pnl = s.totalPnL || 0;
@@ -32406,6 +32621,7 @@ arcRenderList = function () {
       + '<span class="d">' + d.date.slice(8, 10) + '.' + d.date.slice(5, 7) + '</span><span class="w">' + ARC_DN[new Date(d.date + 'T12:00:00').getDay()] + '</span>'
       + '<span class="chip">' + (mode === 'd6' ? 'D6' : mode === 'd9' ? 'D9' : 'D13') + '×33</span>'
       + (isEnd ? '<span class="chip end">⬡ ' + (I2.n >= I2.pos ? I2.pos + '. POZYCJA · ' : '') + 'KONIEC POZIOMU</span>' : '')
+      + arcPaperChip(d)
       + (nLate ? '<span class="chip late">↺ ' + nLate + ' DOPISAN' + (nLate === 1 ? 'A' : 'E') + '</span>' : '')
       + ((s.total || 0) === 0 ? '<span class="chip">BEZ TRANSAKCJI</span>' : '')
       + '<span class="pl" style="color:' + (pnl > 0 ? 'var(--green)' : pnl < 0 ? 'var(--red)' : 'var(--dim2)') + '">' + arcFmtPl(pnl) + '</span><span class="ar">▸</span></div>'
@@ -32427,7 +32643,7 @@ arcRenderList = function () {
 function arcRepAxis(d) {
   const X = function (mn) { return Math.max(0, Math.min(100, (mn - ARC_T0) / (ARC_T1 - ARC_T0) * 100)); };
   const slots = arcSlots(d.dayMode || 'd13'), sess = Array.isArray(d.sessions) ? d.sessions : [];
-  const tr = arcLive(d.trades);
+  const tr = (d.trades || []).filter(Boolean);
   const mx = Math.max(1, Math.max.apply(null, tr.map(function (t) { return Math.abs(parseFloat(t.pnl) || 0); }).concat([1])));
   let h = '<div class="ax"></div>';
   slots.forEach(function (sl, i) { h += '<div class="se ' + (sess[i] ? 'y' : 'n') + '" style="left:' + X(sl.s).toFixed(2) + '%;width:' + (X(sl.e) - X(sl.s)).toFixed(2) + '%"></div>'; });
@@ -32435,7 +32651,7 @@ function arcRepAxis(d) {
   tr.forEach(function (t) {
     const v = parseFloat(t.pnl) || 0, mn = arcTimeMin(t.time); if (mn == null) return;
     const c = v > 1 ? 'var(--green)' : (v < -1 ? 'var(--red)' : 'var(--cyan)');
-    h += '<div class="pin" style="left:' + X(mn) + '%;--c:' + c + ';--z:' + (6 + 8 * Math.abs(v) / mx).toFixed(1) + 'px" title="' + arcEsc((t.time || '') + ' · ' + (t.token || '') + ' · ' + arcFmtPl(v)) + '"><b></b>' + (mn < ARC_T0 ? '<em>' + arcEsc(t.time) + '</em>' : '') + '</div>';
+    h += '<div class="pin' + (t.paper ? ' pp' : '') + '" style="left:' + X(mn) + '%;--c:' + c + ';--z:' + (6 + 8 * Math.abs(v) / mx).toFixed(1) + 'px" title="' + arcEsc((t.paper ? 'PAPER · ' : '') + (t.time || '') + ' · ' + (t.token || '') + ' · ' + arcFmtPl(v)) + '"><b></b>' + (mn < ARC_T0 ? '<em>' + arcEsc(t.time) + '</em>' : '') + '</div>';
   });
   return h;
 }
@@ -32464,6 +32680,7 @@ arcOpenReport = function (date) {
   const close = 'document.getElementById(\'arcReportModal\').classList.remove(\'open\')';
   const isEnd = I && I.state === 'done' && I.data.completedAt && dcDayStr(new Date(I.data.completedAt)) === d.date;
   const nLate = tr.filter(function (t) { return t && t.late; }).length;
+  const PI = arcPaperInfo(d);
   const cell = function (k, v, sub, c) { return '<div><span>' + k + '</span><b style="color:' + c + '">' + v + '</b><i>' + sub + '</i></div>'; };
 
   const rows = tr.map(function (t) {
@@ -32471,9 +32688,9 @@ arcOpenReport = function (date) {
     let ach = null; try { if (typeof anTradeR === 'function') ach = anTradeR(t); } catch (e) {}
     const plan = (t.plannedRR != null && ach !== null) ? parseFloat(t.plannedRR).toFixed(1) + 'R → ' + ach.toFixed(1) + 'R' : (t.rr || '—');
     const L = String(t.dir || '').toUpperCase() === 'LONG';
-    return '<div class="rp-tr" style="--c:' + c + '"><span class="t">' + arcEsc(t.time || '—') + '</span><span class="k">' + arcEsc(String(t.token || '—').toUpperCase()) + '</span>'
+    return '<div class="rp-tr' + (t.paper ? ' is-paper' : '') + '" style="--c:' + c + '"><span class="t">' + arcEsc(t.time || '—') + '</span><span class="k">' + arcEsc(String(t.token || '—').toUpperCase()) + '</span>'
       + '<span class="dr" style="color:' + (L ? 'var(--green)' : 'var(--red)') + '">' + (L ? '▲ LONG' : '▼ SHORT') + '</span>'
-      + '<span class="pl">' + arcEsc(plan) + (t.late ? ' <span class="lt-tag">↺ DOPISANA</span>' : '') + '</span>'
+      + '<span class="pl">' + arcEsc(plan) + (t.late ? ' <span class="lt-tag">↺ DOPISANA</span>' : '') + (t.paper ? ' <span class="pap-tag">◌ PAPER</span>' : '') + '</span>'
       + '<span class="v">' + arcFmtPl(v) + '</span>'
       + (typeof tvOpen === 'function' ? '<span class="ch" onclick="event.stopPropagation();tvOpen(' + JSON.stringify(t.id) + ')" title="Wykres pozycji z Bybita">📈</span>' : '<span></span>')
       + '</div>';
@@ -32487,9 +32704,9 @@ arcOpenReport = function (date) {
     +   '<span class="rp-nav' + (idx > 0 ? '' : ' off') + '" ' + (idx > 0 ? 'onclick="arcOpenReport(\'' + days[idx - 1].date + '\')"' : '') + ' title="dzień później">▸</span>'
     +   '<span class="rp-x" onclick="' + close + '">✕</span>'
     + '</div>'
-    + ((isEnd || nLate) ? '<div class="rp-chips">' + (isEnd ? '<span class="chip end">⬡ ' + (I.n >= I.pos ? I.pos + '. POZYCJA · ' : '') + 'KONIEC POZIOMU ' + arcEsc(lv) + '</span>' : '') + (nLate ? '<span class="chip late">↺ ' + nLate + ' DOPISAN' + (nLate === 1 ? 'A' : 'E') + '</span>' : '') + '</div>' : '')
+    + ((isEnd || nLate || PI.n) ? '<div class="rp-chips">' + arcPaperChip(d) + (isEnd ? '<span class="chip end">⬡ ' + (I.n >= I.pos ? I.pos + '. POZYCJA · ' : '') + 'KONIEC POZIOMU ' + arcEsc(lv) + '</span>' : '') + (nLate ? '<span class="chip late">↺ ' + nLate + ' DOPISAN' + (nLate === 1 ? 'A' : 'E') + '</span>' : '') + '</div>' : '')
     + '<div class="rp-rd">'
-    +   cell('P&amp;L', arcFmtPl(pnl), 'wynik dnia', pnl > 0 ? 'var(--green)' : pnl < 0 ? 'var(--red)' : 'var(--dim2)')
+    +   cell('P&amp;L', arcFmtPl(pnl), PI.n ? '◌ bez paper ' + arcFmtPl(PI.pnl) + ' (nie liczy się)' : 'wynik dnia', pnl > 0 ? 'var(--green)' : pnl < 0 ? 'var(--red)' : 'var(--dim2)')
     +   cell('WIN RATE', (s.winrate || 0) + '%', (s.wins || 0) + ' W · ' + (s.losses || 0) + ' L · ' + (s.be || 0) + ' BE', '#eef4f8')
     +   cell('TRANSAKCJE', s.total || 0, tr.length ? 'najlepsza ' + arcEsc(String((tr.slice().sort(function (a, b) { return (parseFloat(b.pnl) || 0) - (parseFloat(a.pnl) || 0); })[0] || {}).token || '—').toUpperCase()) : 'brak', '#eef4f8')
     +   cell('SESJE', sessN + ' / ' + sessMax, 'z Planu Dnia', 'var(--cyan)')
@@ -32501,7 +32718,7 @@ arcOpenReport = function (date) {
                + (rev.lesson ? '<div class="rp-rev y"><i>⚡</i>' + arcEsc(rev.lesson) + '</div>' : '') + (rev.note ? '<div class="rp-rev"><i>·</i>' + arcEsc(rev.note) + '</div>' : '')
          : '<div class="rp-rev"><i>·</i><span style="color:var(--dim2)">brak — nie wypełniono w Dzienniku</span></div>')
     + '</div>'
-    + '<div class="rp-sec"><div class="rp-st">TRANSAKCJE · ' + tr.length + '</div>'
+    + '<div class="rp-sec"><div class="rp-st">TRANSAKCJE · ' + tr.length + (PI.n ? ' <span class="pap-tag">◌ ' + PI.n + ' PAPER</span>' : '') + '</div>'
     +   (tr.length ? '<div class="rp-th"><span>CZAS</span><span>TOKEN</span><span>KIER.</span><span>PLAN → WYNIK</span><span style="text-align:right">P&amp;L</span><span></span></div>' + rows
                    : '<div class="rp-rev"><i>·</i><span style="color:var(--dim2)">brak transakcji tego dnia</span></div>')
     + '</div>'
@@ -32542,7 +32759,7 @@ function dbRefresh() {
     if (tag) tag.textContent = A.label;
     const days = {}; list.forEach(function (t) { if (t._day) days[t._day] = 1; });
     const nd = Object.keys(days).length;
-    if (st) st.textContent = '● AKTYWNY' + (nd ? ' · ' + nd + ' ' + (nd === 1 ? 'DZIEŃ' : 'DNI') : '');
+    if (st) st.textContent = '● AKTYWNY' + ((A.att || 1) > 1 ? ' · PODEJŚCIE #' + A.att : '') + (nd ? ' · ' + nd + ' ' + (nd === 1 ? 'DZIEŃ' : 'DNI') : '');
     if (pp) { let h = ''; for (let k = 0; k < pos; k++) h += '<i class="' + (k < list.length ? 'on' : '') + '"></i>'; if (pp.innerHTML !== h) pp.innerHTML = h; }
     if (pn) pn.textContent = list.length + '/' + pos;
     root.classList.add('db-has-lvl');
@@ -32788,6 +33005,7 @@ function ltCommit() {
     plannedRR: isFinite(s.plan) && s.plan > 0 ? s.plan : null,
     riskUsd: s.risk, achievedR: parseFloat(ratio.toFixed(2)),
     cycle: s.lv ? s.lv.cycle : null, level: s.lv ? s.lv.lvl.n : null,
+    att: s.lv ? lvlCurAtt(s.lv.cycle, s.lv.lvl.n) : 1,              // V278
     risk: s.lv ? s.lv.lvl.r : s.risk, label: s.lv ? s.lv.label : null,
     source: 'zalegla', late: today,                      // znacznik na zawsze
     openedAt: s.open || null,
@@ -40899,5 +41117,53 @@ body.dc-phone #panel-start .tele-center-grid{grid-template-columns:repeat(2,minm
 .sl-pc-out{margin-left:auto;display:inline-flex;gap:8px;align-items:center;font-family:'Share Tech Mono',monospace;font-size:10px;}
 
 #spOv .rp-box{position:relative;background:#0a101b;border:1px solid rgba(0,200,240,.25);padding:18px 20px 14px;box-shadow:0 14px 60px rgba(0,0,0,.6);}
+
+/* V278 · podejścia poziomu */
+.lvl-att{margin-top:12px;border:1px solid rgba(118,158,205,.14);border-radius:10px;padding:10px 12px;}
+.lvl-att-h{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:2.5px;color:var(--gold);margin-bottom:8px;}
+.lvl-att-c{display:grid;grid-template-columns:34px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 10px;margin-bottom:5px;border:1px solid rgba(118,158,205,.12);border-left:3px solid var(--rc,var(--cyan));font-family:'Share Tech Mono',monospace;font-size:9.5px;color:var(--text2);}
+.lvl-att-c.cur{border-left-color:var(--cyan);background:rgba(0,200,240,.05);}
+.lvl-att-c .n{font-family:'Orbitron',monospace;font-weight:800;font-size:12px;color:#eef4f8;}
+.lvl-att-c .w{color:var(--dim2);font-size:8.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .lvl-att-c.cur .w{color:var(--cyan);}
+.lvl-att-c .f b{font-weight:400;}
+.lvl-att-c .r{font-size:8px;letter-spacing:1.4px;padding:3px 8px;border:1px solid;white-space:nowrap;}
+@media (max-width:560px){ .lvl-att-c{grid-template-columns:30px minmax(0,1fr) auto;} .lvl-att-c .f{grid-column:2/4;} }
+
+/* V279 · podejścia jako oś drogi */
+.la{margin-top:12px;border:1px solid rgba(118,158,205,.16);border-radius:10px;padding:14px 14px 4px;}
+.la-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.la-ht{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:2.5px;color:var(--gold);}
+.la-sum{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;} .la-sum span{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.2px;padding:3px 8px;border:1px solid var(--sc);color:var(--sc);}
+.la-empty{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim2);padding:4px 0 12px;}
+.la-tl{position:relative;padding-left:24px;}
+.la-tl::before{content:'';position:absolute;left:8px;top:10px;bottom:16px;width:2px;background:linear-gradient(var(--cyan),rgba(118,158,205,.15));}
+.la-at{position:relative;margin-bottom:14px;}
+.la-dot{position:absolute;left:-21px;top:6px;width:12px;height:12px;transform:rotate(45deg);border:2px solid var(--c);background:#0a101b;}
+.la-at.cur .la-dot{background:var(--c);box-shadow:0 0 10px var(--c);}
+.la-in{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.5px;color:var(--ic);border:1px solid var(--ic);padding:4px 10px;margin-bottom:6px;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);}
+.la-in b{font-family:'Orbitron',monospace;font-weight:800;font-size:9px;letter-spacing:1.5px;}
+.la-in i{font-style:normal;color:var(--ic);font-size:11px;} .la-in .la-t{color:var(--dim2);letter-spacing:1px;}
+.la-in.dn{background:rgba(255,58,92,.07);}
+.la-lv{font-family:'Orbitron',monospace;font-weight:800;font-size:9.5px;letter-spacing:1px;color:var(--lc);border:1px solid var(--lc);padding:2px 7px;}
+.la-why{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim2);margin:-2px 0 6px 2px;} .la-why b{font-weight:400;color:var(--red);}
+.la-card{border:1px solid rgba(118,158,205,.16);border-left:3px solid var(--c);background:rgba(10,16,27,.9);padding:11px 13px;}
+.la-at.cur .la-card{background:linear-gradient(90deg,rgba(0,200,240,.07),rgba(10,16,27,.9) 60%);}
+.la-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.la-n{font-family:'Orbitron',monospace;font-weight:800;font-size:18px;color:#eef4f8;} .la-d{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim2);}
+.la-res{margin-left:auto;font-family:'Orbitron',monospace;font-weight:700;font-size:9px;letter-spacing:1.4px;padding:5px 10px;border:1px solid var(--c);color:var(--c);}
+.la-pips{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:3px;margin:11px 0 10px;} .la-pips i{display:block;height:8px;transform:skewX(-20deg);}
+.la-g{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.la-k{display:flex;justify-content:space-between;gap:6px;font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.5px;color:var(--dim2);} .la-k b{font-weight:400;font-size:9.5px;letter-spacing:.5px;}
+.la-bar{height:5px;background:rgba(118,158,205,.1);margin-top:6px;position:relative;} .la-bar i{position:absolute;left:0;top:0;bottom:0;} .la-bar u{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;opacity:.55;}
+.la-note{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--dim2);margin-top:9px;}
+@media (max-width:560px){ .la-g{grid-template-columns:1fr;} .la-res{margin-left:0;} }
+
+/* V280 · PAPER w archiwum */
+.arch-day .chip.pap,.rp-chips .chip.pap{color:rgba(205,220,240,.95);border:1px dashed rgba(170,190,215,.6);background:rgba(150,170,195,.08);}
+.pap-tag{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:1.2px;color:rgba(205,220,240,.95);border:1px dashed rgba(170,190,215,.6);padding:1px 6px;border-radius:8px;white-space:nowrap;vertical-align:middle;}
+.arch-day .pin.pp b{background:transparent;border:1.5px dashed var(--c);box-shadow:none;}
+.arch-day .pin.pp{background:linear-gradient(transparent,transparent);border-left:1px dashed var(--c);}
+.rp-tr.is-paper{border-style:dashed;border-left-style:solid;background:rgba(150,170,195,.05);}
+.arch-cal .cd .n b.pp{color:rgba(205,220,240,.9);font-weight:400;}
 </style>
 
