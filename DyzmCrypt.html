@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v279 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v281 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v279 · EXECUTION OS</div>
+    <div class="splash-ver">v281 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v279</div>
+      <div class="sb-logo-sub">EXECUTION OS · v281</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v280';
+window.DC_VERSION = 'v281';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -20824,10 +20824,13 @@ function switchJTab(name, btn) {
 
 // ── P&L UPDATE (also syncs legacy IDs used by dashboard) ──
 function updatePnL() {
-  const w  = trades.filter(t => isWin(t.pnl)).length;
-  const l  = trades.filter(t => isLoss(t.pnl)).length;
-  const be = trades.filter(t => isBE(t.pnl)).length;
-  const total = trades.reduce((a,t) => a+t.pnl, 0);
+  // V280: paper nie liczy się do P&L, WR ani liczby transakcji dnia (tilt/tagi niżej liczą wszystko)
+  const _all = trades, _pp = _all.filter(t => t && t.paper);
+  const trades_ = _all.filter(t => !(t && t.paper));
+  const w  = trades_.filter(t => isWin(t.pnl)).length;
+  const l  = trades_.filter(t => isLoss(t.pnl)).length;
+  const be = trades_.filter(t => isBE(t.pnl)).length;
+  const total = trades_.reduce((a,t) => a+t.pnl, 0);
   const wr = (w+l) > 0 ? Math.round(w/(w+l)*100) : null;
   const wrText = wr !== null ? wr+'%' : '—';
   const pnlText = (total >= 0 ? '+' : '') + total.toFixed(2) + '$';
@@ -20835,7 +20838,7 @@ function updatePnL() {
   const pnlColor = total > 0 ? 'var(--green)' : total < 0 ? 'var(--red)' : 'var(--gold)';
 
   // Command bar
-  document.getElementById('jcTrades').textContent = trades.length;
+  document.getElementById('jcTrades').textContent = trades_.length;
   document.getElementById('jcWin').textContent = w;
   document.getElementById('jcLoss').textContent = l;
   document.getElementById('jcBE').textContent = be;
@@ -20845,7 +20848,7 @@ function updatePnL() {
   document.getElementById('jcPnL').style.color = pnlColor;
 
   // Legacy sync (dashboard)
-  document.getElementById('sumTrades').textContent = trades.length;
+  document.getElementById('sumTrades').textContent = trades_.length;
   document.getElementById('sumWin').textContent = w;
   document.getElementById('sumLoss').textContent = l;
   document.getElementById('sumBE').textContent = be;
@@ -20873,7 +20876,8 @@ function updatePnL() {
   // Badge
   const badge = document.getElementById('journalActiveBadge');
   if (badge) {
-    badge.textContent = trades.length + ' / 13 TRADES';
+    badge.textContent = trades_.length + ' / 13 TRADES' + (_pp.length ? ' · ◌ ' + _pp.length + ' PAPER' : '');
+    badge.title = _pp.length ? 'Paper: ' + _pp.reduce((a, t) => a + (parseFloat(t.pnl) || 0), 0).toFixed(2) + '$ — nie liczy się do P&L, WR ani poziomu' : '';
   }
 }
 
@@ -37530,6 +37534,166 @@ function insRender() {
 </style>
 <!-- ════════ END DYZMCRYPT V39 — OPERATIONAL CARD SYSTEM ════════ -->
 
+<script>
+// ══════════════════════════════════════════════════════════════
+//  V281 · PROGRESJA — TEN SAM UKŁAD, NOWY WYGLĄD (wersja B)
+//  Nic nie przestawiamy: pasek aktywnego, zakładki cykli, ścieżka
+//  01–13, siatka kart z tymi samymi polami. Stare funkcje dalej
+//  liczą i klikają (cycleLevel, openLvlModal) — ten blok tylko
+//  przerysowuje wynik i dokłada dane z pozycji: kreski, wynik,
+//  paski do progów, skąd przyszedłeś i jak się skończyło.
+// ══════════════════════════════════════════════════════════════
+const PG_COL = { c1: 'var(--green)', c2: 'var(--cyan)', c3: 'var(--red)', c33: 'var(--purple)' };
+function pgEsc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function pgNum(x) { return parseFloat(String(x || '').replace(/\s/g, '').replace(',', '.').replace(/[^0-9.]/g, '')) || 0; }
+function pgPl(v) { return (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2).replace('.', ',') + '$'; }
+function pgDm(ts) { if (!ts) return ''; const d = new Date(ts); return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0'); }
+function pgPips(n, on, col, list) {
+  let h = '<div class="pg-pp" style="grid-template-columns:repeat(' + n + ',minmax(0,1fr))">';
+  for (let k = 0; k < n; k++) {
+    let c = 'rgba(118,158,205,.13)';
+    if (list && list[k]) { const v = parseFloat(list[k].pnl) || 0; c = v > 1 ? 'var(--green)' : v < -1 ? 'var(--red)' : 'var(--cyan)'; }
+    else if (!list && k < on) c = col;
+    h += '<i style="background:' + c + '"></i>';
+  }
+  return h + '</div>';
+}
+function pgDays(list) { const s = {}; (list || []).forEach(function (t) { const d = t._day || t.date; if (d) s[String(d).slice(0, 10)] = 1; }); return Object.keys(s).length; }
+function pgWhy(w) {
+  if (!w) return '';
+  if (typeof w === 'string') { const m = w.match(/^(awans|spadek) z (.+)$/); if (m) w = { kind: m[1] === 'awans' ? 'up' : 'down', from: m[2] }; else return pgEsc(w); }
+  if (w.kind === 'up') return '⬆ z ' + pgEsc(w.from);
+  if (w.kind === 'down') return '<b style="color:var(--red)">⬇ po spadku z ' + pgEsc(w.from) + '</b>';
+  return '↻ ponownie po #' + (w.fromAtt || '?');
+}
+function pgBar(label, v, req, txt, cur, marker) {
+  const ok = v >= req, c = ok ? 'var(--green)' : (cur ? 'var(--gold)' : 'var(--red)');
+  const w = marker ? Math.max(0, Math.min(100, v)) : (req > 0 ? Math.max(0, Math.min(100, v / req * 100)) : 0);
+  return '<div class="pg-g"><div class="pg-k"><span>' + label + '</span><b style="color:' + c + '">' + txt + (ok ? ' ✓' : '') + '</b></div>'
+    + '<div class="pg-bar"><i style="width:' + w + '%;background:' + c + '"></i>' + (marker ? '<u style="left:' + req + '%"></u>' : '') + '</div></div>';
+}
+
+// ── KARTY ───────────────────────────────────────────────────────
+function pgCards(cycle) {
+  const box = document.getElementById('levels-' + cycle); if (!box) return;
+  const cards = box.querySelectorAll(':scope > .lc');
+  cards.forEach(function (card, i) {
+    const lvl = levelsData[cycle][i]; if (!lvl) return;
+    const st = getLevelState(cycle, i), data = levelState[getLevelKey(cycle, i)] || {};
+    const pct = (card.querySelector('.lc-stat-v.risk') || {}).textContent || lvl.pct;
+    const after = ((card.querySelector('.lc-cond span') || {}).textContent) || lvl.after;
+    const cost = (lvl.rnum * lvl.pos).toLocaleString('pl-PL', { maximumFractionDigits: 2 }) + '$';
+    const lbl = cycleLabel(cycle, lvl), pos = lvl.pos || 13;
+    const hist = data.hist || [], last = hist[hist.length - 1];
+    let col = st === 'active' ? 'var(--green)' : st === 'done' ? 'var(--cyan)' : 'rgba(118,158,205,.4)';
+    let badge = st === 'active' ? '● AKTYWNY · #' + (data.att || 1) : st === 'done' ? '⬡ ZALICZONY' + (data.completedAt ? ' · ' + pgDm(data.completedAt) : '') : '🔒 ZABLOKOWANY';
+    let extra = '';
+    if (st === 'active') {
+      const G = lvlGates(cycle, i), list = getTradesForLevel(cycle, lvl.n) || [];
+      const nd = pgDays(list);
+      extra = pgPips(pos, 0, '', list)
+        + (G ? pgBar('P&amp;L', G.pnl, pgNum(lvl.profit), pgPl(G.pnl) + ' / ' + pgEsc(String(lvl.profit).replace('≥', '')), true)
+             + pgBar('WIN RATE', G.wr, pgNum(lvl.wr), G.wr + '% / ' + pgNum(lvl.wr) + '%', true, true) : '')
+        + '<div class="pg-ht">' + list.length + '/' + pos + ' pozycji' + (nd ? ' · ' + nd + ' ' + (nd === 1 ? 'dzień' : 'dni') : '') + (data.why ? ' · ' + pgWhy(data.why) : '') + '</div>';
+    } else if (st === 'done') {
+      let r = last && last.result === 'up' ? last : null, list = [];
+      try { list = getTradesForLevel(cycle, lvl.n, r ? r.att : (data.att || 1)) || []; } catch (e) {}
+      if (!r) { const G = lvlGates(cycle, i); if (G) r = { pnl: G.pnl, wr: G.wr, n: list.length, att: data.att || 1 }; }
+      if (r) {
+        const nd = pgDays(list), okP = r.pnl >= pgNum(lvl.profit), okW = r.wr >= pgNum(lvl.wr);
+        extra = '<div class="pg-res"><span style="--c:' + (okP ? 'var(--green)' : 'var(--red)') + '">' + pgPl(r.pnl) + ' / ' + pgEsc(String(lvl.profit).replace('≥', '')) + '</span>'
+          + '<span style="--c:' + (okW ? 'var(--green)' : 'var(--red)') + '">WR ' + r.wr + '%</span>'
+          + '<span style="--c:var(--cyan)">' + (nd ? nd + ' ' + (nd === 1 ? 'dzień' : 'dni') + ' · ' : '') + list.length + '/' + pos + '</span></div>'
+          + pgPips(pos, 0, '', list);
+        const nx = levelsData[cycle][i + 1] ? cycleLabel(cycle, levelsData[cycle][i + 1]) : (cycle === 'c1' ? 'C2' : cycle === 'c2' ? 'C3' : cycle === 'c3' ? 'C3.3' : '');
+        extra += '<div class="pg-ht">#' + (r.att || 1) + ' ⬆ AWANS' + (r.toLvl || nx ? ' → ' + pgEsc(r.toLvl || nx) : '') + (hist.length > 1 ? ' · ' + hist.length + ' podejść' : '') + '</div>';
+      } else extra = pgPips(pos, pos, 'var(--cyan)');
+    } else {
+      extra = pgPips(pos, 0, '');
+      if (last && last.result === 'down') { col = 'var(--red)'; badge = '⬇ SPADEK'; extra += '<div class="pg-ht"><b style="color:var(--red)">#' + last.att + ' ⬇ SPADEK → ' + pgEsc(last.toLvl || '') + '</b> · ' + pgPl(last.pnl) + ' · WR ' + last.wr + '%</div>'; }
+    }
+    card.classList.add('pg-card');
+    card.style.setProperty('--c', col);
+    card.innerHTML = '<div class="pg-top"><span class="pg-tg">' + pgEsc(lbl) + '</span><span class="pg-cy" style="--cc:' + (PG_COL[cycle] || 'var(--gold)') + '">' + cycle.toUpperCase().replace('C33', 'C3.3') + '</span>'
+      + (lvl.sp ? '<span class="pg-sp">★</span>' : '') + '<span class="pg-bd">' + badge + '</span></div>'
+      + '<div class="pg-rk">' + pgEsc(lvl.r) + '<small>RISK / TRADE</small></div>'
+      + '<div class="pg-gr"><div><span>WINRATE</span><b style="color:var(--cyan)">' + pgEsc(lvl.wr) + '</b></div><div><span>POZYCJE</span><b>' + pos + '</b></div>'
+      + '<div><span>MIN PROFIT</span><b style="color:var(--green)">' + pgEsc(lvl.profit) + '</b></div><div><span>% KONTA</span><b style="color:var(--gold)">' + pgEsc(pct) + '</b></div></div>'
+      + extra
+      + '<div class="pg-kc"><span>KOSZT CYKLU (' + pos + '×)</span><b>' + cost + '</b></div>'
+      + '<div class="pg-ft"><span>po awansie: <b>' + pgEsc(after) + '</b></span><span class="pg-nt" onclick="event.stopPropagation(); openLvlModal(\'' + cycle + '\', ' + i + ')" title="Szczegóły poziomu — podejścia i pozycje">📋</span></div>';
+  });
+}
+
+// ── ŚCIEŻKA 01–13: romby na jednej linii ────────────────────────
+function pgPath(cycle) {
+  const el = document.getElementById('pathway-' + cycle); if (!el) return;
+  el.classList.add('pg-path');
+  el.querySelectorAll('.pp-node').forEach(function (n, i) {
+    if (n.querySelector('i')) return;
+    const t = n.textContent; n.innerHTML = '<i></i><span>' + pgEsc(t) + '</span>';
+    const d = levelState[getLevelKey(cycle, i)] || {}, h = d.hist || [];
+    if (getLevelState(cycle, i) === 'locked' && h.length && h[h.length - 1].result === 'down') n.classList.add('pp-drop');
+  });
+}
+
+// ── ZAKŁADKI CYKLI: postęp każdego cyklu ────────────────────────
+function pgTabs() {
+  const map = { c1: 'od 3,33$', c2: 'od 33,33$', c3: 'od 333$', c33: 'od 1 000$' };
+  document.querySelectorAll('#panel-progresja .ctabs .ctab').forEach(function (b) {
+    const m = (b.getAttribute('onclick') || '').match(/'(c1|c2|c3|c33)'/); if (!m) return;
+    const c = m[1], L = levelsData[c] || [];
+    let done = 0, act = -1, mini = '';
+    L.forEach(function (_, i) { const s = getLevelState(c, i); if (s === 'done') done++; if (s === 'active') act = i;
+      mini += '<i style="background:' + (s === 'done' ? 'var(--cyan)' : s === 'active' ? 'var(--green)' : 'rgba(118,158,205,.15)') + '"></i>'; });
+    b.classList.add('pg-tab'); b.style.setProperty('--tc', PG_COL[c]);
+    b.innerHTML = '<span class="t">' + c.toUpperCase().replace('C33', 'C3.3') + '</span><span class="s">' + map[c] + ' · ' + done + '/' + L.length + ' ⬡' + (act >= 0 ? ' · ● L' + L[act].n : '') + '</span><span class="mini">' + mini + '</span>';
+  });
+}
+
+// ── PASEK AKTYWNEGO POZIOMU ─────────────────────────────────────
+function pgActive() {
+  const bar = document.getElementById('activeStateBar'); if (!bar) return;
+  let x = document.getElementById('pgAct');
+  if (!x) { x = document.createElement('div'); x.id = 'pgAct'; bar.appendChild(x); bar.classList.add('pg-asb'); }
+  const A = (typeof activeState !== 'undefined' && activeState && activeState.cycle) ? activeState : null;
+  if (!A) { x.innerHTML = '<div class="pg-al">▸ AKTYWNY POZIOM</div><div class="pg-none">— kliknij poziom niżej, aby go aktywować —</div>'; bar.classList.add('pg-off'); return; }
+  bar.classList.remove('pg-off');
+  const L = levelsData[A.cycle] || [], i = L.findIndex(function (l) { return l.n === A.level; }), lvl = L[i] || {};
+  const data = levelState[getLevelKey(A.cycle, i)] || {}, G = i >= 0 ? lvlGates(A.cycle, i) : null, list = i >= 0 ? (getTradesForLevel(A.cycle, lvl.n) || []) : [];
+  const pos = lvl.pos || 13, nd = pgDays(list);
+  x.innerHTML = '<div class="pg-row"><div><div class="pg-al">▸ AKTYWNY POZIOM</div><div class="pg-big">' + pgEsc(A.label) + '</div>'
+    + '<div class="pg-st">● PODEJŚCIE #' + (data.att || A.att || 1) + (nd ? ' · ' + nd + ' ' + (nd === 1 ? 'DZIEŃ' : 'DNI') : '') + (data.why ? ' · ' + pgWhy(data.why) : '') + '</div></div>'
+    + '<div class="pg-kp"><div><span>RISK / TRADE</span><b style="color:var(--gold)">' + pgEsc(lvl.r || A.risk) + '</b></div><div><span>WIN RATE</span><b style="color:var(--cyan)">' + pgEsc(lvl.wr || A.wr) + '</b></div>'
+    + '<div><span>MIN PROFIT</span><b style="color:var(--green)">' + pgEsc(lvl.profit || A.profit) + '</b></div><div><span>POZYCJE</span><b>' + list.length + '/' + pos + '</b></div></div></div>'
+    + pgPips(pos, 0, '', list)
+    + (G ? '<div class="pg-bars">' + pgBar('P&amp;L DO CELU', G.pnl, pgNum(lvl.profit), pgPl(G.pnl) + ' / ' + pgEsc(String(lvl.profit).replace('≥', '')), true)
+         + pgBar('WIN RATE', G.wr, pgNum(lvl.wr), G.wr + '% / ' + pgNum(lvl.wr) + '%', true, true) + '</div>' : '');
+}
+
+function pgAll() {
+  try {
+    const p = document.getElementById('panel-progresja'); if (!p) return;
+    p.classList.add('pg5');
+    const sub = p.querySelector('.ph-sub'); if (sub) sub.textContent = '369 · 4 CYKLE · 13 POZIOMÓW · AWANS: OBA WARUNKI';
+    const lg = p.querySelector('.ctabs') && p.querySelector('.ctabs').previousElementSibling;
+    if (lg && !lg.classList.contains('pg-lg')) { lg.className = 'pg-lg'; lg.removeAttribute('style');
+      lg.innerHTML = '<span><b style="color:rgba(118,158,205,.6)">🔒 ZABLOKOWANY</b> → klik → <b style="color:var(--green)">● AKTYWNY</b> → klik → <b style="color:var(--cyan)">⬡ ZALICZONY</b></span><span>2 warunki = ⬆ awans · 1 = ↻ zostajesz · 0 = ⬇ spadek</span>'; }
+    pgActive(); pgTabs();
+  } catch (e) { console.error('[DYZMCRYPT] V281 progresja:', e); }
+}
+(function () {
+  const _bl = buildLevels, _bp = buildPathway, _ua = updateActiveStateBars;
+  buildLevels = function (c) { _bl.apply(this, arguments); try { pgCards(c); } catch (e) { console.error('[V281] karty', e); } pgAll(); };
+  buildPathway = function (c) { _bp.apply(this, arguments); try { pgPath(c); } catch (e) {} };
+  updateActiveStateBars = function () { _ua.apply(this, arguments); pgAll(); };
+  window.buildLevels = buildLevels; window.buildPathway = buildPathway; window.updateActiveStateBars = updateActiveStateBars;
+  ['c1', 'c2', 'c3', 'c33'].forEach(function (c) { buildLevels(c); buildPathway(c); });
+  // odśwież co 20 s (nowe pozycje → kreski i paski), tylko gdy panel widoczny
+  setInterval(function () { const p = document.getElementById('panel-progresja'); if (p && p.offsetParent) ['c1', 'c2', 'c3', 'c33'].forEach(function (c) { buildLevels(c); }); }, 20000);
+})();
+
+</script>
 </body>
 </html>
 
@@ -41165,5 +41329,80 @@ body.dc-phone #panel-start .tele-center-grid{grid-template-columns:repeat(2,minm
 .arch-day .pin.pp{background:linear-gradient(transparent,transparent);border-left:1px dashed var(--c);}
 .rp-tr.is-paper{border-style:dashed;border-left-style:solid;background:rgba(150,170,195,.05);}
 .arch-cal .cd .n b.pp{color:rgba(205,220,240,.9);font-weight:400;}
+/* ══ V281 · PROGRESJA — nowy wygląd, ten sam układ ══ */
+#panel-progresja.pg5 .ph-sub{letter-spacing:2px;}
+#panel-progresja .pg-asb{display:block !important;position:relative;border:1px solid rgba(0,232,122,.35) !important;border-radius:0 !important;background:linear-gradient(90deg,rgba(0,232,122,.08),rgba(10,16,27,.9) 55%) !important;padding:14px 16px !important;clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);}
+#panel-progresja .pg-asb.pg-off{border-color:rgba(118,158,205,.2) !important;background:rgba(10,16,27,.85) !important;}
+#panel-progresja .pg-asb > :not(#pgAct){display:none !important;}
+#pgAct .pg-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+#pgAct .pg-al{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:3px;color:var(--gold);}
+#pgAct .pg-none{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim2);margin-top:6px;letter-spacing:1px;}
+#pgAct .pg-big{font-family:'Orbitron',monospace;font-weight:900;font-size:26px;color:#fff;letter-spacing:2px;text-shadow:0 0 18px rgba(0,232,122,.5);line-height:1.15;}
+#pgAct .pg-st{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1.6px;color:var(--green);margin-top:2px;}
+#pgAct .pg-kp{margin-left:auto;display:flex;gap:22px;flex-wrap:wrap;}
+#pgAct .pg-kp span{display:block;font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:2px;color:var(--dim2);}
+#pgAct .pg-kp b{font-family:'Orbitron',monospace;font-size:15px;font-weight:700;color:#eef4f8;}
+#pgAct .pg-pp{margin:12px 0 10px;}
+#pgAct .pg-bars{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+#panel-progresja .pg-lg{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.5px;color:var(--dim2);margin:14px 0 12px;display:flex;gap:16px;flex-wrap:wrap;}
+#panel-progresja .pg-lg b{font-weight:400;}
+#panel-progresja .ctabs{gap:8px;}
+#panel-progresja .ctab.pg-tab{flex:1;min-width:130px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;border-radius:0 !important;border:1px solid rgba(118,158,205,.16) !important;background:rgba(10,16,27,.8) !important;padding:9px 13px !important;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);color:var(--tc) !important;box-shadow:none !important;opacity:.75;}
+#panel-progresja .ctab.pg-tab.active{border-color:var(--tc) !important;background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(10,16,27,.85)) !important;opacity:1;}
+#panel-progresja .ctab.pg-tab .t{font-family:'Orbitron',monospace;font-weight:800;font-size:12px;letter-spacing:2px;}
+#panel-progresja .ctab.pg-tab .s{font-family:'Share Tech Mono',monospace;font-weight:400;font-size:8px;letter-spacing:1.2px;color:var(--dim2);}
+#panel-progresja .ctab.pg-tab .mini{display:grid;grid-template-columns:repeat(13,1fr);gap:2px;width:100%;margin-top:4px;}
+#panel-progresja .ctab.pg-tab .mini i{height:3px;}
+#panel-progresja .pg-path{position:relative;display:grid !important;grid-template-columns:repeat(13,minmax(0,1fr));padding:4px 0 10px !important;margin:6px 0 14px !important;overflow:visible !important;}
+#panel-progresja .pg-path .pp-connector{display:none !important;}
+#panel-progresja .pg-path::before{content:'';position:absolute;left:3.8%;right:3.8%;top:16px;height:2px;background:rgba(118,158,205,.16);}
+#panel-progresja .pg-path .pp-node{width:auto !important;height:auto !important;border:none !important;background:none !important;box-shadow:none !important;animation:none !important;border-radius:0 !important;display:flex !important;flex-direction:column;align-items:center;gap:7px;cursor:pointer;position:relative;--c:rgba(118,158,205,.4);}
+#panel-progresja .pg-path .pp-node.pp-done{--c:var(--cyan);} #panel-progresja .pg-path .pp-node.pp-active{--c:var(--green);} #panel-progresja .pg-path .pp-node.pp-drop{--c:var(--red);}
+#panel-progresja .pg-path .pp-node i{width:14px;height:14px;transform:rotate(45deg);border:2px solid var(--c);background:#0a101b;margin-top:6px;transition:transform .15s;}
+#panel-progresja .pg-path .pp-node:hover i{transform:rotate(45deg) scale(1.2);}
+#panel-progresja .pg-path .pp-node.pp-done i{background:var(--c);}
+#panel-progresja .pg-path .pp-node.pp-active i{background:var(--c);box-shadow:0 0 12px var(--c);}
+#panel-progresja .pg-path .pp-node span{font-family:'Orbitron',monospace;font-size:9px;color:var(--c);letter-spacing:1px;}
+#panel-progresja .lc.pg-card{border-radius:0 !important;border:1px solid rgba(118,158,205,.16) !important;border-left:3px solid var(--c) !important;background:rgba(10,16,27,.92) !important;padding:12px 13px !important;opacity:1 !important;box-shadow:none !important;overflow:visible;animation:none !important;}
+#panel-progresja .lc.pg-card::before,#panel-progresja .lc.pg-card::after{display:none !important;}
+#panel-progresja .lc.pg-card:hover{transform:translateY(-2px);border-color:rgba(118,158,205,.32) !important;border-left-color:var(--c) !important;}
+#panel-progresja .lc.pg-card.state-active{border-color:var(--green) !important;box-shadow:0 0 0 1px rgba(0,232,122,.25),0 0 26px rgba(0,232,122,.14) !important;background:linear-gradient(160deg,rgba(0,232,122,.08),rgba(10,16,27,.95) 50%) !important;}
+#panel-progresja .lc.pg-card.state-locked{opacity:.5 !important;}
+#panel-progresja .lc.pg-card.state-locked:hover{opacity:.8 !important;}
+.pg-card .pg-top{display:flex;align-items:center;gap:7px;}
+.pg-card .pg-tg{font-family:'Orbitron',monospace;font-weight:800;font-size:11px;letter-spacing:1.5px;color:var(--c);}
+.pg-card .pg-cy{font-family:'Share Tech Mono',monospace;font-size:7.5px;border:1px solid var(--cc);color:var(--cc);padding:1px 5px;}
+.pg-card .pg-sp{color:var(--gold);font-size:10px;}
+.pg-card .pg-bd{margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:1.3px;color:var(--c);border:1px solid var(--c);padding:3px 7px;white-space:nowrap;}
+.pg-card .pg-rk{font-family:'Orbitron',monospace;font-weight:800;font-size:23px;color:#eef4f8;margin:9px 0 8px;letter-spacing:1px;line-height:1.1;}
+.pg-card.state-done .pg-rk{color:rgba(0,200,240,.85);}
+.pg-card .pg-rk small{display:block;font-family:'Share Tech Mono',monospace;font-weight:400;font-size:7px;letter-spacing:2px;color:var(--dim2);margin-top:3px;}
+.pg-card .pg-gr{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;}
+.pg-card .pg-gr span{display:block;font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:1.8px;color:var(--dim2);}
+.pg-card .pg-gr b{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;color:#eef4f8;}
+.pg-pp{display:grid;gap:3px;margin:11px 0 8px;} .pg-pp i{display:block;height:7px;transform:skewX(-20deg);}
+.pg-g{margin-top:7px;}
+.pg-k{display:flex;justify-content:space-between;gap:6px;font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:1.4px;color:var(--dim2);}
+.pg-k b{font-weight:400;font-size:9px;letter-spacing:.4px;}
+.pg-bar{height:4px;background:rgba(118,158,205,.12);margin-top:4px;position:relative;}
+.pg-bar i{position:absolute;left:0;top:0;bottom:0;} .pg-bar u{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;opacity:.55;}
+.pg-res{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;}
+.pg-res span{font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:1px;color:var(--c);border:1px solid var(--c);padding:2px 6px;}
+.pg-ht{font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:1px;color:var(--dim2);margin-top:6px;}
+.pg-ht b{font-weight:400;}
+.pg-card .pg-kc{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:7px 9px;border:1px dashed rgba(255,58,92,.3);background:rgba(255,58,92,.04);}
+.pg-card .pg-kc span{font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:1.6px;color:var(--dim2);}
+.pg-card .pg-kc b{font-family:'Orbitron',monospace;font-size:11px;color:var(--red);}
+.pg-card .pg-ft{display:flex;justify-content:space-between;align-items:center;margin-top:9px;font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--dim2);}
+.pg-card .pg-ft b{color:var(--cyan);font-weight:400;}
+.pg-card .pg-nt{border:1px solid rgba(118,158,205,.25);padding:2px 6px;cursor:pointer;}
+.pg-card .pg-nt:hover{border-color:var(--gold);}
+@media (max-width:640px){
+  #pgAct .pg-kp{margin-left:0;width:100%;justify-content:space-between;gap:10px;}
+  #pgAct .pg-bars{grid-template-columns:1fr;gap:8px;}
+  #panel-progresja .ctab.pg-tab{min-width:calc(50% - 4px);}
+  #panel-progresja .pg-path .pp-node span{font-size:7.5px;}
+  #panel-progresja .pg-path .pp-node i{width:11px;height:11px;}
+}
 </style>
 
