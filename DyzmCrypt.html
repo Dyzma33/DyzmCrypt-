@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v281 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v282 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v281 · EXECUTION OS</div>
+    <div class="splash-ver">v282 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v281</div>
+      <div class="sb-logo-sub">EXECUTION OS · v282</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v281';
+window.DC_VERSION = 'v282';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -18235,6 +18235,7 @@ document.addEventListener('paste', function(e) {
       <input type="file" id="byFile" accept="image/*" hidden onchange="byFromFile(this.files&&this.files[0])">
       <div class="by-result" id="byResult" hidden></div>
     </div>
+
 
     <div class="opz-field-row">
       <div class="opz-field">
@@ -34971,7 +34972,7 @@ function slRender() {
               : '<span class="sl-tag m">' + slEsc(m) + '</span>').join('')
           + '</div>'))).join('')
       + (e.note ? '<div class="sl-note">' + slEsc(e.note) + '</div>' : '')
-      + (hasShot ? '<img class="sl-thumb shot-lazy" data-sid="' + slEsc(e.shotId) + '" loading="lazy" onclick="dcShotOpen(\'' + slEsc(e.shotId) + '\')">' : '')
+      + ((typeof csPairsHtml === 'function' && csPairsHtml(e, hasShot)) || (hasShot ? '<img class="sl-thumb shot-lazy" data-sid="' + slEsc(e.shotId) + '" loading="lazy" onclick="dcShotOpen(\'' + slEsc(e.shotId) + '\')">' : ''))
       + linksHtml
       + '</div>';
   };
@@ -37693,6 +37694,91 @@ function pgAll() {
   setInterval(function () { const p = document.getElementById('panel-progresja'); if (p && p.offsetParent) ['c1', 'c2', 'c3', 'c33'].forEach(function (c) { buildLevels(c); }); }, 20000);
 })();
 
+</script>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  V282 · ZDJĘCIE PRZED / PO — z dwóch wpisów Session Logu
+//  PRZED = zdjęcie wpisu, w którym pozycję OTWORZYŁEŚ (rola OTWARTA).
+//  PO    = zdjęcie wpisu, w którym ją ZAMKNĄŁEŚ (rola ZAMKNIĘTA).
+//  Wpisy łączy ta sama pozycja (numer pozycji albo transakcji). Para
+//  stoi na obu kartach, klik → porównanie na cały ekran.
+// ══════════════════════════════════════════════════════════════
+function csKeys(l, e) {
+  const k = [];
+  if (!l || l.role === 'pending' || l.role === 'observed') return k;
+  if (l.posId != null) k.push('p' + l.posId);
+  if (l.tradeId != null) k.push('t' + l.tradeId);
+  try { const R = slResolve(l, e); if (R && R.kind === 'trade') { k.push('t' + R.f.t.id); if (R.f.t.posId != null) k.push('p' + R.f.t.posId); } } catch (err) {}
+  return k;
+}
+function csIndex(all) {
+  const ix = {};
+  (all || slAll()).forEach(function (e) {
+    (e && e.linkedTrades || []).forEach(function (l, li) {
+      if (!l || (l.role !== 'opened' && l.role !== 'closed')) return;
+      csKeys(l, e).forEach(function (k) { (ix[k] = ix[k] || []).push({ e: e, li: li, role: l.role }); });
+    });
+  });
+  return ix;
+}
+// pary dla jednego wpisu: [{ open:{e,li}, close:{e,li}, t }]
+function csPairsFor(e, all) {
+  const ix = csIndex(all), out = [], seen = {};
+  (e.linkedTrades || []).forEach(function (l, li) {
+    if (!l || (l.role !== 'opened' && l.role !== 'closed')) return;
+    const want = l.role === 'opened' ? 'closed' : 'opened';
+    let other = null;
+    csKeys(l, e).some(function (k) { return (ix[k] || []).some(function (x) { if (x.e.id !== e.id && x.role === want) { other = x; return true; } return false; }); });
+    if (!other || seen[other.e.id]) return; seen[other.e.id] = 1;
+    const me = { e: e, li: li };
+    const pair = l.role === 'opened' ? { open: me, close: other } : { open: other, close: me };
+    try { const R = slResolve(pair.close.e.linkedTrades[pair.close.li], pair.close.e) || slResolve(pair.open.e.linkedTrades[pair.open.li], pair.open.e); if (R && R.kind === 'trade') pair.t = R.f.t; } catch (err) {}
+    out.push(pair);
+  });
+  return out;
+}
+function csWho(x) { return 'wpis #' + slEsc(x.e.slid != null ? x.e.slid : '?') + ' · S' + slEsc(x.e.sess || '?') + (x.e.date ? ' · ' + slEsc(String(x.e.date).slice(5).split('-').reverse().join('.')) : ''); }
+function csShotCell(x, cls, lab) {
+  const sid = slHasShot(x.e.shotId) ? x.e.shotId : null;
+  return '<div class="cs-pt ' + cls + '"><span>' + lab + '</span>'
+    + (sid ? '<img class="shot-lazy" data-sid="' + slEsc(sid) + '" loading="lazy">' : '<div class="cs-ph">brak zdjęcia we wpisie<br><small>' + csWho(x) + '</small></div>') + '</div>';
+}
+function csPnl(t) { if (!t) return null; return parseFloat(t.pnl) || 0; }
+function csCol(v) { return v == null ? 'var(--gold)' : v > 1 ? 'var(--green)' : v < -1 ? 'var(--red)' : 'var(--gold)'; }
+function csPairsHtml(e, hasShot) {
+  const P = csPairsFor(e);
+  if (!P.length) return '';
+  return P.map(function (x, n) {
+    const v = csPnl(x.t), tok = x.t ? x.t.token + (x.t.dir ? ' ' + x.t.dir : '') : (x.open.e.linkedTrades[x.open.li].token || '');
+    return '<div class="cs-pair" onclick="csCompare(' + e.id + ',' + n + ')">'
+      + csShotCell(x.open, x.open.e.id === e.id ? 'me' : '', 'PRZED · ' + csWho(x.open))
+      + '<div class="cs-mid"><i>⟶</i></div>'
+      + '<div style="--pc:' + csCol(v) + ';display:contents">' + csShotCell(x.close, 'po' + (x.close.e.id === e.id ? ' me' : ''), 'PO · ' + csWho(x.close)) + '</div>'
+      + '<div class="cs-cap">' + slEsc(tok) + (v != null ? ' · <b style="color:' + csCol(v) + '">' + (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2) + '$</b>' : '') + ' · klik → porównaj</div>'
+      + '</div>';
+  }).join('');
+}
+function csCompare(entryId, n) {
+  const e = slAll().find(function (x) { return x && x.id === entryId; }); if (!e) return;
+  const x = csPairsFor(e)[n]; if (!x) return;
+  let ov = document.getElementById('csOv');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'csOv'; ov.onclick = function (ev) { if (ev.target === ov || ev.target.classList.contains('cs-close')) ov.classList.remove('open'); }; document.body.appendChild(ov); }
+  const v = csPnl(x.t), tok = x.t ? x.t.token + ' ' + (x.t.dir || '') : '';
+  const side = function (y, lab, c) {
+    const sid = slHasShot(y.e.shotId) ? y.e.shotId : null;
+    return '<div class="cs-side" style="--pc:' + c + '"><div class="cs-sl">' + lab + ' · ' + csWho(y) + '</div>'
+      + (sid ? '<img class="shot-lazy" data-sid="' + slEsc(sid) + '" onclick="dcShotOpen(\'' + slEsc(sid) + '\')">' : '<div class="cs-ph">brak zdjęcia — dodaj je w tym wpisie (✎)</div>')
+      + (y.e.note ? '<div class="cs-nt">' + slEsc(y.e.note) + '</div>' : '') + '</div>';
+  };
+  ov.innerHTML = '<div class="cs-box"><div class="cs-hd"><b>PRZED / PO</b><span>' + slEsc(tok)
+    + (v != null ? ' · <b style="color:' + csCol(v) + '">' + (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2) + '$</b>' : '') + '</span><span class="cs-close">✕</span></div>'
+    + '<div class="cs-two">' + side(x.open, 'PRZED · otwarcie', 'var(--cyan)') + side(x.close, 'PO · zamknięcie', csCol(v)) + '</div>'
+    + '<div class="cs-ft">klik w zdjęcie → pełny ekran</div></div>';
+  ov.classList.add('open');
+  if (typeof dcShotHydrate === 'function') dcShotHydrate(ov);
+}
+window.csPairsHtml = csPairsHtml; window.csCompare = csCompare;
 </script>
 </body>
 </html>
@@ -41404,5 +41490,40 @@ body.dc-phone #panel-start .tele-center-grid{grid-template-columns:repeat(2,minm
   #panel-progresja .pg-path .pp-node span{font-size:7.5px;}
   #panel-progresja .pg-path .pp-node i{width:11px;height:11px;}
 }
+
+/* ══ V282 · ZDJĘCIE PRZED / PO ══ */
+.cs-strip{margin:0 0 14px;}
+.cs-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.cs-slot{position:relative;border:1px solid rgba(0,200,240,.3);background:rgba(10,16,27,.8);min-height:92px;padding:18px 6px 6px;display:flex;align-items:center;justify-content:center;}
+.cs-slot.po{border:1px dashed rgba(240,180,41,.55);cursor:pointer;} .cs-slot.po.has{border-style:solid;border-color:var(--gold);}
+.cs-slot img{max-width:100%;max-height:120px;display:block;cursor:zoom-in;}
+.cs-lb{position:absolute;top:4px;left:7px;font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:1.5px;color:var(--cyan);}
+.cs-slot.po .cs-lb{color:var(--gold);}
+.cs-ph{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim2);text-align:center;line-height:1.5;} .cs-ph small{font-size:7.5px;opacity:.8;}
+.cs-x{position:absolute;top:3px;right:6px;color:var(--red);cursor:pointer;font-size:12px;}
+.cs-pair{display:grid;grid-template-columns:1fr 26px 1fr;align-items:stretch;gap:0;margin:10px 0 6px;cursor:pointer;border:1px solid rgba(118,158,205,.16);background:rgba(5,8,14,.6);padding:6px;}
+.cs-pair:hover{border-color:rgba(240,180,41,.5);}
+.cs-pt{position:relative;display:flex;flex-direction:column;gap:4px;min-width:0;}
+.cs-pt span{font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:1.3px;color:var(--cyan);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cs-pt.po span{color:var(--pc);}
+.cs-pt img{width:100%;height:120px;object-fit:cover;border:1px solid rgba(0,200,240,.35);display:block;background:#05080a;}
+.cs-pt.po img{border-color:var(--pc);box-shadow:0 0 10px color-mix(in srgb,var(--pc) 30%,transparent);}
+.cs-pt .cs-ph{height:120px;display:flex;align-items:center;justify-content:center;border:1px dashed rgba(118,158,205,.25);}
+.cs-mid{display:flex;align-items:center;justify-content:center;} .cs-mid i{font-style:normal;color:var(--gold);font-size:14px;}
+.cs-pair{grid-template-columns:1fr 26px 1fr;} .cs-cap{grid-column:1 / -1;font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--dim2);margin-top:5px;}
+.cs-pt.me img{outline:1px solid rgba(255,255,255,.35);} .cs-pt .cs-ph small{display:block;margin-top:3px;}
+.cs-nt{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--dim2);margin-top:6px;}
+#csOv{position:fixed;inset:0;z-index:99990;background:rgba(2,4,8,.92);display:none;align-items:center;justify-content:center;padding:14px;}
+#csOv.open{display:flex;}
+.cs-box{width:min(1400px,100%);max-height:100%;overflow:auto;border:1px solid rgba(240,180,41,.35);background:#070b13;padding:12px;}
+.cs-hd{display:flex;align-items:center;gap:12px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim2);letter-spacing:1px;margin-bottom:10px;}
+.cs-hd > b{font-family:'Orbitron',monospace;font-size:12px;letter-spacing:2px;color:var(--gold);}
+.cs-close{margin-left:auto;cursor:pointer;color:var(--text);font-size:14px;padding:2px 8px;border:1px solid rgba(118,158,205,.3);}
+.cs-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.cs-side{border:1px solid var(--pc);padding:6px;background:#05080a;} .cs-side img{width:100%;display:block;cursor:zoom-in;}
+.cs-sl{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:2px;color:var(--pc);margin-bottom:5px;}
+.cs-side .cs-ph{min-height:200px;display:flex;align-items:center;justify-content:center;}
+.cs-ft{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim2);margin-top:8px;letter-spacing:1px;} .cs-ft span{color:var(--gold);cursor:pointer;}
+@media (max-width:700px) and (orientation:portrait){ .cs-two{grid-template-columns:1fr;} }
 </style>
 
