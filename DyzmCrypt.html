@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DYZMCRYPT v282 — Tactical Execution Cockpit</title>
+<title>DYZMCRYPT v283 — Tactical Execution Cockpit</title>
 <!-- V201: wymuszenie świeżości. GitHub Pages serwuje HTML z cache do ~10 min,
      przez co po wgraniu długo widać starą wersję. Te trzy nagłówki każą
      przeglądarce sprawdzać serwer przy każdym wejściu. -->
@@ -7179,7 +7179,7 @@ body.os-lockdown #workspace::before {
     <!-- BRAND TEXT -->
     <div class="splash-brand">DYZMCRYPT</div>
     <div class="splash-tagline">TACTICAL EXECUTION COCKPIT</div>
-    <div class="splash-ver">v282 · EXECUTION OS</div>
+    <div class="splash-ver">v283 · EXECUTION OS</div>
 
     <!-- PROGRESS BAR -->
     <div class="splash-progress-wrap">
@@ -7439,7 +7439,7 @@ body.os-lockdown #workspace::before {
     </div>
     <div class="sb-logo-text">
       <div class="sb-logo-name">DYZMCRYPT</div>
-      <div class="sb-logo-sub">EXECUTION OS · v282</div>
+      <div class="sb-logo-sub">EXECUTION OS · v283</div>
     </div>
     <button class="sb-toggle" onclick="toggleSidebar()" id="sbToggleBtn">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M6.5 2L3.5 5L6.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -8070,7 +8070,7 @@ window.dcDayStr = dcDayStr;
 // Wpisz w konsoli: DC_VERSION  → dostaniesz wersję pliku, który REALNIE działa.
 // Jeśli splash pokazuje inną liczbę niż ta, znaczy że przeglądarka albo
 // GitHub Pages serwuje starszą kopię (a nie że kod jest zły).
-window.DC_VERSION = 'v282';
+window.DC_VERSION = 'v283';
 console.log('%c DYZMCRYPT ' + window.DC_VERSION + ' ', 'background:#00e87a;color:#04121a;font-weight:700;padding:2px 6px;border-radius:3px');
 
 // ══ V176: UKŁAD EKRANU — iPad / Telefon / Auto ══
@@ -41525,5 +41525,56 @@ body.dc-phone #panel-start .tele-center-grid{grid-template-columns:repeat(2,minm
 .cs-side .cs-ph{min-height:200px;display:flex;align-items:center;justify-content:center;}
 .cs-ft{font-family:'Share Tech Mono',monospace;font-size:8.5px;color:var(--dim2);margin-top:8px;letter-spacing:1px;} .cs-ft span{color:var(--gold);cursor:pointer;}
 @media (max-width:700px) and (orientation:portrait){ .cs-two{grid-template-columns:1fr;} }
+
+/* ══ V283 · PROGRESJA — GŁĘBIA I POŚWIATA (nie płasko) ══ */
+#panel-progresja .lc.pg-card{position:relative !important;overflow:hidden !important;
+  background:radial-gradient(120% 80% at 0% 0%,color-mix(in srgb,var(--c) 14%,transparent),transparent 55%),
+             linear-gradient(180deg,rgba(18,28,46,.96),rgba(7,11,19,.98)) !important;
+  border:1px solid color-mix(in srgb,var(--c) 30%,rgba(118,158,205,.12)) !important;border-left:3px solid var(--c) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),inset 0 0 30px color-mix(in srgb,var(--c) 6%,transparent),0 10px 26px rgba(0,0,0,.55),0 0 18px color-mix(in srgb,var(--c) 10%,transparent) !important;}
+/* narożniki HUD */
+#panel-progresja .lc.pg-card::before,#panel-progresja .lc.pg-card::after{display:block !important;content:'' !important;position:absolute !important;width:14px !important;height:14px !important;pointer-events:none;background:none !important;opacity:.9 !important;animation:none !important;border:0 !important;box-shadow:none !important;border-radius:0 !important;transform:none !important;}
+#panel-progresja .lc.pg-card::before{top:4px !important;right:4px !important;left:auto !important;bottom:auto !important;border-top:2px solid var(--c) !important;border-right:2px solid var(--c) !important;}
+#panel-progresja .lc.pg-card::after{bottom:4px !important;left:6px !important;right:auto !important;top:auto !important;border-bottom:2px solid var(--c) !important;border-left:2px solid var(--c) !important;}
+/* plakietka stanu świeci */
+.pg-card .pg-bd{background:color-mix(in srgb,var(--c) 14%,transparent);box-shadow:0 0 10px color-mix(in srgb,var(--c) 45%,transparent),inset 0 0 8px color-mix(in srgb,var(--c) 20%,transparent);text-shadow:0 0 6px var(--c);border-radius:2px;}
+.pg-card .pg-tg{text-shadow:0 0 10px color-mix(in srgb,var(--c) 70%,transparent);}
+
+/* AKTYWNY — zielona poświata, lekki puls */
+#panel-progresja .lc.pg-card.state-active{border-color:var(--green) !important;
+  background:radial-gradient(120% 90% at 0% 0%,rgba(0,232,122,.20),transparent 55%),radial-gradient(90% 60% at 100% 100%,rgba(0,232,122,.08),transparent 60%),linear-gradient(180deg,rgba(14,32,32,.96),rgba(6,12,16,.98)) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 0 0 28px rgba(0,232,122,.14),0 0 0 1px rgba(0,232,122,.45),0 0 26px rgba(0,232,122,.38),0 0 60px rgba(0,232,122,.14),0 12px 28px rgba(0,0,0,.55) !important;
+  animation:pgPulse 3.2s ease-in-out infinite !important;}
+@keyframes pgPulse{0%,100%{box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 0 0 28px rgba(0,232,122,.14),0 0 0 1px rgba(0,232,122,.45),0 0 22px rgba(0,232,122,.30),0 0 50px rgba(0,232,122,.10),0 12px 28px rgba(0,0,0,.55);}
+  50%{box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 0 0 34px rgba(0,232,122,.20),0 0 0 1px rgba(0,232,122,.7),0 0 34px rgba(0,232,122,.48),0 0 76px rgba(0,232,122,.18),0 12px 28px rgba(0,0,0,.55);}}
+.pg-card.state-active .pg-rk{color:#fff;text-shadow:0 0 16px rgba(0,232,122,.55);}
+.pg-card.state-active .pg-bd{background:rgba(0,232,122,.18);color:#bfffe0;}
+/* ZALICZONY — cyjan, spokojniej */
+#panel-progresja .lc.pg-card.state-done{border-color:rgba(0,200,240,.45) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),inset 0 0 26px rgba(0,200,240,.10),0 0 0 1px rgba(0,200,240,.18),0 0 22px rgba(0,200,240,.20),0 10px 26px rgba(0,0,0,.55) !important;}
+.pg-card.state-done .pg-rk{text-shadow:0 0 14px rgba(0,200,240,.45);}
+/* ZABLOKOWANY — czerwona plakietka świeci, treść przygaszona (karta nie jest przezroczysta) */
+#panel-progresja .lc.pg-card.state-locked{opacity:1 !important;--c:var(--red) !important;border-left-color:rgba(255,58,92,.7) !important;border-color:rgba(255,58,92,.18) !important;
+  background:radial-gradient(110% 70% at 100% 0%,rgba(255,58,92,.10),transparent 55%),repeating-linear-gradient(135deg,rgba(255,255,255,.012) 0 8px,transparent 8px 16px),linear-gradient(180deg,rgba(16,20,32,.96),rgba(7,9,15,.98)) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),inset 0 0 26px rgba(255,58,92,.05),0 10px 26px rgba(0,0,0,.6) !important;}
+#panel-progresja .lc.pg-card.state-locked::before,#panel-progresja .lc.pg-card.state-locked::after{opacity:.45 !important;}
+.pg-card.state-locked .pg-tg{color:rgba(255,120,140,.8);text-shadow:none;}
+.pg-card.state-locked .pg-rk,.pg-card.state-locked .pg-gr,.pg-card.state-locked .pg-pp,.pg-card.state-locked .pg-kc,.pg-card.state-locked .pg-ft{opacity:.5;}
+.pg-card.state-locked .pg-bd{color:#ff8da0;border-color:var(--red);background:rgba(255,58,92,.14);box-shadow:0 0 12px rgba(255,58,92,.5),inset 0 0 8px rgba(255,58,92,.25);text-shadow:0 0 6px rgba(255,58,92,.9);border-radius:10px;padding:3px 9px;}
+#panel-progresja .lc.pg-card.state-locked:hover{opacity:1 !important;}
+#panel-progresja .lc.pg-card.state-locked:hover .pg-rk,#panel-progresja .lc.pg-card.state-locked:hover .pg-gr{opacity:.8;}
+/* pasek aktywnego poziomu */
+#panel-progresja .pg-asb:not(.pg-off){background:radial-gradient(80% 120% at 0% 0%,rgba(0,232,122,.18),transparent 60%),linear-gradient(180deg,rgba(14,30,32,.96),rgba(6,12,16,.98)) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),inset 0 0 30px rgba(0,232,122,.10),0 0 0 1px rgba(0,232,122,.35),0 0 30px rgba(0,232,122,.22),0 12px 30px rgba(0,0,0,.5) !important;}
+
+/* zakładki i ścieżka */
+#panel-progresja .ctab.pg-tab.active{box-shadow:0 0 18px color-mix(in srgb,var(--tc) 30%,transparent),inset 0 0 16px color-mix(in srgb,var(--tc) 12%,transparent) !important;}
+#panel-progresja .ctab.pg-tab.active .t{text-shadow:0 0 10px var(--tc);}
+#panel-progresja .pg-path .pp-node.pp-done i{box-shadow:0 0 10px var(--c);}
+#panel-progresja .pg-path .pp-node.pp-active i{box-shadow:0 0 8px var(--c),0 0 20px var(--c);animation:pgDia 1.8s ease-in-out infinite !important;}
+@keyframes pgDia{50%{box-shadow:0 0 14px var(--c),0 0 32px var(--c);}}
+#panel-progresja .pg-path .pp-node.pp-drop i{box-shadow:0 0 10px var(--c);}
+.pg-card .pg-tg{white-space:nowrap;}
+
 </style>
 
